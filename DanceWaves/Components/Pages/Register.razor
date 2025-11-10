@@ -1,0 +1,230 @@
+@page "/register"
+@using DanceWaves.Application.Dtos
+@using DanceWaves.Application.Ports
+@using DanceWaves.Application.UseCases
+@inject NavigationManager Navigation
+@inject IAuthenticationPort AuthenticationPort
+@rendermode InteractiveServer
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-7">
+            <div class="card shadow-lg">
+                <div class="card-body p-5">
+                    <h2 class="card-title text-center mb-4">Create Your Account</h2>
+                    <p class="text-center text-muted mb-4">Join DanceWaves and start competing</p>
+
+                    @if (!string.IsNullOrEmpty(ErrorMessage))
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            @ErrorMessage
+                            <button type="button" class="btn-close" @onclick="@(() => ErrorMessage = null)"></button>
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrEmpty(SuccessMessage))
+                    {
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            @SuccessMessage
+                            <button type="button" class="btn-close" @onclick="@(() => SuccessMessage = null)"></button>
+                        </div>
+                    }
+
+                    <form @onsubmit="HandleRegister">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="firstName" class="form-label">First Name <span class="text-danger">*</span></label>
+                                <input type="text" 
+                                       class="form-control @(ValidationErrors.ContainsKey(nameof(RegisterRequest.FirstName)) ? "is-invalid" : "")" 
+                                       id="firstName" 
+                                       @bind="RegisterRequest.FirstName" 
+                                       placeholder="First name"
+                                       required>
+                                @if (ValidationErrors.ContainsKey(nameof(RegisterRequest.FirstName)))
+                                {
+                                    <div class="invalid-feedback d-block">@ValidationErrors[nameof(RegisterRequest.FirstName)]</div>
+                                }
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="lastName" class="form-label">Last Name <span class="text-danger">*</span></label>
+                                <input type="text" 
+                                       class="form-control @(ValidationErrors.ContainsKey(nameof(RegisterRequest.LastName)) ? "is-invalid" : "")" 
+                                       id="lastName" 
+                                       @bind="RegisterRequest.LastName" 
+                                       placeholder="Last name"
+                                       required>
+                                @if (ValidationErrors.ContainsKey(nameof(RegisterRequest.LastName)))
+                                {
+                                    <div class="invalid-feedback d-block">@ValidationErrors[nameof(RegisterRequest.LastName)]</div>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email Address <span class="text-danger">*</span></label>
+                            <input type="email" 
+                                   class="form-control @(ValidationErrors.ContainsKey(nameof(RegisterRequest.Email)) ? "is-invalid" : "")" 
+                                   id="email" 
+                                   @bind="RegisterRequest.Email" 
+                                   placeholder="your.email@example.com"
+                                   required>
+                            @if (ValidationErrors.ContainsKey(nameof(RegisterRequest.Email)))
+                            {
+                                <div class="invalid-feedback d-block">@ValidationErrors[nameof(RegisterRequest.Email)]</div>
+                            }
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="phone" class="form-label">Phone Number (Optional)</label>
+                            <input type="tel" 
+                                   class="form-control" 
+                                   id="phone" 
+                                   @bind="RegisterRequest.PhoneNumber" 
+                                   placeholder="+1 (555) 123-4567">
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="password" class="form-label">Password <span class="text-danger">*</span></label>
+                                <input type="password" 
+                                       class="form-control @(ValidationErrors.ContainsKey(nameof(RegisterRequest.Password)) ? "is-invalid" : "")" 
+                                       id="password" 
+                                       @bind="RegisterRequest.Password" 
+                                       placeholder="Enter password"
+                                       required>
+                                @if (ValidationErrors.ContainsKey(nameof(RegisterRequest.Password)))
+                                {
+                                    <div class="invalid-feedback d-block">@ValidationErrors[nameof(RegisterRequest.Password)]</div>
+                                }
+                                <small class="form-text text-muted d-block mt-2">
+                                    Password must be at least 8 characters
+                                </small>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="confirmPassword" class="form-label">Confirm Password <span class="text-danger">*</span></label>
+                                <input type="password" 
+                                       class="form-control @(ValidationErrors.ContainsKey(nameof(RegisterRequest.ConfirmPassword)) ? "is-invalid" : "")" 
+                                       id="confirmPassword" 
+                                       @bind="RegisterRequest.ConfirmPassword" 
+                                       placeholder="Confirm password"
+                                       required>
+                                @if (ValidationErrors.ContainsKey(nameof(RegisterRequest.ConfirmPassword)))
+                                {
+                                    <div class="invalid-feedback d-block">@ValidationErrors[nameof(RegisterRequest.ConfirmPassword)]</div>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" 
+                                   class="form-check-input @(ValidationErrors.ContainsKey(nameof(RegisterRequest.AcceptTerms)) ? "is-invalid" : "")" 
+                                   id="terms" 
+                                   @bind="RegisterRequest.AcceptTerms"
+                                   required>
+                            <label class="form-check-label" for="terms">
+                                I agree to the 
+                                <a href="/terms" target="_blank" class="text-decoration-none">Terms of Service</a> 
+                                and 
+                                <a href="/privacy" target="_blank" class="text-decoration-none">Privacy Policy</a>
+                                <span class="text-danger">*</span>
+                            </label>
+                            @if (ValidationErrors.ContainsKey(nameof(RegisterRequest.AcceptTerms)))
+                            {
+                                <div class="invalid-feedback d-block">@ValidationErrors[nameof(RegisterRequest.AcceptTerms)]</div>
+                            }
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 mb-3" disabled="@IsLoading">
+                            @if (IsLoading)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                <span>Creating Account...</span>
+                            }
+                            else
+                            {
+                                <span>Create Account</span>
+                            }
+                        </button>
+                    </form>
+
+                    <hr class="my-4">
+
+                    <!-- Links -->
+                    <div class="text-center">
+                        <p class="mb-0">
+                            Already have an account? 
+                            <a href="/login" class="text-decoration-none fw-bold">Sign in here</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private RegisterRequest RegisterRequest { get; set; } = new();
+    private string? ErrorMessage { get; set; }
+    private string? SuccessMessage { get; set; }
+    private bool IsLoading { get; set; }
+    private Dictionary<string, string> ValidationErrors { get; set; } = new();
+
+    private async Task HandleRegister()
+    {
+        ValidationErrors.Clear();
+        ErrorMessage = null;
+
+        // Validation
+        if (string.IsNullOrWhiteSpace(RegisterRequest.FirstName))
+            ValidationErrors[nameof(RegisterRequest.FirstName)] = "First name is required";
+
+        if (string.IsNullOrWhiteSpace(RegisterRequest.LastName))
+            ValidationErrors[nameof(RegisterRequest.LastName)] = "Last name is required";
+
+        if (string.IsNullOrWhiteSpace(RegisterRequest.Email))
+            ValidationErrors[nameof(RegisterRequest.Email)] = "Email is required";
+
+        if (string.IsNullOrWhiteSpace(RegisterRequest.Password))
+            ValidationErrors[nameof(RegisterRequest.Password)] = "Password is required";
+        else if (RegisterRequest.Password.Length < 8)
+            ValidationErrors[nameof(RegisterRequest.Password)] = "Password must be at least 8 characters";
+
+        if (RegisterRequest.Password != RegisterRequest.ConfirmPassword)
+            ValidationErrors[nameof(RegisterRequest.ConfirmPassword)] = "Passwords do not match";
+
+        if (!RegisterRequest.AcceptTerms)
+            ValidationErrors[nameof(RegisterRequest.AcceptTerms)] = "You must accept the terms and conditions";
+
+        if (ValidationErrors.Count > 0)
+            return;
+
+        IsLoading = true;
+
+        try
+        {
+            var useCase = new RegisterUseCase(AuthenticationPort);
+            var response = await useCase.ExecuteAsync(RegisterRequest);
+
+            if (response.IsSuccess)
+            {
+                SuccessMessage = "Account created successfully! Redirecting to login...";
+                await Task.Delay(2000);
+                Navigation.NavigateTo("/login");
+            }
+            else
+            {
+                ErrorMessage = response.Message ?? "Registration failed. Please try again.";
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"An error occurred: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+}

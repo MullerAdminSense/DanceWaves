@@ -23,6 +23,7 @@ namespace DanceWaves.Data
         public DbSet<Level> Levels { get; set; }
         public DbSet<EntryType> EntryTypes { get; set; }
         public DbSet<UserRolePermission> UserRolePermissions { get; set; }
+        public DbSet<AuthenticationUser> AuthenticationUsers { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -153,6 +154,28 @@ namespace DanceWaves.Data
                 b.HasKey(et => et.Id);
                 b.Property(et => et.Id).ValueGeneratedOnAdd();
                 b.Property(et => et.Name).HasMaxLength(100).IsRequired();
+            });
+
+            // Authentication User Configuration
+            modelBuilder.Entity<AuthenticationUser>(b =>
+            {
+                b.HasKey(au => au.Id);
+                b.Property(au => au.Id).ValueGeneratedOnAdd();
+                b.Property(au => au.Provider).HasMaxLength(50).IsRequired();
+                b.Property(au => au.ExternalUserId).HasMaxLength(500);
+                b.Property(au => au.Email).HasMaxLength(200).IsRequired();
+                b.Property(au => au.PasswordHash).HasMaxLength(500);
+                b.Property(au => au.FirstName).HasMaxLength(100).IsRequired();
+                b.Property(au => au.LastName).HasMaxLength(100).IsRequired();
+                b.Property(au => au.PhoneNumber).HasMaxLength(20);
+                b.Property(au => au.ProfilePictureUrl).HasMaxLength(500);
+                b.Property(au => au.RefreshToken).HasMaxLength(500);
+                b.HasIndex(au => au.Email).IsUnique();
+                b.HasIndex(au => new { au.Provider, au.ExternalUserId }).IsUnique();
+                b.HasOne(au => au.User)
+                    .WithOne()
+                    .HasForeignKey<AuthenticationUser>(au => au.UserId)
+                    .OnDelete(DeleteBehavior.SetNull);
             });
         }
     }

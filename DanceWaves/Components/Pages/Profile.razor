@@ -1,0 +1,330 @@
+@page "/profile"
+@using DanceWaves.Application.Dtos
+@using DanceWaves.Application.Ports
+@using DanceWaves.Application.UseCases
+@inject NavigationManager Navigation
+@inject IAuthenticationPort AuthenticationPort
+@inject AuthenticationStateProvider AuthStateProvider
+@rendermode InteractiveServer
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            @if (CurrentUser == null)
+            {
+                <div class="alert alert-warning">
+                    Please <a href="/login" class="alert-link">sign in</a> to view your profile.
+                </div>
+            }
+            else
+            {
+                <ul class="nav nav-tabs mb-4" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile-content" type="button" role="tab" aria-controls="profile-content" aria-selected="true">
+                            Profile Information
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="security-tab" data-bs-toggle="tab" data-bs-target="#security-content" type="button" role="tab" aria-controls="security-content" aria-selected="false">
+                            Security
+                        </button>
+                    </li>
+                </ul>
+
+                <div class="tab-content">
+                    <!-- Profile Information Tab -->
+                    <div class="tab-pane fade show active" id="profile-content" role="tabpanel" aria-labelledby="profile-tab">
+                        <div class="card shadow-sm mb-4">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0">Edit Profile</h5>
+                            </div>
+                            <div class="card-body">
+                                @if (!string.IsNullOrEmpty(ProfileErrorMessage))
+                                {
+                                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                        @ProfileErrorMessage
+                                        <button type="button" class="btn-close" @onclick="@(() => ProfileErrorMessage = null)"></button>
+                                    </div>
+                                }
+
+                                @if (!string.IsNullOrEmpty(ProfileSuccessMessage))
+                                {
+                                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                                        @ProfileSuccessMessage
+                                        <button type="button" class="btn-close" @onclick="@(() => ProfileSuccessMessage = null)"></button>
+                                    </div>
+                                }
+
+                                <form @onsubmit="HandleUpdateProfile">
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="firstName" class="form-label">First Name</label>
+                                            <input type="text" class="form-control" id="firstName" @bind="CurrentUser.FirstName" required>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label for="lastName" class="form-label">Last Name</label>
+                                            <input type="text" class="form-control" id="lastName" @bind="CurrentUser.LastName" required>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="email" class="form-label">Email Address</label>
+                                        <input type="email" class="form-control" id="email" value="@CurrentUser.Email" disabled>
+                                        <small class="form-text text-muted">Email cannot be changed</small>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="phone" class="form-label">Phone Number</label>
+                                        <input type="tel" class="form-control" id="phone" @bind="CurrentUser.PhoneNumber">
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="provider" class="form-label">Authentication Method</label>
+                                        <input type="text" class="form-control" id="provider" value="@(CurrentUser.Provider == "local" ? "Local Account" : CurrentUser.Provider)" disabled>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="lastLogin" class="form-label">Last Login</label>
+                                        <input type="text" class="form-control" id="lastLogin" value="@CurrentUser.LastLoginAt.ToString("g")" disabled>
+                                    </div>
+
+                                    <button type="submit" class="btn btn-primary" disabled="@IsUpdatingProfile">
+                                        @if (IsUpdatingProfile)
+                                        {
+                                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                            <span>Updating...</span>
+                                        }
+                                        else
+                                        {
+                                            <span>Save Changes</span>
+                                        }
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Security Tab -->
+                    <div class="tab-pane fade" id="security-content" role="tabpanel" aria-labelledby="security-tab">
+                        @if (CurrentUser.Provider == "local")
+                        {
+                            <div class="card shadow-sm mb-4">
+                                <div class="card-header bg-warning text-white">
+                                    <h5 class="mb-0">Change Password</h5>
+                                </div>
+                                <div class="card-body">
+                                    @if (!string.IsNullOrEmpty(SecurityErrorMessage))
+                                    {
+                                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                            @SecurityErrorMessage
+                                            <button type="button" class="btn-close" @onclick="@(() => SecurityErrorMessage = null)"></button>
+                                        </div>
+                                    }
+
+                                    @if (!string.IsNullOrEmpty(SecuritySuccessMessage))
+                                    {
+                                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                                            @SecuritySuccessMessage
+                                            <button type="button" class="btn-close" @onclick="@(() => SecuritySuccessMessage = null)"></button>
+                                        </div>
+                                    }
+
+                                    <form @onsubmit="HandleChangePassword">
+                                        <div class="mb-3">
+                                            <label for="currentPassword" class="form-label">Current Password</label>
+                                            <input type="password" class="form-control" id="currentPassword" @bind="ChangePasswordRequest.CurrentPassword" required>
+                                        </div>
+
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label for="newPassword" class="form-label">New Password</label>
+                                                <input type="password" class="form-control" id="newPassword" @bind="ChangePasswordRequest.NewPassword" required>
+                                                <small class="form-text text-muted">At least 8 characters</small>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label for="confirmPassword" class="form-label">Confirm Password</label>
+                                                <input type="password" class="form-control" id="confirmPassword" @bind="ChangePasswordRequest.ConfirmPassword" required>
+                                            </div>
+                                        </div>
+
+                                        <button type="submit" class="btn btn-warning" disabled="@IsChangingPassword">
+                                            @if (IsChangingPassword)
+                                            {
+                                                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                                <span>Updating...</span>
+                                            }
+                                            else
+                                            {
+                                                <span>Change Password</span>
+                                            }
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="alert alert-info">
+                                <strong>Federated Account</strong><br>
+                                Your account is linked to @CurrentUser.Provider. 
+                                Password changes are managed by @CurrentUser.Provider.
+                            </div>
+                        }
+
+                        <div class="card shadow-sm">
+                            <div class="card-header bg-danger text-white">
+                                <h5 class="mb-0">Danger Zone</h5>
+                            </div>
+                            <div class="card-body">
+                                <p>Once you delete your account, there is no going back.</p>
+                                <button type="button" class="btn btn-danger" @onclick="@(() => ShowDeleteConfirm = true)">
+                                    Delete Account
+                                </button>
+                            </div>
+                        </div>
+
+                        @if (ShowDeleteConfirm)
+                        {
+                            <div class="alert alert-danger mt-3" role="alert">
+                                <h4 class="alert-heading">Confirm Account Deletion</h4>
+                                <p>Are you absolutely sure you want to delete your account? This action cannot be undone.</p>
+                                <hr>
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-danger" @onclick="HandleDeleteAccount">Yes, Delete My Account</button>
+                                    <button type="button" class="btn btn-secondary" @onclick="@(() => ShowDeleteConfirm = false)">Cancel</button>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private UserDto? CurrentUser { get; set; }
+    private ChangePasswordRequest ChangePasswordRequest { get; set; } = new();
+    private string? ProfileErrorMessage { get; set; }
+    private string? ProfileSuccessMessage { get; set; }
+    private string? SecurityErrorMessage { get; set; }
+    private string? SecuritySuccessMessage { get; set; }
+    private bool IsUpdatingProfile { get; set; }
+    private bool IsChangingPassword { get; set; }
+    private bool ShowDeleteConfirm { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var userId = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (!string.IsNullOrEmpty(userId))
+        {
+            CurrentUser = await AuthenticationPort.GetCurrentUserAsync(userId);
+        }
+    }
+
+    private async Task HandleUpdateProfile()
+    {
+        ProfileErrorMessage = null;
+        ProfileSuccessMessage = null;
+        IsUpdatingProfile = true;
+
+        try
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var userId = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+            {
+                ProfileErrorMessage = "User not authenticated.";
+                return;
+            }
+            var useCase = new UpdateProfileUseCase(AuthenticationPort);
+            var response = await useCase.ExecuteAsync(userId, CurrentUser!);
+
+            if (response.IsSuccess)
+            {
+                ProfileSuccessMessage = "Profile updated successfully!";
+                CurrentUser = response.User;
+            }
+            else
+            {
+                ProfileErrorMessage = response.Message ?? "Failed to update profile";
+            }
+        }
+        catch (Exception ex)
+        {
+            ProfileErrorMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            IsUpdatingProfile = false;
+        }
+    }
+
+    private async Task HandleChangePassword()
+    {
+        SecurityErrorMessage = null;
+        SecuritySuccessMessage = null;
+        IsChangingPassword = true;
+
+        if (ChangePasswordRequest.NewPassword != ChangePasswordRequest.ConfirmPassword)
+        {
+            SecurityErrorMessage = "Passwords do not match";
+            IsChangingPassword = false;
+            return;
+        }
+
+        if (ChangePasswordRequest.NewPassword?.Length < 8)
+        {
+            SecurityErrorMessage = "Password must be at least 8 characters";
+            IsChangingPassword = false;
+            return;
+        }
+
+        try
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var userId = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+            {
+                SecurityErrorMessage = "User not authenticated.";
+                return;
+            }
+            var useCase = new ChangePasswordUseCase(AuthenticationPort);
+            var response = await useCase.ExecuteAsync(userId, ChangePasswordRequest);
+
+            if (response.IsSuccess)
+            {
+                SecuritySuccessMessage = "Password changed successfully!";
+                ChangePasswordRequest = new();
+            }
+            else
+            {
+                SecurityErrorMessage = response.Message ?? "Failed to change password";
+            }
+        }
+        catch (Exception ex)
+        {
+            SecurityErrorMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            IsChangingPassword = false;
+        }
+    }
+
+    private async Task HandleDeleteAccount()
+    {
+        try
+        {
+            // TODO: Implement account deletion
+            SecuritySuccessMessage = "Account deletion will be implemented";
+            await Task.Delay(2000);
+            Navigation.NavigateTo("/");
+        }
+        catch (Exception ex)
+        {
+            SecurityErrorMessage = $"Error: {ex.Message}";
+        }
+    }
+}

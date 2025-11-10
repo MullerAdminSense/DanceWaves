@@ -1,0 +1,195 @@
+@page "/login"
+@using DanceWaves.Application.Dtos
+@using DanceWaves.Application.Ports
+@using DanceWaves.Application.UseCases
+@inject NavigationManager Navigation
+@inject IAuthenticationPort AuthenticationPort
+@rendermode InteractiveServer
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-lg">
+                <div class="card-body p-5">
+                    <h2 class="card-title text-center mb-4">Welcome to DanceWaves</h2>
+                    <p class="text-center text-muted mb-4">Sign in to your account</p>
+
+                    @if (!string.IsNullOrEmpty(ErrorMessage))
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            @ErrorMessage
+                            <button type="button" class="btn-close" @onclick="@(() => ErrorMessage = null)"></button>
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrEmpty(SuccessMessage))
+                    {
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            @SuccessMessage
+                            <button type="button" class="btn-close" @onclick="@(() => SuccessMessage = null)"></button>
+                        </div>
+                    }
+
+                    <!-- Local Account Login -->
+                    <form @onsubmit="HandleLocalLogin">
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email Address</label>
+                            <input type="email" 
+                                   class="form-control @(HasEmailError ? "is-invalid" : "")" 
+                                   id="email" 
+                                   @bind="LoginRequest.Email" 
+                                   placeholder="Enter your email"
+                                   required>
+                            @if (HasEmailError)
+                            {
+                                <div class="invalid-feedback">Please provide a valid email.</div>
+                            }
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Password</label>
+                            <input type="password" 
+                                   class="form-control @(HasPasswordError ? "is-invalid" : "")" 
+                                   id="password" 
+                                   @bind="LoginRequest.Password" 
+                                   placeholder="Enter your password"
+                                   required>
+                            @if (HasPasswordError)
+                            {
+                                <div class="invalid-feedback">Password is required.</div>
+                            }
+                        </div>
+
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="rememberMe" @bind="LoginRequest.RememberMe">
+                            <label class="form-check-label" for="rememberMe">
+                                Remember me
+                            </label>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 mb-3" disabled="@IsLoading">
+                            @if (IsLoading)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                <span>Signing in...</span>
+                            }
+                            else
+                            {
+                                <span>Sign In</span>
+                            }
+                        </button>
+                    </form>
+
+                    <div class="text-center mb-4">
+                        <p class="text-muted">or</p>
+                    </div>
+
+                    <!-- Federated Authentication Buttons -->
+                    <div class="d-grid gap-2">
+                        <button type="button" class="btn btn-outline-danger mb-2" @onclick="HandleMicrosoftLogin" disabled="@IsLoading">
+                            <i class="bi bi-microsoft"></i> Sign in with Microsoft
+                        </button>
+                        <button type="button" class="btn btn-outline-danger mb-2" @onclick="HandleGoogleLogin" disabled="@IsLoading">
+                            <i class="bi bi-google"></i> Sign in with Google
+                        </button>
+                        <button type="button" class="btn btn-outline-dark" @onclick="HandleAppleLogin" disabled="@IsLoading">
+                            <i class="bi bi-apple"></i> Sign in with Apple
+                        </button>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <!-- Links -->
+                    <div class="text-center">
+                        <p class="mb-2">
+                            <a href="/forgot-password" class="text-decoration-none">Forgot your password?</a>
+                        </p>
+                        <p>
+                            Don't have an account? 
+                            <a href="/register" class="text-decoration-none fw-bold">Create one</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private LoginRequest LoginRequest { get; set; } = new();
+    private string? ErrorMessage { get; set; }
+    private string? SuccessMessage { get; set; }
+    private bool IsLoading { get; set; }
+    private bool HasEmailError { get; set; }
+    private bool HasPasswordError { get; set; }
+
+    private async Task HandleLocalLogin()
+    {
+        // Reset error states
+        HasEmailError = false;
+        HasPasswordError = false;
+
+        // Validation
+        if (string.IsNullOrWhiteSpace(LoginRequest.Email))
+        {
+            HasEmailError = true;
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(LoginRequest.Password))
+        {
+            HasPasswordError = true;
+            return;
+        }
+
+        IsLoading = true;
+        ErrorMessage = null;
+
+        try
+        {
+            var useCase = new LoginUseCase(AuthenticationPort);
+            var response = await useCase.ExecuteAsync(LoginRequest);
+
+            if (response.IsSuccess)
+            {
+                SuccessMessage = "Login successful! Redirecting...";
+                // Store token in session/local storage
+                await Task.Delay(1000);
+                Navigation.NavigateTo("/");
+            }
+            else
+            {
+                ErrorMessage = response.Message ?? "Login failed. Please try again.";
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"An error occurred: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private Task HandleMicrosoftLogin()
+    {
+        // TODO: Implement Microsoft Entra ID login flow
+        ErrorMessage = "Microsoft login will be implemented with Azure AD B2C configuration";
+        return Task.CompletedTask;
+    }
+
+    private Task HandleGoogleLogin()
+    {
+        // TODO: Implement Google OAuth login flow
+        ErrorMessage = "Google login will be implemented with OAuth configuration";
+        return Task.CompletedTask;
+    }
+
+    private Task HandleAppleLogin()
+    {
+        // TODO: Implement Apple Sign In login flow
+        ErrorMessage = "Apple Sign In will be implemented with Apple ID configuration";
+        return Task.CompletedTask;
+    }
+}

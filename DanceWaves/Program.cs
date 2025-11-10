@@ -1,3 +1,4 @@
+using DanceWaves.Infrastructure.Security;
 using DanceWaves.Client.Pages;
 using DanceWaves.Components;
 using Microsoft.EntityFrameworkCore;
@@ -6,6 +7,8 @@ using DanceWaves.Application.Ports;
 using DanceWaves.Application.UseCases;
 using DanceWaves.Adapters.Persistence;
 using DanceWaves.Adapters.Presenters;
+using Microsoft.AspNetCore.Identity;
+using DanceWaves.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,14 +21,28 @@ builder.Services.AddRazorComponents()
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+// Register Authentication State Provider and Authentication Services
+builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthenticationStateProvider>();
+builder.Services.AddAuthorizationCore();
+builder.Services.AddScoped<AuthenticatedHttpClientHandler>();
+builder.Services.AddHttpClient("SecureApiClient")
+    .AddHttpMessageHandler<AuthenticatedHttpClientHandler>();
+
 // Register Hexagonal Architecture - Ports
 builder.Services.AddScoped<IEntryPersistencePort, EntryPersistenceAdapter>();
 builder.Services.AddScoped<IUserPersistencePort, UserPersistenceAdapter>();
 builder.Services.AddScoped<INavigationPresenterPort, NavigationPresenterAdapter>();
+builder.Services.AddScoped<IAuthenticationPort, AuthenticationAdapter>();
 
 // Register Use Cases
 builder.Services.AddScoped<GetNavigationMenuUseCase>();
 builder.Services.AddScoped<ListEntriesUseCase>();
+builder.Services.AddScoped<LoginUseCase>();
+builder.Services.AddScoped<RegisterUseCase>();
+builder.Services.AddScoped<FederatedLoginUseCase>();
+builder.Services.AddScoped<GetCurrentUserUseCase>();
+builder.Services.AddScoped<UpdateProfileUseCase>();
+builder.Services.AddScoped<ChangePasswordUseCase>();
 
 var app = builder.Build();
 

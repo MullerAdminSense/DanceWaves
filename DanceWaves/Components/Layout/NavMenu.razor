@@ -1,6 +1,18 @@
 ﻿<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
+    <div class="container-fluid d-flex justify-content-between align-items-center">
         <a class="navbar-brand" href="">DanceWaves</a>
+        <div class="d-flex align-items-center">
+            @if (!IsAuthenticated)
+            {
+                <a class="btn btn-outline-light me-2" href="/login">Login</a>
+                <a class="btn btn-primary" href="/register">Register</a>
+            }
+            else
+            {
+                <a class="btn btn-outline-light me-2" href="/profile">Profile</a>
+                <button class="btn btn-danger" @onclick="Logout">Logout</button>
+            }
+        </div>
     </div>
 </div>
 
@@ -22,13 +34,34 @@
     </nav>
 </div>
 
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+
 @code {
     private NavigationViewModel navigationMenu;
+    private bool IsAuthenticated = false;
 
     protected override async Task OnInitializedAsync()
     {
         var navigationUseCase = new GetNavigationMenuUseCase(navigationPresenterPort);
         navigationMenu = await navigationUseCase.ExecuteAsync();
+        await CheckAuthenticationAsync();
+    }
+
+    private async Task CheckAuthenticationAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        IsAuthenticated = authState.User.Identity?.IsAuthenticated ?? false;
+        StateHasChanged();
+    }
+
+    private async Task Logout()
+    {
+        if (AuthStateProvider is DanceWaves.Infrastructure.Security.CustomAuthenticationStateProvider customProvider)
+        {
+            await customProvider.MarkUserAsLoggedOut();
+        }
+        Navigation.NavigateTo("/login", true);
     }
 
     [Inject]

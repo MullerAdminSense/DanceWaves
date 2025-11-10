@@ -13,8 +13,14 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.9" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.9" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.10" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.10" PrivateAssets="all" />
+    <PackageReference Include="Azure.Identity" Version="1.17.0" />
+    <PackageReference Include="Microsoft.Identity.Client" Version="4.79.0" />
+    <PackageReference Include="Microsoft.Identity.Web" Version="2.18.1" />
+    <PackageReference Include="Microsoft.Identity.Web.UI" Version="2.18.1" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="10.0.0-rc.2.25502.107" />
+    <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.0.1" />
   </ItemGroup>
 
   <!-- Previously included external Models/Data; now models live inside this project -->
