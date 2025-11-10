@@ -17,15 +17,15 @@ namespace DanceWaves.Infrastructure.Security
 
         public override async Task<AuthenticationState> GetAuthenticationStateAsync()
         {
-            var token = await _jsRuntime.InvokeAsync<string>("localStorage.getItem", "accessToken");
-            if (string.IsNullOrWhiteSpace(token))
+            //var token = await _jsRuntime.InvokeAsync<string>("localStorage.getItem", "accessToken");
+            //if (string.IsNullOrWhiteSpace(token))
                 return new AuthenticationState(_anonymous);
 
-            var principal = JwtTokenParser.ParseToken(token);
-            if (principal == null || !principal.Identity.IsAuthenticated)
-                return new AuthenticationState(_anonymous);
+            //var principal = JwtTokenParser.ParseToken(token);
+            //if (principal == null || !principal.Identity.IsAuthenticated)
+            //    return new AuthenticationState(_anonymous);
 
-            return new AuthenticationState(principal);
+            //return new AuthenticationState(principal);
         }
 
         public async Task MarkUserAsAuthenticated(string accessToken)

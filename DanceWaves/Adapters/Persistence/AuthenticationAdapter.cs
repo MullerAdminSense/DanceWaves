@@ -412,8 +412,9 @@ public class AuthenticationAdapter : IAuthenticationPort
                 };
             }
 
+
             // Hash new password
-            authUser.PasswordHash = _passwordHasher.HashPassword(authUser, request.NewPassword);
+            authUser.PasswordHash = PasswordHasher.HashPassword(request.NewPassword);
 
             _dbContext.AuthenticationUsers.Update(authUser);
             await _dbContext.SaveChangesAsync();
