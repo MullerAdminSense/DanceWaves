@@ -1,191 +1,191 @@
-# 🎭 DanceWaves - Sistema de Gerenciamento de Competições de Dança
+# 🎭 DanceWaves - Dance Competition Management System
 
 ![.NET](https://img.shields.io/badge/.NET-10.0-purple?style=flat-square)
 ![C#](https://img.shields.io/badge/C%23-Latest-green?style=flat-square)
 ![SQL Server](https://img.shields.io/badge/SQL%20Server-Azure-blue?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-red?style=flat-square)
 
-## 📋 Índice
+## 📋 Table of Contents
 
-- [Visão Geral](#-visão-geral)
-- [Recursos](#-recursos)
-- [Arquitetura](#-arquitetura)
-- [Requisitos](#-requisitos)
-- [Instalação](#-instalação)
-- [Estrutura de Pastas](#-estrutura-de-pastas)
-- [Banco de Dados](#-banco-de-dados)
-- [Como Usar](#-como-usar)
+- [Overview](#-overview)
+- [Features](#-features)
+- [Architecture](#-architecture)
+- [Requirements](#-requirements)
+- [Installation](#-installation)
+- [Folder Structure](#-folder-structure)
+- [Database](#-database)
+- [How to Use](#-how-to-use)
 - [API Endpoints](#-api-endpoints)
-- [Guia de Desenvolvimento](#-guia-de-desenvolvimento)
-- [Contribuindo](#-contribuindo)
+- [Development Guide](#-development-guide)
+- [Contributing](#-contributing)
 
 ---
 
-## 🎯 Visão Geral
+## 🎯 Overview
 
-**DanceWaves** é uma plataforma web completa para gerenciar competições de dança, incluindo:
+**DanceWaves** is a comprehensive web platform for managing dance competitions, including:
 
-- 📝 Registro e gerenciamento de entries (inscrições)
-- 👥 Administração de usuários e permissões
-- 💃 Gerenciamento de competições e categorias
-- 📊 Dashboard de registros e estatísticas
-- 🔐 Sistema de autenticação e autorização por roles
-- 📱 Interface responsiva moderna
+- 📝 Entry registration and management
+- 👥 User and permission administration
+- 💃 Competition and category management
+- 📊 Registration dashboard and statistics
+- 🔐 Authentication and authorization system with role-based access
+- 📱 Modern responsive interface
 
-**Stack Tecnológico:**
+**Technology Stack:**
 - **Backend:** ASP.NET Core 10.0 (Blazor Server)
 - **Frontend:** Blazor Interactive (Server + WebAssembly)
 - **Database:** SQL Server (Azure)
 - **ORM:** Entity Framework Core 8.0.10
-- **Arquitetura:** Hexagonal (Ports & Adapters)
+- **Architecture:** Hexagonal (Ports & Adapters)
 
 ---
 
-## ✨ Recursos
+## ✨ Features
 
-### 🔐 Sistema de Usuários
-- 4 Roles de Usuários com permissões distintas:
-  - **SuperAdmin:** Acesso total ao sistema
-  - **FranchiseAdmin:** Gerencia usuários, competições e resultados conectados
-  - **User:** Visualiza dados próprios e competições inscritas
-  - **Jury:** Pode inserir resultados em competições conectadas
+### 🔐 User System
+- 4 User Roles with distinct permissions:
+  - **SuperAdmin:** Full system access
+  - **FranchiseAdmin:** Manages connected users, competitions, and results
+  - **User:** Views own data and enrolled competitions
+  - **Jury:** Can enter results for connected competitions
 
-### 🎪 Gerenciamento de Competições
-- Criar e editar competições
-- Categorias por: Estilo, Faixa Etária, Nível, Gênero
-- Status de competição: Aberta para Registro, Fechada, Finalizada
-- Gerenciamento de jurados
+### 🎪 Competition Management
+- Create and edit competitions
+- Categories by: Style, Age Group, Level, Gender
+- Competition Status: Open for Registration, Closed, Completed
+- Jury management
 
-### 📝 Sistema de Entries
-- Inscrever equipes em categorias
-- Gerenciar membros da equipe
-- Rastreamento de pagamentos
-- Upload de músicas
+### 📝 Entry System
+- Enroll teams in categories
+- Manage team members
+- Payment tracking
+- Music upload
 
-### 🏫 Gestão de Escolas
-- Registrar escolas de dança
-- Associar usuários a escolas
-- Gerenciar franquias
+### 🏫 School Management
+- Register dance schools
+- Associate users to schools
+- Manage franchises
 
-### 📊 Dashboard e Relatórios
-- Estatísticas de registros
-- Tracking de status de pagamentos
-- Visualização de resultados
+### 📊 Dashboard and Reports
+- Registration statistics
+- Payment status tracking
+- Results visualization
 
 ---
 
-## 🏛️ Arquitetura
+## 🏛️ Architecture
 
-### Arquitetura Hexagonal (Clean Architecture)
+### Hexagonal Architecture (Clean Architecture)
 
-O projeto segue rigorosamente a **Arquitetura Hexagonal** com **Ports & Adapters**, garantindo:
+The project strictly follows **Hexagonal Architecture** with **Ports & Adapters**, ensuring:
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│           CAMADA DE APRESENTAÇÃO (UI)              │
-│  Blazor Components, Razor Pages, ASP.NET Core      │
+│           PRESENTATION LAYER (UI)                   │
+│  Blazor Components, Razor Pages, ASP.NET Core       │
 └──────────────────┬──────────────────────────────────┘
                    │
                    ▼
 ┌─────────────────────────────────────────────────────┐
-│       ADAPTADORES (Presenters & Persistence)       │
-│  NavigationPresenterAdapter                        │
-│  EntryPersistenceAdapter, UserPersistenceAdapter   │
+│       ADAPTERS (Presenters & Persistence)           │
+│  NavigationPresenterAdapter                         │
+│  EntryPersistenceAdapter, UserPersistenceAdapter    │
 └──────────────────┬──────────────────────────────────┘
                    │
                    ▼
 ┌─────────────────────────────────────────────────────┐
-│      PORTS (Interfaces - Contrato de Negócio)      │
-│  INavigationPresenterPort, IEntryPersistencePort   │
-│  IUserPersistencePort, ICompetitionPersistencePort │
+│      PORTS (Interfaces - Business Contract)         │
+│  INavigationPresenterPort, IEntryPersistencePort    │
+│  IUserPersistencePort, ICompetitionPersistencePort  │
 └──────────────────┬──────────────────────────────────┘
                    │
                    ▼
 ┌─────────────────────────────────────────────────────┐
-│      NÚCLEO (Use Cases - Lógica de Negócio)        │
-│  GetNavigationMenuUseCase, ListEntriesUseCase      │
-│  (Independente de frameworks!)                     │
+│      CORE (Use Cases - Business Logic)              │
+│  GetNavigationMenuUseCase, ListEntriesUseCase       │
+│  (Framework independent!)                           │
 └──────────────────┬──────────────────────────────────┘
                    │
                    ▼
 ┌─────────────────────────────────────────────────────┐
-│       ADAPTADORES (Entity Framework Core)          │
-│  Implementações de Persistência                    │
+│       ADAPTERS (Entity Framework Core)              │
+│  Persistence Implementations                        │
 └──────────────────┬──────────────────────────────────┘
                    │
                    ▼
 ┌─────────────────────────────────────────────────────┐
-│        CAMADA DE DADOS (SQL Server/Azure)          │
-│  Tabelas: Users, Entries, Competitions, etc...     │
+│        DATA LAYER (SQL Server/Azure)                │
+│  Tables: Users, Entries, Competitions, etc...       │
 └─────────────────────────────────────────────────────┘
 ```
 
-### Estrutura de Camadas
+### Layer Structure
 
 ```
 DanceWaves/
-├── Application/              🔷 NÚCLEO (Lógica Pura de Negócio)
-│   ├── Ports/                📍 Interfaces (Contratos)
+├── Application/              🔷 CORE (Pure Business Logic)
+│   ├── Ports/                📍 Interfaces (Contracts)
 │   │   ├── IEntryPersistencePort
 │   │   ├── IUserPersistencePort
 │   │   ├── ICompetitionPersistencePort
 │   │   └── INavigationPresenterPort
-│   └── UseCases/             🎯 Casos de Uso (Orquestração)
+│   └── UseCases/             🎯 Use Cases (Orchestration)
 │       ├── GetNavigationMenuUseCase
 │       └── ListEntriesUseCase
 │
-├── Adapters/                 🔶 ADAPTADORES (Implementações Concretas)
-│   ├── Persistence/          💾 Adaptadores de Persistência
+├── Adapters/                 🔶 ADAPTERS (Concrete Implementations)
+│   ├── Persistence/          💾 Persistence Adapters
 │   │   ├── EntryPersistenceAdapter
 │   │   ├── UserPersistenceAdapter
 │   │   └── CompetitionPersistenceAdapter
-│   └── Presenters/           🎨 Adaptadores de Apresentação
+│   └── Presenters/           🎨 Presentation Adapters
 │       └── NavigationPresenterAdapter
 │
-├── Components/               🧩 INTERFACE DO USUÁRIO (Blazor)
+├── Components/               🧩 USER INTERFACE (Blazor)
 │   ├── Layout/
 │   │   ├── MainLayout.razor
-│   │   ├── NavMenu.razor     ← Menu dinâmico por Use Case
+│   │   ├── NavMenu.razor     ← Dynamic menu via Use Case
 │   │   └── ReconnectModal.razor
 │   └── Pages/
-│       ├── Entries.razor     📝 Gerenciar Entries
-│       ├── Administration.razor ⚙️ Configurações
-│       ├── SignUp.razor      📋 Criar Conta
-│       └── Registrations.razor ✅ Gerenciar Registros
+│       ├── Entries.razor     📝 Manage Entries
+│       ├── Administration.razor ⚙️ Settings
+│       ├── SignUp.razor      📋 Create Account
+│       └── Registrations.razor ✅ Manage Registrations
 │
-├── Models/                   📦 ENTIDADES DE DOMÍNIO
+├── Models/                   📦 DOMAIN ENTITIES
 │   ├── User.cs
 │   ├── Entry.cs
 │   ├── Competition.cs
 │   ├── UserRolePermission.cs
 │   ├── CompetitionStatus.cs  (Enum)
 │   ├── EntryStatus.cs        (Enum)
-│   └── ... (11 modelos no total)
+│   └── ... (11 models total)
 │
-├── Data/                     🔌 CAMADA EF CORE
+├── Data/                     🔌 EF CORE LAYER
 │   ├── ApplicationDbContext.cs
 │   ├── DesignTimeDbContextFactory.cs
 │   ├── DatabaseInitializer.cs
 │   └── UserRolePermissionSeeder.cs
 │
-└── Migrations/               📜 Histórico de Banco de Dados
+└── Migrations/               📜 Database History
     └── 20251110181952_InitialCreate.cs
 ```
 
 ---
 
-## 🔧 Requisitos
+## 🔧 Requirements
 
-### Sistema Operacional
+### Operating System
 - Windows 10+ / MacOS / Linux
 
-### Ferramentas Necessárias
-- [.NET 10.0 SDK](https://dotnet.microsoft.com/download) ou superior
-- [Visual Studio 2022](https://visualstudio.microsoft.com/) ou [VS Code](https://code.visualstudio.com/)
-- [SQL Server](https://www.microsoft.com/sql-server/) ou conexão com Azure SQL Database
+### Required Tools
+- [.NET 10.0 SDK](https://dotnet.microsoft.com/download) or higher
+- [Visual Studio 2022](https://visualstudio.microsoft.com/) or [VS Code](https://code.visualstudio.com/)
+- [SQL Server](https://www.microsoft.com/sql-server/) or Azure SQL Database connection
 - [Git](https://git-scm.com/)
 
-### Bibliotecas NuGet
+### NuGet Libraries
 ```xml
 <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.10" />
@@ -196,21 +196,21 @@ DanceWaves/
 
 ---
 
-## 🚀 Instalação
+## 🚀 Installation
 
-### 1. Clonar Repositório
+### 1. Clone Repository
 ```bash
 git clone https://github.com/seu-usuario/DanceWaves.git
 cd DanceWaves
 ```
 
-### 2. Restaurar Dependências
+### 2. Restore Dependencies
 ```bash
 dotnet restore
 ```
 
-### 3. Configurar Connection String
-Edite `DanceWaves/appsettings.json`:
+### 3. Configure Connection String
+Edit `DanceWaves/appsettings.json`:
 ```json
 {
   "ConnectionStrings": {
@@ -219,27 +219,27 @@ Edite `DanceWaves/appsettings.json`:
 }
 ```
 
-### 4. Aplicar Migrations
+### 4. Apply Migrations
 ```bash
 cd DanceWaves
 dotnet ef database update
 ```
 
-### 5. Executar Aplicação
+### 5. Run Application
 ```bash
 dotnet run
 ```
 
-A aplicação estará disponível em: `https://localhost:5001`
+The application will be available at: `https://localhost:5001`
 
 ---
 
-## 📁 Estrutura de Pastas
+## 📁 Folder Structure
 
-### Explicação Detalhada
+### Detailed Explanation
 
 #### 1️⃣ `Application/Ports/`
-Define os **contratos (interfaces)** entre o núcleo e os adaptadores. Não depende de nenhuma implementação concreta.
+Defines the **contracts (interfaces)** between the core and adapters. Does not depend on any concrete implementation.
 
 ```csharp
 public interface IEntryPersistencePort
@@ -251,7 +251,7 @@ public interface IEntryPersistencePort
 ```
 
 #### 2️⃣ `Application/UseCases/`
-Contém a **lógica pura de negócio**. Cada use case orquestra a comunicação entre portas.
+Contains the **pure business logic**. Each use case orchestrates communication between ports.
 
 ```csharp
 public class ListEntriesUseCase
@@ -264,7 +264,7 @@ public class ListEntriesUseCase
 ```
 
 #### 3️⃣ `Adapters/Persistence/`
-Implementações concretas das portas de persistência usando **Entity Framework Core**.
+Concrete implementations of persistence ports using **Entity Framework Core**.
 
 ```csharp
 public class EntryPersistenceAdapter : IEntryPersistencePort
@@ -277,31 +277,31 @@ public class EntryPersistenceAdapter : IEntryPersistencePort
 ```
 
 #### 4️⃣ `Adapters/Presenters/`
-Adaptadores que fornecem dados para a UI (Blazor).
+Adapters that provide data for the UI (Blazor).
 
 ```csharp
 public class NavigationPresenterAdapter : INavigationPresenterPort
 {
     public async Task<NavigationViewModel> GetNavigationMenuAsync()
     {
-        // Retorna menu dinâmico
+        // Returns dynamic menu
     }
 }
 ```
 
 #### 5️⃣ `Components/Pages/`
-Páginas Razor que utilizam os Use Cases via injeção de dependência.
+Razor pages that use Use Cases via dependency injection.
 
 ---
 
-## 💾 Banco de Dados
+## 💾 Database
 
-### Diagrama ER (Entidade-Relacionamento)
+### Entity-Relationship Diagram
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                     TABELAS CRIADAS                     │
-├─────────────────────────────────────────────────────────┤
+┌─────────────────────────────────────────────────────┐
+│                  CREATED TABLES                     │
+├─────────────────────────────────────────────────────┤
 
 Franchises (1) ──── (N) Users
              └──── (N) DanceSchools
@@ -334,10 +334,10 @@ Scores (1) ─ (1) Judges (Users)
 UserRolePermissions (1) ──── (N) Users
 ```
 
-### Tabelas e Campos
+### Tables and Fields
 
-| Tabela | Campos Principais | Chave Primária |
-|--------|------------------|-----------------|
+| Table | Main Fields | Primary Key |
+|-------|-------------|-------------|
 | **Users** | Id, Email, FirstName, LastName, RolePermissionId | Id (Identity) |
 | **Entries** | Id, CompetitionCategoryId, StartNumber, Status, PaymentStatus | Id (Identity) |
 | **Competitions** | Id, Name, Status (Enum), MaxContestants, Location | Id (Identity) |
@@ -347,9 +347,9 @@ UserRolePermissions (1) ──── (N) Users
 | **AgeGroups** | Id, Code, Name, MinAge, MaxAge | Id (Identity) |
 | **Levels** | Id, Code, Name | Id (Identity) |
 
-### Seed Data (Dados Iniciais)
+### Seed Data (Initial Data)
 
-A aplicação insere automaticamente 4 roles ao iniciar:
+The application automatically inserts 4 roles on startup:
 
 ```sql
 INSERT INTO UserRolePermissions (Name, Description) VALUES
@@ -361,77 +361,77 @@ INSERT INTO UserRolePermissions (Name, Description) VALUES
 
 ---
 
-## 📖 Como Usar
+## 📖 How to Use
 
-### 🏠 Página Inicial
-Acesse `https://localhost:5001` para ver a página inicial com menu dinâmico.
+### 🏠 Home Page
+Access `https://localhost:5001` to see the home page with dynamic menu.
 
-### 📝 Menu Entries
-- **Rota:** `/entries`
-- **Ícone:** 📝
-- Visualize todas as entries registradas
-- Clique em "Edit" para modificar ou "Delete" para remover
+### 📝 Entries Menu
+- **Route:** `/entries`
+- **Icon:** 📝
+- View all registered entries
+- Click "Edit" to modify or "Delete" to remove
 
-### ⚙️ Menu Administration
-- **Rota:** `/administration`
-- **Ícone:** ⚙️
+### ⚙️ Administration Menu
+- **Route:** `/administration`
+- **Icon:** ⚙️
 - **Submenus:**
   - Users Management
   - Competitions Management
   - System Settings
-- Gerenciar configurações do sistema
+- Manage system settings
 
-### 📋 Menu Sign-up
-- **Rota:** `/signup`
-- **Ícone:** 📋
-- Formulário completo para criar nova conta
-- Campos: Name, Email, Phone, Password
-- Validação de termos de serviço
+### 📋 Sign-up Menu
+- **Route:** `/signup`
+- **Icon:** 📋
+- Complete form to create new account
+- Fields: Name, Email, Phone, Password
+- Terms of service validation
 
-### ✅ Menu Registrations
-- **Rota:** `/registrations`
-- **Ícone:** ✅
-- Dashboard de registros
-- Filtro de pesquisa
-- Estatísticas: Total, Pending, Approved, Rejected
+### ✅ Registrations Menu
+- **Route:** `/registrations`
+- **Icon:** ✅
+- Registrations dashboard
+- Search filter
+- Statistics: Total, Pending, Approved, Rejected
 
 ---
 
 ## 🔌 API Endpoints
 
-### Futuro: REST API
+### Future: REST API
 
-Quando implementado, os endpoints seguirão o padrão RESTful:
+When implemented, endpoints will follow RESTful pattern:
 
 ```http
 # Entries
-GET    /api/entries              - Listar todas as entries
-GET    /api/entries/{id}         - Obter entry específico
-POST   /api/entries              - Criar nova entry
-PUT    /api/entries/{id}         - Atualizar entry
-DELETE /api/entries/{id}         - Deletar entry
+GET    /api/entries              - List all entries
+GET    /api/entries/{id}         - Get specific entry
+POST   /api/entries              - Create new entry
+PUT    /api/entries/{id}         - Update entry
+DELETE /api/entries/{id}         - Delete entry
 
 # Users
-GET    /api/users                - Listar todos os usuários
-GET    /api/users/{id}           - Obter usuário específico
-POST   /api/users/signup         - Criar novo usuário
-PUT    /api/users/{id}           - Atualizar usuário
-DELETE /api/users/{id}           - Deletar usuário
+GET    /api/users                - List all users
+GET    /api/users/{id}           - Get specific user
+POST   /api/users/signup         - Create new user
+PUT    /api/users/{id}           - Update user
+DELETE /api/users/{id}           - Delete user
 
 # Competitions
-GET    /api/competitions         - Listar competições
-POST   /api/competitions         - Criar competição
-PUT    /api/competitions/{id}    - Atualizar competição
-DELETE /api/competitions/{id}    - Deletar competição
+GET    /api/competitions         - List competitions
+POST   /api/competitions         - Create competition
+PUT    /api/competitions/{id}    - Update competition
+DELETE /api/competitions/{id}    - Delete competition
 ```
 
 ---
 
-## 👨‍💻 Guia de Desenvolvimento
+## 👨‍💻 Development Guide
 
-### Adicionar Novo Use Case
+### Add New Use Case
 
-**Passo 1:** Criar a porta (interface)
+**Step 1:** Create the port (interface)
 ```csharp
 // Application/Ports/IMyNewPort.cs
 public interface IMyNewPort
@@ -440,7 +440,7 @@ public interface IMyNewPort
 }
 ```
 
-**Passo 2:** Criar o use case
+**Step 2:** Create the use case
 ```csharp
 // Application/UseCases/MyNewUseCase.cs
 public class MyNewUseCase
@@ -459,7 +459,7 @@ public class MyNewUseCase
 }
 ```
 
-**Passo 3:** Criar o adaptador
+**Step 3:** Create the adapter
 ```csharp
 // Adapters/Persistence/MyNewAdapter.cs
 public class MyNewAdapter : IMyNewPort
@@ -473,23 +473,23 @@ public class MyNewAdapter : IMyNewPort
 }
 ```
 
-**Passo 4:** Registrar no DI (Program.cs)
+**Step 4:** Register in DI (Program.cs)
 ```csharp
 builder.Services.AddScoped<IMyNewPort, MyNewAdapter>();
 builder.Services.AddScoped<MyNewUseCase>();
 ```
 
-### Executar Testes
+### Run Tests
 
 ```bash
-# Executar todos os testes
+# Run all tests
 dotnet test
 
-# Teste específico
+# Specific test
 dotnet test --filter "TestClass.TestMethod"
 ```
 
-### Build da Aplicação
+### Build Application
 
 ```bash
 # Debug
@@ -498,48 +498,29 @@ dotnet build
 # Release
 dotnet build -c Release
 
-# Build e publicação
+# Build and publish
 dotnet publish -c Release -o ./publish
 ```
 
-### Gerenciamento de Migrations
+### Manage Migrations
 
 ```bash
-# Criar nova migration
-dotnet ef migrations add NomeDaMigration
+# Create new migration
+dotnet ef migrations add MigrationName
 
-# Aplicar migrations
+# Apply migrations
 dotnet ef database update
 
-# Remover última migration
+# Remove last migration
 dotnet ef migrations remove
 
-# Listar migrations
+# List migrations
 dotnet ef migrations list
 ```
 
 ---
 
-## 🐛 Troubleshooting
-
-### ❌ Erro: "Cannot open database 'DanceWaves'"
-**Solução:** Verifique se o SQL Server está rodando e se a connection string está correta em `appsettings.json`.
-
-### ❌ Erro: "Entity type 'X' is not mapped"
-**Solução:** Verifique se o DbSet foi adicionado em `ApplicationDbContext.cs`:
-```csharp
-public DbSet<MyEntity> MyEntities { get; set; }
-```
-
-### ❌ Erro: "The instance of entity type cannot be tracked"
-**Solução:** Use `.AsNoTracking()` em consultas somente leitura:
-```csharp
-_dbContext.Entries.AsNoTracking().ToList()
-```
-
----
-
-## 📚 Recursos Úteis
+## 📚 Useful Resources
 
 - [ASP.NET Core Documentation](https://docs.microsoft.com/en-us/aspnet/core/)
 - [Blazor Tutorial](https://docs.microsoft.com/en-us/aspnet/core/blazor/)
@@ -549,55 +530,31 @@ _dbContext.Entries.AsNoTracking().ToList()
 
 ---
 
-## 🤝 Contribuindo
+### Code Standards
 
-1. **Faça um Fork** do repositório
-2. **Crie uma Branch** para sua feature (`git checkout -b feature/AmazingFeature`)
-3. **Commit suas mudanças** (`git commit -m 'Add some AmazingFeature'`)
-4. **Push para a Branch** (`git push origin feature/AmazingFeature`)
-5. **Abra um Pull Request**
-
-### Padrões de Código
-
-- Use **PascalCase** para nomes de classes e métodos
-- Use **camelCase** para variáveis locais
-- Sempre use **async/await** para operações I/O
-- Documente classes e métodos públicos com **XML Comments**
+- Use **PascalCase** for class and method names
+- Use **camelCase** for local variables
+- Always use **async/await** for I/O operations
+- Document public classes and methods with **XML Comments**
 
 ---
 
-## 📄 Licença
+## 📄 License
 
-Este projeto está sob a licença **MIT**. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
-
----
-
-## 👥 Autores
-
-- **Desenvolvedor:** [Seu Nome]
-- **Email:** seu-email@example.com
-- **GitHub:** [@seu-usuario](https://github.com/seu-usuario)
+This project is under the **MIT License**. See the [LICENSE](LICENSE) file for more details.
 
 ---
 
-## 📞 Suporte
+## 📞 Support
 
-Para reportar bugs ou sugerir features, abra uma [Issue](https://github.com/seu-usuario/DanceWaves/issues).
-
----
-
-## 🎉 Agradecimentos
-
-Obrigado a todos que contribuem para melhorar o **DanceWaves**!
-
-**Última atualização:** 10 de Novembro de 2025
+To report bugs or suggest features, open an [Issue](https://github.com/seu-usuario/DanceWaves/issues).
 
 ---
 
 <div align="center">
 
-### 💜 Se você encontrou este projeto útil, por favor dê uma ⭐!
+### 💜 If you found this project useful, please give it a ⭐!
 
-**DanceWaves** - Transformando o Mundo da Dança com Tecnologia 🎭✨
+**DanceWaves** - Transforming the Dance World with Technology 🎭✨
 
 </div>
