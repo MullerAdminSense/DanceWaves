@@ -361,6 +361,63 @@ INSERT INTO UserRolePermissions (Name, Description) VALUES
 
 ---
 
+
+## 🔐 Authentication & Login
+
+### Supported Authentication Methods
+- **Local Account:** Register and login with email and password
+- **Federated Login:** Microsoft, Google, and Apple (via Microsoft Entra External ID / Azure AD B2C)
+
+### How to Register
+1. Go to `/register` or click the **Register** button in the navigation bar.
+2. Fill in your details (First Name, Last Name, Email, Password, Accept Terms).
+3. Submit the form. You will be redirected to login after successful registration.
+
+### How to Login
+1. Go to `/login` or click the **Login** button in the navigation bar.
+2. Enter your email and password for local accounts, or use one of the federated login buttons (Microsoft, Google, Apple).
+3. On successful login, you will be redirected to the home page.
+
+### Profile Management
+- Access your profile at `/profile`.
+- Update your personal information and change your password (local accounts only).
+- Federated accounts display provider info and do not allow password changes.
+
+### Logout
+- Click the **Logout** button in the navigation bar to securely sign out and clear your session.
+
+### Authentication State
+- The navigation bar updates automatically based on your authentication state (shows Login/Register or Profile/Logout).
+- Authentication state is managed using JWT tokens stored in browser local storage.
+
+### Secure API Calls
+To make authenticated API requests from Blazor components or services:
+
+```csharp
+@inject IHttpClientFactory HttpClientFactory
+
+@code {
+    private async Task CallSecureApi()
+    {
+        var client = HttpClientFactory.CreateClient("SecureApiClient");
+        var response = await client.GetAsync("https://your-api-endpoint/protected-resource");
+        if (response.IsSuccessStatusCode)
+        {
+            var data = await response.Content.ReadAsStringAsync();
+            // Handle your data
+        }
+        else
+        {
+            // Handle error
+        }
+    }
+}
+```
+- The access token is automatically attached to requests.
+- Use `"SecureApiClient"` as the named client for all authenticated API calls.
+
+---
+
 ## 📖 How to Use
 
 ### 🏠 Home Page
