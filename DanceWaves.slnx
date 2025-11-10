@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="DanceWaves.Client/DanceWaves.Client.csproj" />
+  <Project Path="DanceWaves/DanceWaves.csproj" />
+</Solution>

@@ -1,0 +1,72 @@
+@page "/entries"
+@rendermode InteractiveServer
+@inject IEntryPersistencePort EntryPersistencePort
+
+<div class="container-fluid mt-5">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h1>📝 Entries</h1>
+            <p class="text-muted">Manage dance competition entries</p>
+        </div>
+    </div>
+
+    @if (entries == null)
+    {
+        <p><em>Loading...</em></p>
+    }
+    else if (entries.Count() == 0)
+    {
+        <div class="alert alert-info">
+            <p>No entries found. <a href="/entries/new">Create a new entry</a></p>
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th>Category</th>
+                        <th>Start Number</th>
+                        <th>Status</th>
+                        <th>Payment Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var entry in entries)
+                    {
+                        <tr>
+                            <td>@entry.Id</td>
+                            <td>@entry.CompetitionCategoryId</td>
+                            <td>@entry.StartNumber</td>
+                            <td>
+                                <span class="badge bg-primary">@entry.Status</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-success">@entry.PaymentStatus</span>
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-primary">Edit</button>
+                                <button class="btn btn-sm btn-danger">Delete</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    private IEnumerable<Entry> entries;
+
+    protected override async Task OnInitializedAsync()
+    {
+        entries = await EntryPersistencePort.GetAllAsync();
+    }
+}
+
+@using DanceWaves.Models
+@using DanceWaves.Application.Ports

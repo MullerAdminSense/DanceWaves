@@ -1,0 +1,39 @@
+﻿<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="">DanceWaves</a>
+    </div>
+</div>
+
+<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+
+<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
+    <nav class="nav flex-column">
+        @if (navigationMenu?.MenuItems != null)
+        {
+            @foreach (var item in navigationMenu.MenuItems)
+            {
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="@item.Route" Match="NavLinkMatch.All">
+                        <span>@item.Icon</span> @item.Label
+                    </NavLink>
+                </div>
+            }
+        }
+    </nav>
+</div>
+
+@code {
+    private NavigationViewModel navigationMenu;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var navigationUseCase = new GetNavigationMenuUseCase(navigationPresenterPort);
+        navigationMenu = await navigationUseCase.ExecuteAsync();
+    }
+
+    [Inject]
+    private INavigationPresenterPort navigationPresenterPort { get; set; }
+}
+
+@using DanceWaves.Application.Ports
+@using DanceWaves.Application.UseCases
