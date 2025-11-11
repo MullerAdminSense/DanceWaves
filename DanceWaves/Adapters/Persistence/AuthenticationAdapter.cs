@@ -38,9 +38,9 @@ public class AuthenticationAdapter : IAuthenticationPort
                     Message = "Invalid email or password"
                 };
             }
-            // Aqui você deve verificar a senha (implementar hash/senha no User)
-            // Exemplo: if (!PasswordHasher.VerifyPassword(request.Password, user.PasswordHash!)) { ... }
-            // Por enquanto, vamos assumir que a senha está correta
+            // Here you should verify the password (implement hash/password in User)
+            // Example: if (!PasswordHasher.VerifyPassword(request.Password, user.Password!)) { ... }
+            // For now, let's assume the password is correct
             _logger.LogInformation($"User logged in successfully: {request.Email}");
             return new AuthenticationResponse
             {
@@ -87,7 +87,7 @@ public class AuthenticationAdapter : IAuthenticationPort
                 LastName = request.LastName,
                 RolePermissionId = 4 // Jury
             };
-            // Aqui você deve salvar o hash da senha (implementar campo PasswordHash em User se necessário)
+            // Here you should save the password hash (implement Password field in User if necessary)
             _dbContext.Users.Add(newUser);
             await _dbContext.SaveChangesAsync();
             _logger.LogInformation($"User registered successfully: {request.Email}");
@@ -117,7 +117,7 @@ public class AuthenticationAdapter : IAuthenticationPort
 
     public async Task<AuthenticationResponse> FederatedLoginAsync(FederatedLoginRequest request)
     {
-        // Federated login não implementado para User. Retorne erro ou implemente conforme necessário.
+    // Federated login not implemented for User. Return error or implement as needed.
         return new AuthenticationResponse
         {
             IsSuccess = false,
@@ -160,7 +160,7 @@ public class AuthenticationAdapter : IAuthenticationPort
         }
         user.FirstName = updatedProfile.FirstName;
         user.LastName = updatedProfile.LastName;
-        // Adapte outros campos conforme necessário
+    // Adapt other fields as needed
         _dbContext.Users.Update(user);
         await _dbContext.SaveChangesAsync();
         _logger.LogInformation($"User profile updated: {userId}");
@@ -180,21 +180,21 @@ public class AuthenticationAdapter : IAuthenticationPort
 
     public async Task<AuthenticationResponse> ChangePasswordAsync(string userId, ChangePasswordRequest request)
     {
-        // Implementar lógica de alteração de senha para User
+        // Implement password change logic for User
         return new AuthenticationResponse
         {
             IsSuccess = false,
-            Message = "Alteração de senha não implementada."
+            Message = "Password change not implemented."
         };
     }
 
     public async Task<AuthenticationResponse> RequestPasswordResetAsync(ResetPasswordRequest request)
     {
-        // Implementar lógica de reset de senha para User
+        // Implement password reset logic for User
         return new AuthenticationResponse
         {
             IsSuccess = false,
-            Message = "Reset de senha não implementado."
+            Message = "Password reset not implemented."
         };
     }
 
@@ -202,8 +202,8 @@ public class AuthenticationAdapter : IAuthenticationPort
     {
         try
         {
-            var authUser = await _dbContext.AuthenticationUsers
-                .FirstOrDefaultAsync(u => u.Email == request.Email && u.Provider == "local");
+            var authUser = await _dbContext.Users
+                .FirstOrDefaultAsync(u => u.Email == request.Email /* && u.Provider == "local" */);
 
             if (authUser == null)
             {
@@ -216,9 +216,9 @@ public class AuthenticationAdapter : IAuthenticationPort
 
 
             // Hash new password
-            authUser.PasswordHash = PasswordHasher.HashPassword(request.NewPassword);
+            authUser.Password = PasswordHasher.HashPassword(request.NewPassword);
 
-            _dbContext.AuthenticationUsers.Update(authUser);
+            _dbContext.Users.Update(authUser);
             await _dbContext.SaveChangesAsync();
 
             _logger.LogInformation($"Password reset completed for: {request.Email}");
@@ -242,11 +242,11 @@ public class AuthenticationAdapter : IAuthenticationPort
 
     public async Task<AuthenticationResponse> VerifyEmailAsync(VerifyEmailRequest request)
     {
-        // Implementar lógica de verificação de email para User
+        // Implement email verification logic for User
         return new AuthenticationResponse
         {
             IsSuccess = false,
-            Message = "Verificação de email não implementada."
+            Message = "Email verification not implemented."
         };
     }
 
@@ -255,20 +255,20 @@ public class AuthenticationAdapter : IAuthenticationPort
         return await _dbContext.Users.AnyAsync(u => u.Email == email);
     }
 
-    // Métodos GetAuthUserByExternalIdAsync e GetAuthUserByEmailAsync removidos
+    // Methods GetAuthUserByExternalIdAsync and GetAuthUserByEmailAsync removed
 
     public async Task LogoutAsync(string userId)
     {
-        // Implementar lógica de logout para User se necessário
+    // Implement logout logic for User if needed
     }
 
     public async Task<AuthenticationResponse> RefreshTokenAsync(string refreshToken)
     {
-        // Implementar lógica de refresh de token para User se necessário
+        // Implement token refresh logic for User if needed
         return new AuthenticationResponse
         {
             IsSuccess = false,
-            Message = "Refresh de token não implementado."
+            Message = "Token refresh not implemented."
         };
     }
 
@@ -283,5 +283,5 @@ public class AuthenticationAdapter : IAuthenticationPort
         return Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
     }
 
-    // Método MapToUserDto removido
+    // Method MapToUserDto removed
 }
