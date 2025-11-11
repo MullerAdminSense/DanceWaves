@@ -39,13 +39,16 @@
 @inject NavigationManager Navigation
 
 @code {
-    private NavigationViewModel navigationMenu;
+    private NavigationViewModel? navigationMenu;
     private bool IsAuthenticated = false;
 
     protected override async Task OnInitializedAsync()
     {
-        var navigationUseCase = new GetNavigationMenuUseCase(navigationPresenterPort);
-        navigationMenu = await navigationUseCase.ExecuteAsync();
+        if (navigationPresenterPort != null)
+        {
+            var navigationUseCase = new GetNavigationMenuUseCase(navigationPresenterPort);
+            navigationMenu = await navigationUseCase.ExecuteAsync();
+        }
         await CheckAuthenticationAsync();
     }
 
@@ -66,7 +69,7 @@
     }
 
     [Inject]
-    private INavigationPresenterPort navigationPresenterPort { get; set; }
+    private INavigationPresenterPort? navigationPresenterPort { get; set; }
 }
 
 @using DanceWaves.Application.Ports

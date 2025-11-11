@@ -17,7 +17,7 @@ namespace DanceWaves.Application.Ports
     /// </summary>
     public class NavigationViewModel
     {
-        public IEnumerable<MenuItem> MenuItems { get; set; }
+    public IEnumerable<MenuItem>? MenuItems { get; set; }
     }
 
     /// <summary>
@@ -25,9 +25,9 @@ namespace DanceWaves.Application.Ports
     /// </summary>
     public class MenuItem
     {
-        public string Id { get; set; }
-        public string Label { get; set; }
-        public string Route { get; set; }
-        public string Icon { get; set; }
+    public string? Id { get; set; }
+    public string? Label { get; set; }
+    public string? Route { get; set; }
+    public string? Icon { get; set; }
     }
 }

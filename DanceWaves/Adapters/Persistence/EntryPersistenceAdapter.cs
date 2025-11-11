@@ -18,7 +18,7 @@ namespace DanceWaves.Adapters.Persistence
             _dbContext = dbContext;
         }
 
-        public async Task<Entry> GetByIdAsync(int id)
+        public async Task<Entry?> GetByIdAsync(int id)
         {
             return await _dbContext.Entries.FindAsync(id);
         }

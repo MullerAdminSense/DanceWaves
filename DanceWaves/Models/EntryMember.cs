@@ -7,10 +7,10 @@ namespace DanceWaves.Models
         public int Id { get; set; }
 
         public int EntryId { get; set; }
-        public Entry Entry { get; set; }
+    public Entry? Entry { get; set; }
 
         public int UserId { get; set; }
-        public User User { get; set; }
+    public User? User { get; set; }
 
         public PaymentStatus PaymentStatus { get; set; }
     }

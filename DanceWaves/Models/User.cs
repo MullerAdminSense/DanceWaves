@@ -48,5 +48,7 @@ namespace DanceWaves.Models
 
         public int RolePermissionId { get; set; }
     public UserRolePermission? RolePermission { get; set; }
+    [MaxLength(300)]
+    public string? Password { get; set; }
     }
 }

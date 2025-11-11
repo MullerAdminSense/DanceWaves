@@ -7,9 +7,9 @@ namespace DanceWaves.Models
         public int Id { get; set; }
 
         public int UserId { get; set; }
-        public User User { get; set; }
+    public User? User { get; set; }
 
         public int CompetitionCategoryId { get; set; }
-        public CompetitionCategory CompetitionCategory { get; set; }
+    public CompetitionCategory? CompetitionCategory { get; set; }
     }
 }

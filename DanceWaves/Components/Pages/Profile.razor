@@ -86,7 +86,7 @@
 
                                     <div class="mb-3">
                                         <label for="lastLogin" class="form-label">Last Login</label>
-                                        <input type="text" class="form-control" id="lastLogin" value="@CurrentUser.LastLoginAt.ToString("g")" disabled>
+                                        <input type="text" class="form-control" id="lastLogin" value="@(CurrentUser.LastLoginAt?.ToString("g") ?? "")" disabled>
                                     </div>
 
                                     <button type="submit" class="btn btn-primary" disabled="@IsUpdatingProfile">

@@ -10,7 +10,7 @@ namespace DanceWaves.Application.Ports
     /// </summary>
     public interface IEntryPersistencePort
     {
-        Task<Entry> GetByIdAsync(int id);
+    Task<Entry?> GetByIdAsync(int id);
         Task<IEnumerable<Entry>> GetAllAsync();
         Task<Entry> CreateAsync(Entry entry);
         Task<Entry> UpdateAsync(Entry entry);

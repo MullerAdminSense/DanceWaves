@@ -8,10 +8,10 @@ namespace DanceWaves.Models
 
         [Required]
         [MaxLength(50)]
-        public string Code { get; set; }
+    public string? Code { get; set; }
 
         [Required]
         [MaxLength(200)]
-        public string Name { get; set; }
+    public string? Name { get; set; }
     }
 }

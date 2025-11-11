@@ -18,12 +18,12 @@ namespace DanceWaves.Adapters.Persistence
             _dbContext = dbContext;
         }
 
-        public async Task<User> GetByIdAsync(int id)
+        public async Task<User?> GetByIdAsync(int id)
         {
             return await _dbContext.Users.FindAsync(id);
         }
 
-        public async Task<User> GetByEmailAsync(string email)
+        public async Task<User?> GetByEmailAsync(string email)
         {
             return _dbContext.Users.FirstOrDefault(u => u.Email == email);
         }

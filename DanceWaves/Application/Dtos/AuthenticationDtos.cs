@@ -60,6 +60,8 @@ public class UserDto
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
     public string? PhoneNumber { get; set; }
+    public string Provider { get; set; } = "local";
+    public DateTime? LastLoginAt { get; set; }
 }
 
 /// <summary>

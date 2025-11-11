@@ -8,7 +8,7 @@ namespace DanceWaves.Models
 
         [Required]
         [MaxLength(100)]
-        public string Name { get; set; }
+    public string? Name { get; set; }
 
         // e.g. SOLO, DUO, TEAM - number of dancers expected
         public int NumberOfDancers { get; set; }

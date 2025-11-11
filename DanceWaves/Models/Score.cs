@@ -8,10 +8,10 @@ namespace DanceWaves.Models
         public int Id { get; set; }
 
         public int JudgeUserId { get; set; }
-        public User Judge { get; set; }
+    public User? Judge { get; set; }
 
         public int EntryId { get; set; }
-        public Entry Entry { get; set; }
+    public Entry? Entry { get; set; }
 
         public int RawScore { get; set; }
 
