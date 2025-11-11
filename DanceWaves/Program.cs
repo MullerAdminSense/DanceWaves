@@ -22,7 +22,29 @@ builder.Services.AddRazorComponents()
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Register Authentication State Provider and Authentication Services
+
+// Federated Authentication (Microsoft Entra ID B2C)
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultScheme = "Cookies";
+    options.DefaultChallengeScheme = "oidc";
+})
+    .AddCookie("Cookies")
+    .AddOpenIdConnect("oidc", options =>
+    {
+        var config = builder.Configuration.GetSection("AzureAdB2C");
+        options.Authority = $"{config["Instance"]}/tfp/{config["TenantId"]}/{config["SignUpSignInPolicyId"]}/v2.0/";
+        options.ClientId = config["ClientId"];
+        options.ClientSecret = config["ClientSecret"];
+        options.ResponseType = "code";
+        options.SaveTokens = true;
+        options.Scope.Add("openid");
+        options.Scope.Add("profile");
+        options.Scope.Add("email");
+        options.CallbackPath = config["CallbackPath"] ?? "/signin-oidc";
+        options.SignedOutCallbackPath = config["SignedOutCallbackPath"] ?? "/signout-oidc";
+    });
+
 builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthenticationStateProvider>();
 builder.Services.AddAuthorizationCore();
 builder.Services.AddScoped<AuthenticatedHttpClientHandler>();
