@@ -1,4 +1,9 @@
 @page "/signup"
+@using DanceWaves.Application.Dtos
+@using DanceWaves.Application.UseCases
+@using DanceWaves.Application.Ports
+@inject IAuthenticationPort AuthenticationPort
+@inject NavigationManager Navigation
 @rendermode InteractiveServer
 
 <div class="container-fluid mt-5">
@@ -11,46 +16,54 @@
                 </div>
 
                 <div class="card-body p-5">
-                    <form>
+                    @if (!string.IsNullOrEmpty(ErrorMessage))
+                    {
+                        <div class="alert alert-danger">@ErrorMessage</div>
+                    }
+                    @if (!string.IsNullOrEmpty(SuccessMessage))
+                    {
+                        <div class="alert alert-success">@SuccessMessage</div>
+                    }
+                    <form @onsubmit="HandleRegister">
                         <div class="mb-3">
                             <label for="firstName" class="form-label">First Name *</label>
-                            <input type="text" class="form-control" id="firstName" placeholder="Enter your first name" required />
+                            <input type="text" class="form-control" id="firstName" placeholder="Enter your first name" @bind="RegisterRequest.FirstName" required />
                         </div>
-
                         <div class="mb-3">
                             <label for="lastName" class="form-label">Last Name *</label>
-                            <input type="text" class="form-control" id="lastName" placeholder="Enter your last name" required />
+                            <input type="text" class="form-control" id="lastName" placeholder="Enter your last name" @bind="RegisterRequest.LastName" required />
                         </div>
-
                         <div class="mb-3">
                             <label for="email" class="form-label">Email Address *</label>
-                            <input type="email" class="form-control" id="email" placeholder="Enter your email" required />
+                            <input type="email" class="form-control" id="email" placeholder="Enter your email" @bind="RegisterRequest.Email" required />
                         </div>
-
                         <div class="mb-3">
                             <label for="phone" class="form-label">Phone Number</label>
-                            <input type="tel" class="form-control" id="phone" placeholder="Enter your phone number" />
+                            <input type="tel" class="form-control" id="phone" placeholder="Enter your phone number" @bind="RegisterRequest.PhoneNumber" />
                         </div>
-
-                        <div class="mb-3">
+                        <div class="mb-3 position-relative">
                             <label for="password" class="form-label">Password *</label>
-                            <input type="password" class="form-control" id="password" placeholder="Create a password" required />
+                            <input type="@(ShowPassword ? "text" : "password")" class="form-control" id="password" placeholder="Create a password" @bind="RegisterRequest.Password" required />
+                            <button type="button" tabindex="-1" class="btn btn-outline-secondary btn-sm position-absolute top-50 end-0 translate-middle-y me-2" style="z-index:2;" @onclick="() => ShowPassword = !ShowPassword">
+                                <span class="bi" style="font-size:1.2rem;">@(ShowPassword ? "👁️" : "👁️‍🗨️")</span>
+                            </button>
                         </div>
-
-                        <div class="mb-3">
+                        <div class="mb-3 position-relative">
                             <label for="confirmPassword" class="form-label">Confirm Password *</label>
-                            <input type="password" class="form-control" id="confirmPassword" placeholder="Confirm your password" required />
+                            <input type="@(ShowConfirmPassword ? "text" : "password")" class="form-control" id="confirmPassword" placeholder="Confirm your password" @bind="RegisterRequest.ConfirmPassword" required />
+                            <button type="button" tabindex="-1" class="btn btn-outline-secondary btn-sm position-absolute top-50 end-0 translate-middle-y me-2" style="z-index:2;" @onclick="() => ShowConfirmPassword = !ShowConfirmPassword">
+                                <span class="bi" style="font-size:1.2rem;">@(ShowConfirmPassword ? "👁️" : "👁️‍🗨️")</span>
+                            </button>
                         </div>
-
                         <div class="mb-3 form-check">
-                            <input type="checkbox" class="form-check-input" id="terms" required />
+                            <input type="checkbox" class="form-check-input" id="terms" @bind="RegisterRequest.AcceptTerms" required />
                             <label class="form-check-label" for="terms">
                                 I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>
                             </label>
                         </div>
-
-                        <button type="submit" class="btn btn-primary btn-lg w-100">Create Account</button>
-
+                        <button type="submit" class="btn btn-primary btn-lg w-100" disabled="@IsLoading">
+                            @(IsLoading ? "Creating..." : "Create Account")
+                        </button>
                         <div class="text-center mt-3">
                             <p class="text-muted">Already have an account? <a href="/login">Sign In</a></p>
                         </div>
@@ -62,8 +75,40 @@
 </div>
 
 @code {
-    protected override Task OnInitializedAsync()
+    private RegisterRequest RegisterRequest { get; set; } = new();
+    private string? ErrorMessage { get; set; }
+    private string? SuccessMessage { get; set; }
+    private bool IsLoading { get; set; }
+    private bool ShowPassword { get; set; }
+    private bool ShowConfirmPassword { get; set; }
+
+    private async Task HandleRegister()
     {
-        return Task.CompletedTask;
+        ErrorMessage = null;
+        SuccessMessage = null;
+        IsLoading = true;
+        try
+        {
+            var useCase = new RegisterUseCase(AuthenticationPort);
+            var response = await useCase.ExecuteAsync(RegisterRequest);
+            if (response.IsSuccess)
+            {
+                SuccessMessage = "Account created successfully! Redirecting to login...";
+                await Task.Delay(2000);
+                Navigation.NavigateTo("/login");
+            }
+            else
+            {
+                ErrorMessage = response.Message ?? "Registration failed. Please try again.";
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"An error occurred: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
     }
 }

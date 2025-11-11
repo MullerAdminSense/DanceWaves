@@ -58,15 +58,7 @@ public interface IAuthenticationPort
     /// </summary>
     Task<bool> EmailExistsAsync(string email);
 
-    /// <summary>
-    /// Get authentication user by external ID
-    /// </summary>
-    Task<AuthenticationUser?> GetAuthUserByExternalIdAsync(string provider, string externalUserId);
-
-    /// <summary>
-    /// Get authentication user by email
-    /// </summary>
-    Task<AuthenticationUser?> GetAuthUserByEmailAsync(string email);
+    // Métodos removidos: GetAuthUserByExternalIdAsync, GetAuthUserByEmailAsync
 
     /// <summary>
     /// Logout user
