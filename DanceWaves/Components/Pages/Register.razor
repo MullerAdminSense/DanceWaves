@@ -4,6 +4,7 @@
 @using DanceWaves.Application.UseCases
 @inject NavigationManager Navigation
 @inject IAuthenticationPort AuthenticationPort
+@inject AuthenticationStateProvider AuthStateProvider
 @rendermode InteractiveServer
 
 <div class="container mt-5">
@@ -173,9 +174,20 @@
     private string? SuccessMessage { get; set; }
     private bool IsLoading { get; set; }
     private Dictionary<string, string> ValidationErrors { get; set; } = new();
+    private bool IsAuthenticated { get; set; }
 
     private bool ShowPassword { get; set; } = false;
     private bool ShowConfirmPassword { get; set; } = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        IsAuthenticated = authState.User.Identity?.IsAuthenticated ?? false;
+        if (IsAuthenticated)
+        {
+            Navigation.NavigateTo("/profile", true);
+        }
+    }
 
     private void TogglePasswordVisibility() => ShowPassword = !ShowPassword;
     private void ToggleConfirmPasswordVisibility() => ShowConfirmPassword = !ShowConfirmPassword;

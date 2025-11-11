@@ -4,6 +4,7 @@
 @using DanceWaves.Application.UseCases
 @inject NavigationManager Navigation
 @inject IAuthenticationPort AuthenticationPort
+@inject AuthenticationStateProvider AuthStateProvider
 @rendermode InteractiveServer
 
 <div class="container mt-5">
@@ -122,6 +123,17 @@
     private bool IsLoading { get; set; }
     private bool HasEmailError { get; set; }
     private bool HasPasswordError { get; set; }
+    private bool IsAuthenticated { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        IsAuthenticated = authState.User.Identity?.IsAuthenticated ?? false;
+        if (IsAuthenticated)
+        {
+            Navigation.NavigateTo("/profile", true);
+        }
+    }
 
     private async Task HandleLocalLogin()
     {
@@ -153,9 +165,8 @@
             if (response.IsSuccess)
             {
                 SuccessMessage = "Login successful! Redirecting...";
-                // Store token in session/local storage
                 await Task.Delay(1000);
-                Navigation.NavigateTo("/");
+                Navigation.NavigateTo("/profile");
             }
             else
             {
@@ -174,21 +185,18 @@
 
     private Task HandleMicrosoftLogin()
     {
-        // TODO: Implement Microsoft Entra ID login flow
         ErrorMessage = "Microsoft login will be implemented with Azure AD B2C configuration";
         return Task.CompletedTask;
     }
 
     private Task HandleGoogleLogin()
     {
-        // TODO: Implement Google OAuth login flow
         ErrorMessage = "Google login will be implemented with OAuth configuration";
         return Task.CompletedTask;
     }
 
     private Task HandleAppleLogin()
     {
-        // TODO: Implement Apple Sign In login flow
         ErrorMessage = "Apple Sign In will be implemented with Apple ID configuration";
         return Task.CompletedTask;
     }

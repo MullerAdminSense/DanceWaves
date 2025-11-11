@@ -10,6 +10,7 @@
             }
             else
             {
+                <span class="navbar-text me-3">Hello, @CurrentUserName</span>
                 <a class="btn btn-outline-light me-2" href="/profile">Profile</a>
                 <button class="btn btn-danger" @onclick="Logout">Logout</button>
             }
@@ -41,6 +42,7 @@
 @code {
     private NavigationViewModel? navigationMenu;
     private bool IsAuthenticated = false;
+    private string CurrentUserName = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
@@ -56,6 +58,23 @@
     {
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         IsAuthenticated = authState.User.Identity?.IsAuthenticated ?? false;
+        if (IsAuthenticated)
+        {
+            var name = authState.User.Identity?.Name;
+            if (!string.IsNullOrEmpty(name))
+            {
+                CurrentUserName = name;
+            }
+            else
+            {
+                // fallback: try to get email claim
+                CurrentUserName = authState.User.Claims.FirstOrDefault(c => c.Type == "email")?.Value ?? "User";
+            }
+        }
+        else
+        {
+            CurrentUserName = string.Empty;
+        }
         StateHasChanged();
     }
 
