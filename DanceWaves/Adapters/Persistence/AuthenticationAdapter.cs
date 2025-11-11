@@ -28,7 +28,7 @@ public class AuthenticationAdapter : IAuthenticationPort
     {
         try
         {
-            var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
+            var user = await _dbContext.Users.Include(u => u.RolePermission).FirstOrDefaultAsync(u => u.Email == request.Email);
             if (user == null)
             {
                 _logger.LogWarning($"Login attempt failed for email: {request.Email}");
@@ -38,14 +38,29 @@ public class AuthenticationAdapter : IAuthenticationPort
                     Message = "Invalid email or password"
                 };
             }
-            // Here you should verify the password (implement hash/password in User)
-            // Example: if (!PasswordHasher.VerifyPassword(request.Password, user.Password!)) { ... }
-            // For now, let's assume the password is correct
+            // Verifica a senha
+            if (string.IsNullOrEmpty(user.Password) || !PasswordHasher.VerifyPassword(request.Password, user.Password))
+            {
+                _logger.LogWarning($"Login attempt failed for email: {request.Email} (invalid password)");
+                return new AuthenticationResponse
+                {
+                    IsSuccess = false,
+                    Message = "Invalid email or password"
+                };
+            }
+
+            // Busca role
+            var role = user.RolePermission?.Name ?? "User";
+
+            // Gera JWT
+            var token = GenerateJwtToken(user, role);
+
             _logger.LogInformation($"User logged in successfully: {request.Email}");
             return new AuthenticationResponse
             {
                 IsSuccess = true,
                 Message = "Login successful",
+                AccessToken = token,
                 User = new UserDto
                 {
                     Id = user.Id,
@@ -273,14 +288,25 @@ public class AuthenticationAdapter : IAuthenticationPort
     }
 
     // Helper methods
-    private string GenerateAccessToken(int userId)
+    private string GenerateJwtToken(User user, string role)
     {
-        return Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
-    }
-
-    private string GenerateRefreshToken()
-    {
-        return Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+        var key = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes("YourSuperSecretKey123!"));
+        var creds = new Microsoft.IdentityModel.Tokens.SigningCredentials(key, Microsoft.IdentityModel.Tokens.SecurityAlgorithms.HmacSha256);
+        var claims = new[]
+        {
+            new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Name, user.FirstName ?? user.Email ?? "User"),
+            new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Email, user.Email ?? string.Empty),
+            new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Role, role)
+        };
+        var token = new System.IdentityModel.Tokens.Jwt.JwtSecurityToken(
+            issuer: "DanceWaves",
+            audience: "DanceWavesClient",
+            claims: claims,
+            expires: DateTime.UtcNow.AddHours(8),
+            signingCredentials: creds
+        );
+        return new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler().WriteToken(token);
     }
 
     // Method MapToUserDto removed

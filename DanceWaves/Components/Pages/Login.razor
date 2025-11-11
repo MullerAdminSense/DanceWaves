@@ -164,6 +164,11 @@
 
             if (response.IsSuccess)
             {
+                // Set authentication state with JWT token
+                if (AuthStateProvider is DanceWaves.Infrastructure.Security.CustomAuthenticationStateProvider customProvider && !string.IsNullOrEmpty(response.AccessToken))
+                {
+                    await customProvider.MarkUserAsAuthenticated(response.AccessToken);
+                }
                 SuccessMessage = "Login successful! Redirecting...";
                 await Task.Delay(1000);
                 Navigation.NavigateTo("/profile");
