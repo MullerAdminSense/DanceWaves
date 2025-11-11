@@ -75,24 +75,22 @@
                             }
                         </div>
 
-                        <div class="mb-3">
-                            <label for="phone" class="form-label">Phone Number (Optional)</label>
-                            <input type="tel" 
-                                   class="form-control" 
-                                   id="phone" 
-                                   @bind="RegisterRequest.PhoneNumber" 
-                                   placeholder="+1 (555) 123-4567">
-                        </div>
+                        <!-- Campo de telefone removido conforme solicitado -->
 
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label for="password" class="form-label">Password <span class="text-danger">*</span></label>
-                                <input type="password" 
-                                       class="form-control @(ValidationErrors.ContainsKey(nameof(RegisterRequest.Password)) ? "is-invalid" : "")" 
-                                       id="password" 
-                                       @bind="RegisterRequest.Password" 
-                                       placeholder="Enter password"
-                                       required>
+                                <div class="input-group">
+                                    <input type="@(ShowPassword ? "text" : "password")"
+                                           class="form-control @(ValidationErrors.ContainsKey(nameof(RegisterRequest.Password)) ? "is-invalid" : "")"
+                                           id="password"
+                                           @bind="RegisterRequest.Password"
+                                           placeholder="Enter password"
+                                           required>
+                                    <button type="button" class="btn btn-outline-secondary" @onclick="TogglePasswordVisibility" tabindex="-1">
+                                        <span class="@(ShowPassword ? "bi bi-eye-slash" : "bi bi-eye")"></span>
+                                    </button>
+                                </div>
                                 @if (ValidationErrors.ContainsKey(nameof(RegisterRequest.Password)))
                                 {
                                     <div class="invalid-feedback d-block">@ValidationErrors[nameof(RegisterRequest.Password)]</div>
@@ -104,12 +102,17 @@
 
                             <div class="col-md-6 mb-3">
                                 <label for="confirmPassword" class="form-label">Confirm Password <span class="text-danger">*</span></label>
-                                <input type="password" 
-                                       class="form-control @(ValidationErrors.ContainsKey(nameof(RegisterRequest.ConfirmPassword)) ? "is-invalid" : "")" 
-                                       id="confirmPassword" 
-                                       @bind="RegisterRequest.ConfirmPassword" 
-                                       placeholder="Confirm password"
-                                       required>
+                                <div class="input-group">
+                                    <input type="@(ShowConfirmPassword ? "text" : "password")"
+                                           class="form-control @(ValidationErrors.ContainsKey(nameof(RegisterRequest.ConfirmPassword)) ? "is-invalid" : "")"
+                                           id="confirmPassword"
+                                           @bind="RegisterRequest.ConfirmPassword"
+                                           placeholder="Confirm password"
+                                           required>
+                                    <button type="button" class="btn btn-outline-secondary" @onclick="ToggleConfirmPasswordVisibility" tabindex="-1">
+                                        <span class="@(ShowConfirmPassword ? "bi bi-eye-slash" : "bi bi-eye")"></span>
+                                    </button>
+                                </div>
                                 @if (ValidationErrors.ContainsKey(nameof(RegisterRequest.ConfirmPassword)))
                                 {
                                     <div class="invalid-feedback d-block">@ValidationErrors[nameof(RegisterRequest.ConfirmPassword)]</div>
@@ -170,6 +173,12 @@
     private string? SuccessMessage { get; set; }
     private bool IsLoading { get; set; }
     private Dictionary<string, string> ValidationErrors { get; set; } = new();
+
+    private bool ShowPassword { get; set; } = false;
+    private bool ShowConfirmPassword { get; set; } = false;
+
+    private void TogglePasswordVisibility() => ShowPassword = !ShowPassword;
+    private void ToggleConfirmPasswordVisibility() => ShowConfirmPassword = !ShowConfirmPassword;
 
     private async Task HandleRegister()
     {
