@@ -25,6 +25,9 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents()
     .AddInteractiveWebAssemblyComponents();
 
+// Add HttpContextAccessor for cookie management
+builder.Services.AddHttpContextAccessor();
+
 // Configure EF DbContext
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -82,36 +85,79 @@ Log.Information("DanceWaves application starting up");
 // Initialize database with seed data
 await app.InitializeDatabaseAsync();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseWebAssemblyDebugging();
-    // Enable HTTPS redirection - IIS Express has trusted certificate
-    // For Kestrel, user needs to trust the dev certificate
-    app.UseHttpsRedirection();
-}
-else
-{
-    app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-    app.UseHsts();
-    app.UseHttpsRedirection();
-}
-app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 
-app.UseAntiforgery();
-
-// ...existing code...
-// ...existing code...
+// Configure localization FIRST in the pipeline
 var supportedCultures = new[] { "en", "nl", "fr", "de" };
 var localizationOptions = new RequestLocalizationOptions
 {
     DefaultRequestCulture = new RequestCulture("en"),
     SupportedCultures = supportedCultures.Select(c => new CultureInfo(c)).ToList(),
-    SupportedUICultures = supportedCultures.Select(c => new CultureInfo(c)).ToList()
+    SupportedUICultures = supportedCultures.Select(c => new CultureInfo(c)).ToList(),
+    FallBackToParentCultures = false,
+    FallBackToParentUICultures = false
 };
+localizationOptions.RequestCultureProviders.Clear();
+localizationOptions.RequestCultureProviders.Add(new CookieRequestCultureProvider());
 app.UseRequestLocalization(localizationOptions);
+var currentCulture = localizationOptions.DefaultRequestCulture.Culture;
+if (currentCulture != null)
+{
+    CultureInfo.DefaultThreadCurrentCulture = currentCulture;
+    CultureInfo.DefaultThreadCurrentUICulture = currentCulture;
+}
+
+// Endpoint para definir cultura via cookie (funciona sem JavaScript)
+// Deve ser mapeado ANTES do UseHttpsRedirection para evitar redirecionamento prematuro
+app.MapGet("/setculture/{culture}", (string culture, HttpContext context) =>
+{
+    var cookieValue = $"c={culture}|uic={culture}";
+    var expires = DateTimeOffset.UtcNow.AddYears(1).ToString("R");
+    var isSecure = context.Request.IsHttps;
+    
+    // Define o cookie diretamente no header Set-Cookie
+    var cookieHeader = $".AspNetCore.Culture={cookieValue}; Path=/; Expires={expires}; SameSite=Lax";
+    if (isSecure)
+    {
+        cookieHeader += "; Secure";
+    }
+    
+    context.Response.Headers.Append("Set-Cookie", cookieHeader);
+    context.Response.Redirect("/", permanent: false);
+    
+    return Task.CompletedTask;
+});
+
+// Continue with the rest of the pipeline
+// UseHttpsRedirection com exceção para /setculture para permitir que o cookie seja definido
+if (app.Environment.IsDevelopment())
+{
+    app.UseWebAssemblyDebugging();
+    app.Use(async (context, next) =>
+    {
+        if (!context.Request.Path.StartsWithSegments("/setculture"))
+        {
+            if (context.Request.Scheme == "http")
+            {
+                var httpsUrl = $"https://{context.Request.Host}{context.Request.Path}{context.Request.QueryString}";
+                context.Response.Redirect(httpsUrl, permanent: false);
+                return;
+            }
+        }
+        await next();
+    });
+}
+else
+{
+    app.UseExceptionHandler("/Error", createScopeForErrors: true);
+    app.UseHsts();
+    app.UseHttpsRedirection();
+}
+
+app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
+
+app.UseAntiforgery();
 app.MapStaticAssets();
+
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()
     .AddInteractiveWebAssemblyRenderMode()

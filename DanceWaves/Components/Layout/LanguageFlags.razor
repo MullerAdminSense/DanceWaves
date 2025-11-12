@@ -1,0 +1,36 @@
+@rendermode InteractiveServer
+@inject IJSRuntime JS
+@inject ILogger<LanguageFlags> Logger
+
+<div class="d-flex align-items-center gap-2">
+    <!-- Bandeiras para seleção de idioma -->
+    <button class="btn btn-link p-0" @onclick="@(() => ChangeCulture("en"))" type="button" title="English">
+        <img src="/images/flags/gb.svg" alt="English" style="width:32px;height:32px;" />
+    </button>
+    <button class="btn btn-link p-0" @onclick="@(() => ChangeCulture("nl"))" type="button">
+        <img src="/images/flags/nl.svg" alt="Nederlands" style="width:32px;height:32px;" />
+    </button>
+    <button class="btn btn-link p-0" @onclick="@(() => ChangeCulture("fr"))" type="button">
+        <img src="/images/flags/fr.svg" alt="Français" style="width:32px;height:32px;" />
+    </button>
+    <button class="btn btn-link p-0" @onclick="@(() => ChangeCulture("de"))" type="button">
+        <img src="/images/flags/de.svg" alt="Deutsch" style="width:32px;height:32px;" />
+    </button>
+</div>
+
+@code {
+    private async Task ChangeCulture(string culture)
+    {
+        try
+        {
+            Logger.LogInformation("Iniciando mudança de cultura para: {Culture}", culture);
+            await JS.InvokeVoidAsync("setCulture", culture);
+            Logger.LogInformation("Função JavaScript setCulture chamada com sucesso para: {Culture}", culture);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Erro ao tentar mudar a cultura para: {Culture}", culture);
+        }
+    }
+}
+
