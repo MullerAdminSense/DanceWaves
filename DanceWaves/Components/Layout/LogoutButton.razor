@@ -1,0 +1,34 @@
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Linq
+@using System
+@rendermode InteractiveServer
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+@inject DanceWaves.Application.Ports.IAuthenticationPort AuthenticationPort
+
+<button class="btn btn-danger btn-sm" @onclick="LogoutAsync" type="button">Logout</button>
+
+@code {
+    private async Task LogoutAsync()
+    {
+        // Get userId before clearing auth state
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var userId = authState.User.Claims.FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        
+        // Call LogoutAsync from adapter
+        if (!string.IsNullOrWhiteSpace(userId))
+        {
+            await AuthenticationPort.LogoutAsync(userId);
+        }
+        
+        // Clear authentication state
+        if (AuthStateProvider is DanceWaves.Infrastructure.Security.CustomAuthenticationStateProvider customProvider)
+        {
+            await customProvider.MarkUserAsLoggedOut();
+        }
+        
+        await Task.Delay(100);
+        Navigation.NavigateTo("/login", true);
+    }
+}
+

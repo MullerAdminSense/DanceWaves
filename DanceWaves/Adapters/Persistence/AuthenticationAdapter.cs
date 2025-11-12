@@ -92,7 +92,7 @@ namespace DanceWaves.Adapters.Persistence
 						Message = "Email already registered"
 					};
 				}
-				var rolePermissionId = 4; // Jury padrão
+				var rolePermissionId = 3; // user padrão
 				var rolePermission = await _dbContext.UserRolePermissions.FindAsync(rolePermissionId);
 				if (rolePermission == null)
 				{

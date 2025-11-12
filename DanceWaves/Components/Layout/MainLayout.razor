@@ -16,9 +16,8 @@
             <div></div>
             <div class="d-flex align-items-center gap-2">
                 <AuthorizeView>
-                    <Authorized Context="context">
-                        <span class="navbar-text fw-bold">@GetUserName(context.User)</span>
-                        <button class="btn btn-danger btn-sm" @onclick="()=>LogoutAsync()" type="button">Logout</button>
+                    <Authorized>
+                        <LogoutButton />
                     </Authorized>
                 </AuthorizeView>
             </div>
@@ -29,59 +28,6 @@
     </main>
 </div>
 
-@code {
-    private string GetUserName(System.Security.Claims.ClaimsPrincipal user)
-    {
-        if (user == null || user.Identity == null || !user.Identity.IsAuthenticated)
-            return string.Empty;
-
-        // Try to get FullName claim
-        var fullNameClaim = user.Claims.FirstOrDefault(c => 
-            c.Type.Equals("FullName", StringComparison.OrdinalIgnoreCase) || 
-            c.Type.EndsWith("/FullName", StringComparison.OrdinalIgnoreCase) || 
-            c.Type.EndsWith("FullName", StringComparison.OrdinalIgnoreCase) ||
-            c.Type.Contains("FullName", StringComparison.OrdinalIgnoreCase))?.Value;
-        
-        if (!string.IsNullOrWhiteSpace(fullNameClaim))
-            return fullNameClaim.Trim();
-
-        // Fallback: try to get FirstName and LastName
-        var firstName = user.Claims.FirstOrDefault(c => 
-            c.Type.Equals("FirstName", StringComparison.OrdinalIgnoreCase) || 
-            c.Type.EndsWith("/FirstName", StringComparison.OrdinalIgnoreCase) || 
-            c.Type.EndsWith("FirstName", StringComparison.OrdinalIgnoreCase))?.Value;
-        var lastName = user.Claims.FirstOrDefault(c => 
-            c.Type.Equals("LastName", StringComparison.OrdinalIgnoreCase) || 
-            c.Type.EndsWith("/LastName", StringComparison.OrdinalIgnoreCase) || 
-            c.Type.EndsWith("LastName", StringComparison.OrdinalIgnoreCase))?.Value;
-        
-        if (!string.IsNullOrWhiteSpace(firstName) || !string.IsNullOrWhiteSpace(lastName))
-            return $"{firstName} {lastName}".Trim();
-
-        // Last resort: use email
-        return user.Claims.FirstOrDefault(c => 
-            c.Type == System.Security.Claims.ClaimTypes.Email || 
-            c.Type.EndsWith("emailaddress", StringComparison.OrdinalIgnoreCase))?.Value ?? 
-            user.Identity?.Name ?? "User";
-    }
-
-    private async Task LogoutAsync()
-    {
-        // Recupera o userId do usuário autenticado
-        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-        var userId = authState.User.Claims.FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (!string.IsNullOrWhiteSpace(userId))
-        {
-            await AuthenticationPort.LogoutAsync(userId);
-        }
-        if (AuthStateProvider is DanceWaves.Infrastructure.Security.CustomAuthenticationStateProvider customProvider)
-        {
-            await customProvider.MarkUserAsLoggedOut();
-        }
-        await Task.Delay(150);
-        Navigation.NavigateTo("/login", true);
-    }
-}
 
 <div id="blazor-error-ui" data-nosnippet>
     An unhandled error has occurred.
