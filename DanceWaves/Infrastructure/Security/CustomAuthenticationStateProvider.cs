@@ -4,6 +4,7 @@ using System.Linq;
 using System.Collections.Concurrent;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.JSInterop;
+using Serilog;
 
 namespace DanceWaves.Infrastructure.Security
 {
@@ -34,7 +35,7 @@ namespace DanceWaves.Infrastructure.Security
             }
         }
 
-        public override async Task<AuthenticationState> GetAuthenticationStateAsync()
+    public override async Task<AuthenticationState> GetAuthenticationStateAsync()
         {
             string? token = null;
             var circuitId = GetCircuitId();
@@ -61,25 +62,25 @@ namespace DanceWaves.Infrastructure.Security
                     _tokenCache.TryRemove(circuitId, out _);
                 }
             }
-            catch (JSException)
+            catch (JSException ex)
             {
-                // JS interop not available (server-side rendering) - use cache if available
+                Log.Error(ex, "JSException in GetAuthenticationStateAsync");
                 if (string.IsNullOrWhiteSpace(token))
                 {
                     return new AuthenticationState(_anonymous);
                 }
             }
-            catch (InvalidOperationException)
+            catch (InvalidOperationException ex)
             {
-                // JS interop not available (server-side rendering) - use cache if available
+                Log.Error(ex, "InvalidOperationException in GetAuthenticationStateAsync");
                 if (string.IsNullOrWhiteSpace(token))
                 {
                     return new AuthenticationState(_anonymous);
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // Any other error - use cache if available
+                Log.Error(ex, "Unknown error in GetAuthenticationStateAsync");
                 if (string.IsNullOrWhiteSpace(token))
                 {
                     return new AuthenticationState(_anonymous);
@@ -88,21 +89,23 @@ namespace DanceWaves.Infrastructure.Security
 
             if (string.IsNullOrWhiteSpace(token))
             {
+                Log.Warning("No token found in GetAuthenticationStateAsync");
                 return new AuthenticationState(_anonymous);
             }
 
             var principal = JwtTokenParser.ParseToken(token);
             if (principal == null || principal.Identity == null || !principal.Identity.IsAuthenticated)
             {
-                // Invalid token - clear cache
+                Log.Warning("Invalid token in GetAuthenticationStateAsync");
                 _tokenCache.TryRemove(circuitId, out _);
                 return new AuthenticationState(_anonymous);
             }
 
+            Log.Information("Authenticated user: {Name}", principal.Identity.Name);
             return new AuthenticationState(principal);
         }
 
-        public async Task MarkUserAsAuthenticated(string accessToken)
+    public async Task MarkUserAsAuthenticated(string accessToken)
         {
             var circuitId = GetCircuitId();
             
@@ -122,14 +125,19 @@ namespace DanceWaves.Infrastructure.Security
             var principal = JwtTokenParser.ParseToken(accessToken);
             if (principal == null || principal.Identity == null || !principal.Identity.IsAuthenticated)
             {
+                Log.Warning("MarkUserAsAuthenticated: Invalid token");
                 principal = _anonymous;
                 _tokenCache.TryRemove(circuitId, out _);
             }
-            
+            else
+            {
+                Log.Information("MarkUserAsAuthenticated: User authenticated {Name}", principal.Identity.Name);
+            }
+
             NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(principal)));
         }
 
-        public async Task MarkUserAsLoggedOut()
+    public async Task MarkUserAsLoggedOut()
         {
             var circuitId = GetCircuitId();
             
@@ -146,6 +154,7 @@ namespace DanceWaves.Infrastructure.Security
                 // JS not available, but continue anyway
             }
             
+            Log.Information("MarkUserAsLoggedOut: User logged out");
             NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(_anonymous)));
         }
     }

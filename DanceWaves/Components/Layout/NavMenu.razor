@@ -96,6 +96,7 @@
         {
             await customProvider.MarkUserAsLoggedOut();
         }
+        await CheckAuthenticationAsync();
         NavigationManager.NavigateTo("/login", true);
     }
 

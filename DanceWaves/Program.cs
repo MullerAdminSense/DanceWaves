@@ -1,3 +1,5 @@
+using Serilog;
+using DanceWaves;
 using Microsoft.AspNetCore.Components.Authorization;
 using DanceWaves.Infrastructure.Security;
 using DanceWaves.Client.Pages;
@@ -11,7 +13,9 @@ using DanceWaves.Adapters.Presenters;
 using Microsoft.AspNetCore.Identity;
 using DanceWaves.Models;
 
+SerilogConfig.ConfigureLogger();
 var builder = WebApplication.CreateBuilder(args);
+builder.Host.UseSerilog();
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
@@ -68,6 +72,7 @@ builder.Services.AddScoped<UpdateProfileUseCase>();
 builder.Services.AddScoped<ChangePasswordUseCase>();
 
 var app = builder.Build();
+Log.Information("DanceWaves application starting up");
 
 // Initialize database with seed data
 await app.InitializeDatabaseAsync();
