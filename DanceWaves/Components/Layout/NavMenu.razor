@@ -4,6 +4,10 @@
 <div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid d-flex justify-content-between align-items-center">
         <a class="navbar-brand" href="">DanceWaves</a>
+            @if (IsAuthenticated && !string.IsNullOrWhiteSpace(CurrentUserName))
+            {
+                <div class="text-light ms-2">Hello, @CurrentUserName</div>
+            }
         <div class="d-flex align-items-center">
             @if (!IsAuthenticated)
             {
@@ -90,15 +94,6 @@
         StateHasChanged();
     }
 
-    private async Task Logout()
-    {
-        if (AuthStateProvider is DanceWaves.Infrastructure.Security.CustomAuthenticationStateProvider customProvider)
-        {
-            await customProvider.MarkUserAsLoggedOut();
-        }
-        await CheckAuthenticationAsync();
-        NavigationManager.NavigateTo("/login", true);
-    }
 
         // ...existing code...
 
