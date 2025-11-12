@@ -1,3 +1,4 @@
+
 using DanceWaves.Application.Dtos;
 using DanceWaves.Application.Ports;
 using DanceWaves.Data;
@@ -6,5 +7,189 @@ using DanceWaves.Infrastructure.Security;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
 
-namespace DanceWaves.Adapters.Persistence;
+namespace DanceWaves.Adapters.Persistence
+{
+
+
+public class AuthenticationAdapter : IAuthenticationPort
+{
+	private readonly ApplicationDbContext _dbContext;
+	private readonly ILogger<AuthenticationAdapter> _logger;
+
+	public AuthenticationAdapter(ApplicationDbContext dbContext, ILogger<AuthenticationAdapter> logger)
+	{
+		_dbContext = dbContext;
+		_logger = logger;
+	}
+
+	public async Task<AuthenticationResponse> LoginAsync(LoginRequest request)
+	{
+		try
+		{
+			var user = await _dbContext.Users.Include(u => u.RolePermission).FirstOrDefaultAsync(u => u.Email == request.Email);
+			if (user == null)
+			{
+				return new AuthenticationResponse
+				{
+					IsSuccess = false,
+					Message = "Invalid email or password"
+				};
+			}
+			if (string.IsNullOrEmpty(user.Password) || !PasswordHasher.VerifyPassword(request.Password, user.Password))
+			{
+				return new AuthenticationResponse
+				{
+					IsSuccess = false,
+					Message = "Invalid email or password"
+				};
+			}
+			var role = user.RolePermission?.Name ?? "User";
+			var token = GenerateJwtToken(user, role);
+			return new AuthenticationResponse
+			{
+				IsSuccess = true,
+				Message = "Login successful",
+				AccessToken = token,
+				User = new UserDto
+				{
+					Id = user.Id,
+					Email = user.Email,
+					FirstName = user.FirstName ?? string.Empty,
+					LastName = user.LastName ?? string.Empty
+				}
+			};
+		}
+		catch (Exception ex)
+		{
+			return new AuthenticationResponse
+			{
+				IsSuccess = false,
+				Message = $"An error occurred during login: {ex.Message}"
+			};
+		}
+	}
+
+	public async Task<AuthenticationResponse> RegisterAsync(RegisterRequest request)
+	{
+		try
+		{
+			if (string.IsNullOrWhiteSpace(request.Email) ||
+				string.IsNullOrWhiteSpace(request.FirstName) ||
+				string.IsNullOrWhiteSpace(request.LastName) ||
+				string.IsNullOrWhiteSpace(request.Password))
+			{
+				return new AuthenticationResponse
+				{
+					IsSuccess = false,
+					Message = "All fields are required."
+				};
+			}
+			var existingUser = await _dbContext.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
+			if (existingUser != null)
+			{
+				return new AuthenticationResponse
+				{
+					IsSuccess = false,
+					Message = "Email already registered"
+				};
+			}
+			var rolePermissionId = 4; // Jury padrão
+			var rolePermission = await _dbContext.UserRolePermissions.FindAsync(rolePermissionId);
+			if (rolePermission == null)
+			{
+				return new AuthenticationResponse
+				{
+					IsSuccess = false,
+					Message = "Role permission not allowed."
+				};
+			}
+			var newUser = new User
+			{
+				Email = request.Email,
+				FirstName = request.FirstName,
+				LastName = request.LastName,
+				RolePermissionId = rolePermissionId,
+				Password = PasswordHasher.HashPassword(request.Password)
+			};
+			_dbContext.Users.Add(newUser);
+			await _dbContext.SaveChangesAsync();
+			return new AuthenticationResponse
+			{
+				IsSuccess = true,
+				Message = "Registration successful"
+			};
+		}
+		catch (Exception ex)
+		{
+			return new AuthenticationResponse
+			{
+				IsSuccess = false,
+				Message = $"An error occurred during registration: {ex.Message}"
+			};
+		}
+	}
+
+	private string GenerateJwtToken(User user, string role)
+	{
+	var key = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes("DanceWavesSuperSecretKey_2025_ChangeMe!@#1234567890"));
+		var creds = new Microsoft.IdentityModel.Tokens.SigningCredentials(key, Microsoft.IdentityModel.Tokens.SecurityAlgorithms.HmacSha256);
+		var firstName = user.FirstName ?? string.Empty;
+		var lastName = user.LastName ?? string.Empty;
+		var fullName = $"{firstName} {lastName}".Trim();
+		if (string.IsNullOrWhiteSpace(fullName))
+		{
+			fullName = user.Email ?? "User";
+		}
+		
+		var claims = new[]
+		{
+			new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.NameIdentifier, user.Id.ToString()),
+			new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Name, user.Email ?? "User"),
+			new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Email, user.Email ?? string.Empty),
+			new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Role, role),
+			new System.Security.Claims.Claim("FullName", fullName),
+			new System.Security.Claims.Claim("FirstName", firstName),
+			new System.Security.Claims.Claim("LastName", lastName)
+		};
+		var token = new System.IdentityModel.Tokens.Jwt.JwtSecurityToken(
+			issuer: "DanceWaves",
+			audience: "DanceWavesClient",
+			claims: claims,
+			expires: DateTime.UtcNow.AddHours(8),
+			signingCredentials: creds
+		);
+		return new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler().WriteToken(token);
+	}
+	public async Task<AuthenticationResponse> FederatedLoginAsync(FederatedLoginRequest request) => throw new NotImplementedException();
+	public async Task<UserDto?> GetCurrentUserAsync(string userId)
+	{
+		if (string.IsNullOrWhiteSpace(userId))
+			return null;
+		if (!int.TryParse(userId, out var id))
+			return null;
+		var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Id == id);
+		if (user == null)
+			return null;
+		return new UserDto
+		{
+			Id = user.Id,
+			Email = user.Email,
+			FirstName = user.FirstName ?? string.Empty,
+			LastName = user.LastName ?? string.Empty,
+			PhoneNumber = user.Phone,
+			Provider = "local",
+		// LastLoginAt not available in User entity
+		};
+	}
+	public async Task<AuthenticationResponse> UpdateProfileAsync(string userId, UserDto updatedProfile) => throw new NotImplementedException();
+	public async Task<AuthenticationResponse> ChangePasswordAsync(string userId, ChangePasswordRequest request) => throw new NotImplementedException();
+	public async Task<AuthenticationResponse> RequestPasswordResetAsync(ResetPasswordRequest request) => throw new NotImplementedException();
+	public async Task<AuthenticationResponse> ResetPasswordAsync(ResetPasswordConfirmRequest request) => throw new NotImplementedException();
+	public async Task<AuthenticationResponse> VerifyEmailAsync(VerifyEmailRequest request) => throw new NotImplementedException();
+	public async Task<bool> EmailExistsAsync(string email) => throw new NotImplementedException();
+	public async Task LogoutAsync(string userId) => throw new NotImplementedException();
+	public async Task<AuthenticationResponse> RefreshTokenAsync(string refreshToken) => throw new NotImplementedException();
+}
+
+}
 

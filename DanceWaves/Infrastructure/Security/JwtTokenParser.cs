@@ -13,7 +13,31 @@ namespace DanceWaves.Infrastructure.Security
             {
                 var handler = new JwtSecurityTokenHandler();
                 var jwtToken = handler.ReadJwtToken(token);
-                var identity = new ClaimsIdentity(jwtToken.Claims, "jwt");
+                
+                // Check if token is expired
+                if (jwtToken.ValidTo < DateTime.UtcNow)
+                {
+                    return null;
+                }
+                
+                // Create identity with authentication type "jwt" 
+                // When authenticationType is provided and not empty, IsAuthenticated will be true
+                var identity = new ClaimsIdentity(
+                    jwtToken.Claims, 
+                    "jwt", 
+                    System.Security.Claims.ClaimTypes.Name, 
+                    System.Security.Claims.ClaimTypes.Role);
+                
+                // If for some reason it's not authenticated, try with a different auth type
+                if (!identity.IsAuthenticated)
+                {
+                    identity = new ClaimsIdentity(
+                        jwtToken.Claims, 
+                        "Bearer", 
+                        System.Security.Claims.ClaimTypes.Name, 
+                        System.Security.Claims.ClaimTypes.Role);
+                }
+                
                 return new ClaimsPrincipal(identity);
             }
             catch

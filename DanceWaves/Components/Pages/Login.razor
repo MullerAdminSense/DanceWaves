@@ -135,15 +135,7 @@
         ShowPassword = !ShowPassword;
     }
 
-    protected override async Task OnInitializedAsync()
-    {
-        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-        IsAuthenticated = authState.User.Identity?.IsAuthenticated ?? false;
-        if (IsAuthenticated)
-        {
-            Navigation.NavigateTo("/profile", true);
-        }
-    }
+    // OnInitializedAsync removed redirect to /profile. Only redirect after successful login.
 
     private async Task HandleLocalLogin()
     {
@@ -178,10 +170,11 @@
                 if (AuthStateProvider is DanceWaves.Infrastructure.Security.CustomAuthenticationStateProvider customProvider && !string.IsNullOrEmpty(response.AccessToken))
                 {
                     await customProvider.MarkUserAsAuthenticated(response.AccessToken);
+                    await Task.Delay(300);
                 }
                 SuccessMessage = "Login successful! Redirecting...";
                 await Task.Delay(1000);
-                Navigation.NavigateTo("/profile");
+                Navigation.NavigateTo("/profile", true);
             }
             else
             {

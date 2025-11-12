@@ -1,4 +1,6 @@
 ﻿@using Microsoft.AspNetCore.Components.Authorization
+@using System.Linq
+@using System
 <div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid d-flex justify-content-between align-items-center">
         <a class="navbar-brand" href="">DanceWaves</a>
@@ -8,39 +10,41 @@
                 <a class="btn btn-outline-light me-2" href="/login">Login</a>
                 <a class="btn btn-primary" href="/register">Register</a>
             }
-            else
-            {
-                <span class="navbar-text me-3">Hello, @CurrentUserName</span>
-                <a class="btn btn-outline-light me-2" href="/profile">Profile</a>
-                <button class="btn btn-danger" @onclick="Logout">Logout</button>
-            }
         </div>
     </div>
 </div>
 
 <input type="checkbox" title="Navigation menu" class="navbar-toggler" />
 
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
-    <nav class="nav flex-column">
-        @if (navigationMenu?.MenuItems != null)
-        {
-            @foreach (var item in navigationMenu.MenuItems)
-            {
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="@item.Route" Match="NavLinkMatch.All">
-                        <span>@item.Icon</span> @item.Label
-                    </NavLink>
-                </div>
-            }
-        }
-    </nav>
-</div>
-
-@inject AuthenticationStateProvider AuthStateProvider
-@inject NavigationManager Navigation
+<AuthorizeView>
+    <Authorized>
+        <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
+            <nav class="nav flex-column">
+                @if (navigationMenu?.MenuItems != null)
+                {
+                    @foreach (var item in navigationMenu.MenuItems)
+                    {
+                        <div class="nav-item px-3">
+                            <NavLink class="nav-link" href="@item.Route" Match="NavLinkMatch.All">
+                                <span>@item.Icon</span> @item.Label
+                            </NavLink>
+                        </div>
+                    }
+                }
+            </nav>
+        </div>
+    </Authorized>
+</AuthorizeView>
 
 @code {
     private NavigationViewModel? navigationMenu;
+
+    [Inject]
+    private AuthenticationStateProvider AuthStateProvider { get; set; } = default!;
+
+    [Inject]
+    private NavigationManager NavigationManager { get; set; } = default!;
+
     private bool IsAuthenticated = false;
     private string CurrentUserName = string.Empty;
 
@@ -60,16 +64,23 @@
         IsAuthenticated = authState.User.Identity?.IsAuthenticated ?? false;
         if (IsAuthenticated)
         {
-            // Tenta pegar o nome completo do claim FullName
-            var fullName = authState.User.Claims.FirstOrDefault(c => c.Type == "FullName")?.Value;
-            if (!string.IsNullOrWhiteSpace(fullName))
+            var fullNameClaim = authState.User.Claims.FirstOrDefault(c => c.Type.EndsWith("FullName"))?.Value;
+            if (!string.IsNullOrWhiteSpace(fullNameClaim))
             {
-                CurrentUserName = fullName;
+                CurrentUserName = fullNameClaim;
             }
             else
             {
-                // fallback: usa o email
-                CurrentUserName = authState.User.Identity?.Name ?? authState.User.Claims.FirstOrDefault(c => c.Type == "email")?.Value ?? "User";
+                var firstName = authState.User.Claims.FirstOrDefault(c => c.Type.EndsWith("FirstName"))?.Value;
+                var lastName = authState.User.Claims.FirstOrDefault(c => c.Type.EndsWith("LastName"))?.Value;
+                if (!string.IsNullOrWhiteSpace(firstName) || !string.IsNullOrWhiteSpace(lastName))
+                {
+                    CurrentUserName = $"{firstName} {lastName}".Trim();
+                }
+                else
+                {
+                    CurrentUserName = authState.User.Identity?.Name ?? authState.User.Claims.FirstOrDefault(c => c.Type.EndsWith("emailaddress"))?.Value ?? "User";
+                }
             }
         }
         else
@@ -85,8 +96,10 @@
         {
             await customProvider.MarkUserAsLoggedOut();
         }
-        Navigation.NavigateTo("/login", true);
+        NavigationManager.NavigateTo("/login", true);
     }
+
+        // ...existing code...
 
     [Inject]
     private INavigationPresenterPort? navigationPresenterPort { get; set; }
