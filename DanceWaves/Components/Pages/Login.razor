@@ -49,15 +49,20 @@
 
                         <div class="mb-3">
                             <label for="password" class="form-label">Password</label>
-                            <input type="password" 
-                                   class="form-control @(HasPasswordError ? "is-invalid" : "")" 
-                                   id="password" 
-                                   @bind="LoginRequest.Password" 
-                                   placeholder="Enter your password"
-                                   required>
+                            <div class="input-group">
+                                <input type="@(ShowPassword ? "text" : "password")"
+                                       class="form-control @(HasPasswordError ? "is-invalid" : "")"
+                                       id="password"
+                                       @bind="LoginRequest.Password"
+                                       placeholder="Enter your password"
+                                       required>
+                                <button type="button" class="btn btn-outline-secondary" @onclick="TogglePasswordVisibility" tabindex="-1">
+                                    <span class="@(ShowPassword ? "bi bi-eye-slash" : "bi bi-eye")"></span>
+                                </button>
+                            </div>
                             @if (HasPasswordError)
                             {
-                                <div class="invalid-feedback">Password is required.</div>
+                                <div class="invalid-feedback d-block">Password is required.</div>
                             }
                         </div>
 
@@ -124,6 +129,11 @@
     private bool HasEmailError { get; set; }
     private bool HasPasswordError { get; set; }
     private bool IsAuthenticated { get; set; }
+    private bool ShowPassword { get; set; } = false;
+    private void TogglePasswordVisibility()
+    {
+        ShowPassword = !ShowPassword;
+    }
 
     protected override async Task OnInitializedAsync()
     {

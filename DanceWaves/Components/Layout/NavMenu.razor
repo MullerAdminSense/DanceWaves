@@ -60,15 +60,16 @@
         IsAuthenticated = authState.User.Identity?.IsAuthenticated ?? false;
         if (IsAuthenticated)
         {
-            var name = authState.User.Identity?.Name;
-            if (!string.IsNullOrEmpty(name))
+            // Tenta pegar o nome completo do claim FullName
+            var fullName = authState.User.Claims.FirstOrDefault(c => c.Type == "FullName")?.Value;
+            if (!string.IsNullOrWhiteSpace(fullName))
             {
-                CurrentUserName = name;
+                CurrentUserName = fullName;
             }
             else
             {
-                // fallback: try to get email claim
-                CurrentUserName = authState.User.Claims.FirstOrDefault(c => c.Type == "email")?.Value ?? "User";
+                // fallback: usa o email
+                CurrentUserName = authState.User.Identity?.Name ?? authState.User.Claims.FirstOrDefault(c => c.Type == "email")?.Value ?? "User";
             }
         }
         else
