@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Localization;
+using System.Globalization;
 using Serilog;
 using DanceWaves;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -12,6 +14,7 @@ using DanceWaves.Adapters.Persistence;
 using DanceWaves.Adapters.Presenters;
 using Microsoft.AspNetCore.Identity;
 using DanceWaves.Models;
+// ...existing code...
 
 SerilogConfig.ConfigureLogger();
 var builder = WebApplication.CreateBuilder(args);
@@ -55,6 +58,8 @@ builder.Services.AddScoped<AuthenticatedHttpClientHandler>();
 builder.Services.AddHttpClient("SecureApiClient")
     .AddHttpMessageHandler<AuthenticatedHttpClientHandler>();
 
+// Register Localization
+builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
 // Register Hexagonal Architecture - Ports
 builder.Services.AddScoped<IEntryPersistencePort, EntryPersistenceAdapter>();
 builder.Services.AddScoped<IUserPersistencePort, UserPersistenceAdapter>();
@@ -96,6 +101,16 @@ app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages:
 
 app.UseAntiforgery();
 
+// ...existing code...
+// ...existing code...
+var supportedCultures = new[] { "en", "nl", "fr", "de" };
+var localizationOptions = new RequestLocalizationOptions
+{
+    DefaultRequestCulture = new RequestCulture("en"),
+    SupportedCultures = supportedCultures.Select(c => new CultureInfo(c)).ToList(),
+    SupportedUICultures = supportedCultures.Select(c => new CultureInfo(c)).ToList()
+};
+app.UseRequestLocalization(localizationOptions);
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()

@@ -13,7 +13,21 @@
 
     <main>
         <div class="top-row px-4 d-flex justify-content-between align-items-center">
-            <div></div>
+            <div class="d-flex align-items-center gap-2">
+                <!-- Bandeiras para seleção de idioma -->
+                <button class="btn btn-link p-0" @onclick="@(() => ChangeCulture("en"))">
+                    <img src="/images/flags/us.svg" alt="English" style="width:32px;height:32px;" />
+                </button>
+                <button class="btn btn-link p-0" @onclick="@(() => ChangeCulture("nl"))">
+                    <img src="/images/flags/nl.svg" alt="Nederlands" style="width:32px;height:32px;" />
+                </button>
+                <button class="btn btn-link p-0" @onclick="@(() => ChangeCulture("fr"))">
+                    <img src="/images/flags/fr.svg" alt="Français" style="width:32px;height:32px;" />
+                </button>
+                <button class="btn btn-link p-0" @onclick="@(() => ChangeCulture("de"))">
+                    <img src="/images/flags/de.svg" alt="Deutsch" style="width:32px;height:32px;" />
+                </button>
+            </div>
             <div class="d-flex align-items-center gap-2">
                 <AuthorizeView>
                     <Authorized>
@@ -22,6 +36,15 @@
                 </AuthorizeView>
             </div>
         </div>
+@code {
+    [Inject]
+    private IJSRuntime JS { get; set; } = default!;
+
+    private async Task ChangeCulture(string culture)
+    {
+        await JS.InvokeVoidAsync("setCulture", culture);
+    }
+}
         <article class="content px-4">
             @Body
         </article>

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <data name="Username" xml:space="preserve">
+    <value>Benutzername</value>
+  </data>
+  <data name="Password" xml:space="preserve">
+    <value>Passwort</value>
+  </data>
+  <data name="Login" xml:space="preserve">
+    <value>Anmelden</value>
+  </data>
+  <data name="ForgotPassword" xml:space="preserve">
+    <value>Passwort vergessen?</value>
+  </data>
+  <data name="InvalidCredentials" xml:space="preserve">
+    <value>Ungültiger Benutzername oder Passwort.</value>
+  </data>
+</root>

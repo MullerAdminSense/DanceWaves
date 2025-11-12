@@ -5,6 +5,7 @@
 @inject NavigationManager Navigation
 @inject IAuthenticationPort AuthenticationPort
 @inject AuthenticationStateProvider AuthStateProvider
+@inject Microsoft.Extensions.Localization.IStringLocalizer<Login> localizer
 @rendermode InteractiveServer
 
 <div class="container mt-5">
@@ -12,8 +13,8 @@
         <div class="col-md-6">
             <div class="card shadow-lg">
                 <div class="card-body p-5">
-                    <h2 class="card-title text-center mb-4">Welcome to DanceWaves</h2>
-                    <p class="text-center text-muted mb-4">Sign in to your account</p>
+                    <h2 class="card-title text-center mb-4">DanceWaves</h2>
+                    <p class="text-center text-muted mb-4">@localizer["Login"]</p>
 
                     @if (!string.IsNullOrEmpty(ErrorMessage))
                     {
@@ -34,27 +35,27 @@
                     <!-- Local Account Login -->
                     <form @onsubmit="HandleLocalLogin">
                         <div class="mb-3">
-                            <label for="email" class="form-label">Email Address</label>
+                            <label for="email" class="form-label">@localizer["Username"]</label>
                             <input type="email" 
                                    class="form-control @(HasEmailError ? "is-invalid" : "")" 
                                    id="email" 
                                    @bind="LoginRequest.Email" 
-                                   placeholder="Enter your email"
+                                   placeholder="@localizer["Username"]"
                                    required>
                             @if (HasEmailError)
                             {
-                                <div class="invalid-feedback">Please provide a valid email.</div>
+                                <div class="invalid-feedback">@localizer["InvalidCredentials"]</div>
                             }
                         </div>
 
                         <div class="mb-3">
-                            <label for="password" class="form-label">Password</label>
+                            <label for="password" class="form-label">@localizer["Password"]</label>
                             <div class="input-group">
                                 <input type="@(ShowPassword ? "text" : "password")"
                                        class="form-control @(HasPasswordError ? "is-invalid" : "")"
                                        id="password"
                                        @bind="LoginRequest.Password"
-                                       placeholder="Enter your password"
+                                       placeholder="@localizer["Password"]"
                                        required>
                                 <button type="button" class="btn btn-outline-secondary" @onclick="TogglePasswordVisibility" tabindex="-1">
                                     <span class="@(ShowPassword ? "bi bi-eye-slash" : "bi bi-eye")"></span>
@@ -62,14 +63,14 @@
                             </div>
                             @if (HasPasswordError)
                             {
-                                <div class="invalid-feedback d-block">Password is required.</div>
+                                <div class="invalid-feedback d-block">@localizer["InvalidCredentials"]</div>
                             }
                         </div>
 
                         <div class="mb-3 form-check">
                             <input type="checkbox" class="form-check-input" id="rememberMe" @bind="LoginRequest.RememberMe">
                             <label class="form-check-label" for="rememberMe">
-                                Remember me
+                                @localizer["ForgotPassword"]
                             </label>
                         </div>
 
