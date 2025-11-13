@@ -34,32 +34,6 @@
                     <form @onsubmit="HandleRegister">
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label for="franchiseName" class="form-label">Franchise <span class="text-danger">*</span></label>
-                                <input type="text"
-                                       class="form-control @(ValidationErrors.ContainsKey(nameof(RegisterRequest.FranchiseName)) ? "is-invalid" : "")"
-                                       id="franchiseName"
-                                       @bind="RegisterRequest.FranchiseName"
-                                       placeholder="Franchise name"
-                                       required>
-                                @if (ValidationErrors.ContainsKey(nameof(RegisterRequest.FranchiseName)))
-                                {
-                                    <div class="invalid-feedback d-block">@ValidationErrors[nameof(RegisterRequest.FranchiseName)]</div>
-                                }
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="danceSchoolName" class="form-label">Dance School <span class="text-danger">*</span></label>
-                                <input type="text"
-                                       class="form-control @(ValidationErrors.ContainsKey(nameof(RegisterRequest.DanceSchoolName)) ? "is-invalid" : "")"
-                                       id="danceSchoolName"
-                                       @bind="RegisterRequest.DanceSchoolName"
-                                       placeholder="Dance school name"
-                                       required>
-                                @if (ValidationErrors.ContainsKey(nameof(RegisterRequest.DanceSchoolName)))
-                                {
-                                    <div class="invalid-feedback d-block">@ValidationErrors[nameof(RegisterRequest.DanceSchoolName)]</div>
-                                }
-                            </div>
-                            <div class="col-md-6 mb-3">
                                 <label for="firstName" class="form-label">First Name <span class="text-danger">*</span></label>
                                 <input type="text" 
                                        class="form-control @(ValidationErrors.ContainsKey(nameof(RegisterRequest.FirstName)) ? "is-invalid" : "")" 
@@ -103,48 +77,44 @@
 
                         <!-- Campo de telefone removido conforme solicitado -->
 
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="password" class="form-label">Password <span class="text-danger">*</span></label>
-                                <div class="input-group">
-                                    <input type="@(ShowPassword ? "text" : "password")"
-                                           class="form-control @(ValidationErrors.ContainsKey(nameof(RegisterRequest.Password)) ? "is-invalid" : "")"
-                                           id="password"
-                                           @bind="RegisterRequest.Password"
-                                           placeholder="Enter password"
-                                           required>
-                                    <button type="button" class="btn btn-outline-secondary" @onclick="TogglePasswordVisibility" tabindex="-1">
-                                        <span class="@(ShowPassword ? "bi bi-eye-slash" : "bi bi-eye")"></span>
-                                    </button>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="password" class="form-label">Password <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <input type="@(ShowPassword ? "text" : "password")"
+                                               class="form-control @(ValidationErrors.ContainsKey(nameof(RegisterRequest.Password)) ? "is-invalid" : "")"
+                                               id="password"
+                                               @bind="RegisterRequest.Password"
+                                               placeholder="Enter password"
+                                               required>
+                                        <button type="button" class="btn btn-outline-secondary" @onclick="TogglePasswordVisibility" tabindex="-1">
+                                            <span class="@(ShowPassword ? "bi bi-eye-slash" : "bi bi-eye")"></span>
+                                        </button>
+                                    </div>
+                                    @if (ValidationErrors.ContainsKey(nameof(RegisterRequest.Password)))
+                                    {
+                                        <div class="invalid-feedback d-block">@ValidationErrors[nameof(RegisterRequest.Password)]</div>
+                                    }
                                 </div>
-                                @if (ValidationErrors.ContainsKey(nameof(RegisterRequest.Password)))
-                                {
-                                    <div class="invalid-feedback d-block">@ValidationErrors[nameof(RegisterRequest.Password)]</div>
-                                }
-                                <small class="form-text text-muted d-block mt-2">
-                                    Password must be at least 8 characters
-                                </small>
-                            </div>
-
-                            <div class="col-md-6 mb-3">
-                                <label for="confirmPassword" class="form-label">Confirm Password <span class="text-danger">*</span></label>
-                                <div class="input-group">
-                                    <input type="@(ShowConfirmPassword ? "text" : "password")"
-                                           class="form-control @(ValidationErrors.ContainsKey(nameof(RegisterRequest.ConfirmPassword)) ? "is-invalid" : "")"
-                                           id="confirmPassword"
-                                           @bind="RegisterRequest.ConfirmPassword"
-                                           placeholder="Confirm password"
-                                           required>
-                                    <button type="button" class="btn btn-outline-secondary" @onclick="ToggleConfirmPasswordVisibility" tabindex="-1">
-                                        <span class="@(ShowConfirmPassword ? "bi bi-eye-slash" : "bi bi-eye")"></span>
-                                    </button>
+                                <div class="col-md-6 mb-3">
+                                    <label for="confirmPassword" class="form-label">Confirm Password <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <input type="@(ShowConfirmPassword ? "text" : "password")"
+                                               class="form-control @(ValidationErrors.ContainsKey(nameof(RegisterRequest.ConfirmPassword)) ? "is-invalid" : "")"
+                                               id="confirmPassword"
+                                               @bind="RegisterRequest.ConfirmPassword"
+                                               placeholder="Confirm password"
+                                               required>
+                                        <button type="button" class="btn btn-outline-secondary" @onclick="ToggleConfirmPasswordVisibility" tabindex="-1">
+                                            <span class="@(ShowConfirmPassword ? "bi bi-eye-slash" : "bi bi-eye")"></span>
+                                        </button>
+                                    </div>
+                                    @if (ValidationErrors.ContainsKey(nameof(RegisterRequest.ConfirmPassword)))
+                                    {
+                                        <div class="invalid-feedback d-block">@ValidationErrors[nameof(RegisterRequest.ConfirmPassword)]</div>
+                                    }
                                 </div>
-                                @if (ValidationErrors.ContainsKey(nameof(RegisterRequest.ConfirmPassword)))
-                                {
-                                    <div class="invalid-feedback d-block">@ValidationErrors[nameof(RegisterRequest.ConfirmPassword)]</div>
-                                }
                             </div>
-                        </div>
 
                         <div class="mb-3 form-check">
                             <input type="checkbox" 

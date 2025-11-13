@@ -3,6 +3,7 @@
 @using DanceWaves.Application.Dtos
 @using DanceWaves.Application.Ports
 @using DanceWaves.Application.UseCases
+@using DanceWaves.Models
 @inject NavigationManager Navigation
 @inject IAuthenticationPort AuthenticationPort
 @inject AuthenticationStateProvider AuthStateProvider
@@ -77,6 +78,34 @@
                                     <div class="mb-3">
                                         <label for="phone" class="form-label">Phone Number</label>
                                         <input type="tel" class="form-control" id="phone" @bind="CurrentUser.PhoneNumber">
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="danceSchool" class="form-label">Dance School</label>
+                                        <select class="form-select" id="danceSchool" value="@CurrentUser.DanceSchoolId" @onchange="OnDanceSchoolChanged">
+                                            <option value="">Select a dance school</option>
+                                            @if (DanceSchools != null)
+                                            {
+                                                foreach (var school in DanceSchools)
+                                                {
+                                                    <option value="@school.Id">@school.LegalName</option>
+                                                }
+                                            }
+                                        </select>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="franchise" class="form-label">Franchise</label>
+                                        <select class="form-select" id="franchise" @bind="CurrentUser.DefaultFranchiseId">
+                                            <option value="">Select a franchise</option>
+                                            @if (FilteredFranchises != null)
+                                            {
+                                                foreach (var franchise in FilteredFranchises)
+                                                {
+                                                    <option value="@franchise.Id">@franchise.LegalName</option>
+                                                }
+                                            }
+                                        </select>
                                     </div>
 
                                     <div class="mb-3">
@@ -214,6 +243,9 @@
     private bool IsChangingPassword { get; set; }
     private bool ShowDeleteConfirm { get; set; }
 
+    private List<DanceSchool> DanceSchools { get; set; } = new();
+    private List<Franchise> FilteredFranchises { get; set; } = new();
+
     protected override async Task OnInitializedAsync()
     {
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
@@ -221,6 +253,32 @@
         if (!string.IsNullOrEmpty(userId))
         {
             CurrentUser = await AuthenticationPort.GetCurrentUserAsync(userId);
+        }
+        // Carregar todas as escolas
+        DanceSchools = await AuthenticationPort.GetAllDanceSchoolsAsync();
+        // Carregar franquias relacionadas à escola selecionada
+        await LoadFranchisesForSelectedSchool();
+    }
+
+    private async Task OnDanceSchoolChanged(ChangeEventArgs e)
+    {
+        if (CurrentUser != null && int.TryParse(e.Value?.ToString(), out var schoolId))
+        {
+            CurrentUser.DanceSchoolId = schoolId;
+            await LoadFranchisesForSelectedSchool();
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadFranchisesForSelectedSchool()
+    {
+        if (CurrentUser?.DanceSchoolId != null)
+        {
+            FilteredFranchises = await AuthenticationPort.GetFranchisesByDanceSchoolAsync(CurrentUser.DanceSchoolId.Value);
+        }
+        else
+        {
+            FilteredFranchises = new List<Franchise>();
         }
     }
 
