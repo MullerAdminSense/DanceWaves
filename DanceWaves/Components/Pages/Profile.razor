@@ -34,7 +34,7 @@
                 </ul>
 
                 <div class="tab-content">
-                    <!-- Profile Information Tab -->
+                    
                     <div class="tab-pane fade show active" id="profile-content" role="tabpanel" aria-labelledby="profile-tab">
                         <div class="card shadow-sm mb-4">
                             <div class="card-header bg-primary text-white">
@@ -134,7 +134,7 @@
                         </div>
                     </div>
 
-                    <!-- Security Tab -->
+                    
                     <div class="tab-pane fade" id="security-content" role="tabpanel" aria-labelledby="security-tab">
                         @if (CurrentUser.Provider == "local")
                         {
@@ -254,9 +254,9 @@
         {
             CurrentUser = await AuthenticationPort.GetCurrentUserAsync(userId);
         }
-        // Carregar todas as escolas
+        
         DanceSchools = await AuthenticationPort.GetAllDanceSchoolsAsync();
-        // Carregar franquias relacionadas à escola selecionada
+        
         await LoadFranchisesForSelectedSchool();
     }
 
@@ -376,7 +376,7 @@
     {
         try
         {
-            // TODO: Implement account deletion
+            
             SecuritySuccessMessage = "Account deletion will be implemented";
             await Task.Delay(2000);
             Navigation.NavigateTo("/");

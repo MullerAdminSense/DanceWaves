@@ -32,7 +32,7 @@
                         </div>
                     }
 
-                    <!-- Local Account Login -->
+                    
                     <form @onsubmit="HandleLocalLogin">
                         <div class="mb-3">
                             <label for="email" class="form-label">@localizer["Username"]</label>
@@ -91,7 +91,7 @@
                         <p class="text-muted">or</p>
                     </div>
 
-                    <!-- Federated Authentication Buttons -->
+                    
                     <div class="d-grid gap-2">
                         <button type="button" class="btn btn-outline-danger mb-2" @onclick="HandleMicrosoftLogin" disabled="@IsLoading">
                             <i class="bi bi-microsoft"></i> Sign in with Microsoft
@@ -106,7 +106,7 @@
 
                     <hr class="my-4">
 
-                    <!-- Links -->
+                    
                     <div class="text-center">
                         <p class="mb-2">
                             <a href="/forgot-password" class="text-decoration-none">Forgot your password?</a>
@@ -136,15 +136,15 @@
         ShowPassword = !ShowPassword;
     }
 
-    // OnInitializedAsync removed redirect to /profile. Only redirect after successful login.
+    
 
     private async Task HandleLocalLogin()
     {
-        // Reset error states
+        
         HasEmailError = false;
         HasPasswordError = false;
 
-        // Validation
+        
         if (string.IsNullOrWhiteSpace(LoginRequest.Email))
         {
             HasEmailError = true;
@@ -167,7 +167,7 @@
 
             if (response.IsSuccess)
             {
-                // Set authentication state with JWT token
+                
                 if (AuthStateProvider is DanceWaves.Infrastructure.Security.CustomAuthenticationStateProvider customProvider && !string.IsNullOrEmpty(response.AccessToken))
                 {
                     await customProvider.MarkUserAsAuthenticated(response.AccessToken);

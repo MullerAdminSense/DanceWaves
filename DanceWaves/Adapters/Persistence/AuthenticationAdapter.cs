@@ -5,34 +5,36 @@ using DanceWaves.Models;
 using DanceWaves.Infrastructure.Security;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
-
 using Serilog;
 
 namespace DanceWaves.Adapters.Persistence
 {
-		public class AuthenticationAdapter : IAuthenticationPort
+	public class AuthenticationAdapter : IAuthenticationPort
+	{
+		private readonly ApplicationDbContext _dbContext;
+
+		public AuthenticationAdapter(ApplicationDbContext dbContext)
 		{
-			private readonly ApplicationDbContext _dbContext;
+			_dbContext = dbContext;
+		}
 
-			public AuthenticationAdapter(ApplicationDbContext dbContext)
-			{
-				_dbContext = dbContext;
-			}
+		public async Task<List<DanceSchool>> GetAllDanceSchoolsAsync()
+		{
+			return await _dbContext.DanceSchools.ToListAsync();
+		}
 
-			public async Task<List<DanceSchool>> GetAllDanceSchoolsAsync()
-			{
-				return await _dbContext.DanceSchools.ToListAsync();
-			}
+		public async Task<List<Franchise>> GetFranchisesByDanceSchoolAsync(int danceSchoolId)
+		{
+            
+			return await _dbContext.Franchises
+				.Where(f => _dbContext.DanceSchools.Any(ds => ds.Id == danceSchoolId && ds.DefaultFranchiseId == f.Id))
+				.ToListAsync();
+		}
 
-			public async Task<List<Franchise>> GetFranchisesByDanceSchoolAsync(int danceSchoolId)
-			{
-				// Exemplo: retorna todas as franchises (ajuste conforme relação real)
-				// Se houver relação direta, filtre por ela
-				return await _dbContext.Franchises
-					.Where(f => _dbContext.DanceSchools.Any(ds => ds.Id == danceSchoolId && ds.DefaultFranchiseId == f.Id))
-					.ToListAsync();
-			}
-
+		public async Task<List<UserRolePermission>> GetAllRolePermissionsAsync()
+		{
+			return await _dbContext.UserRolePermissions.ToListAsync();
+		}
 
 		public async Task<AuthenticationResponse> LoginAsync(LoginRequest request)
 		{
@@ -68,7 +70,8 @@ namespace DanceWaves.Adapters.Persistence
 						Id = user.Id,
 						Email = user.Email,
 						FirstName = user.FirstName ?? string.Empty,
-						LastName = user.LastName ?? string.Empty
+						LastName = user.LastName ?? string.Empty,
+						RolePermissionId = user.RolePermissionId
 					}
 				};
 			}
@@ -107,7 +110,7 @@ namespace DanceWaves.Adapters.Persistence
 						Message = "Email already registered"
 					};
 				}
-				var rolePermissionId = 3; // user padrão
+				var rolePermissionId = 3;
 				var rolePermission = await _dbContext.UserRolePermissions.FindAsync(rolePermissionId);
 				if (rolePermission == null)
 				{
@@ -157,7 +160,7 @@ namespace DanceWaves.Adapters.Persistence
 				return null;
 			if (!int.TryParse(userId, out var id))
 				return null;
-			var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Id == id);
+			var user = await _dbContext.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id);
 			if (user == null)
 			{
 				Log.Warning("GetCurrentUserAsync: User not found for ID {UserId}", userId);
@@ -172,7 +175,7 @@ namespace DanceWaves.Adapters.Persistence
 				LastName = user.LastName ?? string.Empty,
 				PhoneNumber = user.Phone,
 				Provider = "local",
-			// LastLoginAt not available in User entity
+				RolePermissionId = user.RolePermissionId
 			};
 		}
 
@@ -194,7 +197,7 @@ namespace DanceWaves.Adapters.Persistence
 				Log.Information("User {UserId} ({Email}) logged out at {Time}", user.Id, user.Email, DateTime.UtcNow);
 			}
 
-			 Log.Information("Logout process completed for user {UserId}", userId);
+			Log.Information("Logout process completed for user {UserId}", userId);
 		}
 
 		public async Task<AuthenticationResponse> RefreshTokenAsync(string refreshToken) => throw new NotImplementedException();

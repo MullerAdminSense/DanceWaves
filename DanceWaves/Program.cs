@@ -16,26 +16,26 @@ using Microsoft.AspNetCore.Identity;
 using DanceWaves.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-// ...existing code...
+ 
 
 SerilogConfig.ConfigureLogger();
 var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseSerilog();
 
-// Add services to the container.
+ 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents()
     .AddInteractiveWebAssemblyComponents();
 
-// Add HttpContextAccessor for cookie management
+ 
 builder.Services.AddHttpContextAccessor();
 
-// Configure EF DbContext
+ 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 
-// Federated Authentication (Microsoft Entra ID B2C)
+ 
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultScheme = "Cookies";
@@ -63,15 +63,15 @@ builder.Services.AddScoped<AuthenticatedHttpClientHandler>();
 builder.Services.AddHttpClient("SecureApiClient")
     .AddHttpMessageHandler<AuthenticatedHttpClientHandler>();
 
-// Register Localization
+ 
 builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
-// Register Hexagonal Architecture - Ports
+ 
 builder.Services.AddScoped<IEntryPersistencePort, EntryPersistenceAdapter>();
 builder.Services.AddScoped<IUserPersistencePort, UserPersistenceAdapter>();
 builder.Services.AddScoped<INavigationPresenterPort, NavigationPresenterAdapter>();
 builder.Services.AddScoped<IAuthenticationPort, AuthenticationAdapter>();
 
-// Register Use Cases
+ 
 builder.Services.AddScoped<GetNavigationMenuUseCase>();
 builder.Services.AddScoped<ListEntriesUseCase>();
 builder.Services.AddScoped<LoginUseCase>();
@@ -84,11 +84,11 @@ builder.Services.AddScoped<ChangePasswordUseCase>();
 var app = builder.Build();
 Log.Information("DanceWaves application starting up");
 
-// Initialize database with seed data
+ 
 await app.InitializeDatabaseAsync();
 
 
-// Configure localization FIRST in the pipeline
+ 
 var supportedCultures = new[] { "en", "nl", "fr", "de" };
 var localizationOptions = new RequestLocalizationOptions
 {
@@ -108,8 +108,8 @@ if (currentCulture != null)
     CultureInfo.DefaultThreadCurrentUICulture = currentCulture;
 }
 
-// Endpoint para definir cultura via cookie (funciona sem JavaScript)
-// Deve ser mapeado ANTES do UseHttpsRedirection para evitar redirecionamento prematuro
+ 
+ 
 app.MapGet("/setculture/{culture}", (string culture, HttpContext context, [FromQuery] string? returnUrl) =>
 {
     var requestCulture = new RequestCulture(culture);
@@ -139,8 +139,8 @@ app.MapGet("/setculture/{culture}", (string culture, HttpContext context, [FromQ
     return Results.Redirect(targetUrl);
 });
 
-// Continue with the rest of the pipeline
-// UseHttpsRedirection com exceção para /setculture para permitir que o cookie seja definido
+ 
+ 
 if (app.Environment.IsDevelopment())
 {
     app.UseWebAssemblyDebugging();
