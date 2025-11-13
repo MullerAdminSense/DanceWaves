@@ -22,6 +22,10 @@ public class RegisterRequest
     public string LastName { get; set; } = string.Empty;
     public string? PhoneNumber { get; set; }
     public bool AcceptTerms { get; set; }
+
+    // Novos campos
+    public string? FranchiseName { get; set; }
+    public string? DanceSchoolName { get; set; }
 }
 
 /// <summary>

@@ -23,6 +23,7 @@ namespace DanceWaves.Data
         public DbSet<Level> Levels { get; set; }
         public DbSet<EntryType> EntryTypes { get; set; }
         public DbSet<UserRolePermission> UserRolePermissions { get; set; }
+        public DbSet<Country> Countries { get; set; }
     //
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -39,6 +40,10 @@ namespace DanceWaves.Data
                 b.Property(f => f.Id).ValueGeneratedOnAdd();
                 b.Property(f => f.LegalName).HasMaxLength(100).IsRequired();
                 b.HasIndex(f => f.VatNumber).IsUnique(false);
+                b.HasOne(f => f.Country)
+                    .WithMany(c => c.Franchises)
+                    .HasForeignKey(f => f.CountryId)
+                    .OnDelete(DeleteBehavior.SetNull);
             });
 
             modelBuilder.Entity<User>(b =>
@@ -65,6 +70,10 @@ namespace DanceWaves.Data
                 b.HasKey(s => s.Id);
                 b.Property(s => s.Id).ValueGeneratedOnAdd();
                 b.Property(s => s.LegalName).HasMaxLength(200).IsRequired();
+                b.HasOne(s => s.Country)
+                    .WithMany(c => c.DanceSchools)
+                    .HasForeignKey(s => s.CountryId)
+                    .OnDelete(DeleteBehavior.SetNull);
             });
 
             modelBuilder.Entity<Competition>(b =>

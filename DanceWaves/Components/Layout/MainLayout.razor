@@ -13,7 +13,11 @@
 
     <main>
         <div class="top-row px-4 d-flex justify-content-between align-items-center">
-            <LanguageFlags />
+            <AuthorizeView>
+                <Authorized>
+                    <LanguageFlags />
+                </Authorized>
+            </AuthorizeView>
             <div class="d-flex align-items-center gap-2">
                 <AuthorizeView>
                     <Authorized>

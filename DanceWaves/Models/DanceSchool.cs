@@ -23,8 +23,8 @@ namespace DanceWaves.Models
     [MaxLength(100)]
     public string? Province { get; set; }
 
-    [MaxLength(100)]
-    public string? Country { get; set; }
+    public int? CountryId { get; set; }
+    public Country? Country { get; set; }
 
     [Display(Name = "Tax registration Number")]
     [MaxLength(100)]

@@ -18,6 +18,9 @@ namespace DanceWaves.Data
                     
                     // Seed user role permissions
                     await SeedUserRolePermissionsAsync(dbContext);
+
+                    // Seed countries
+                    await SeedCountriesAsync(dbContext);
                 }
                 catch (Exception ex)
                 {
@@ -61,6 +64,37 @@ namespace DanceWaves.Data
             };
 
             await dbContext.UserRolePermissions.AddRangeAsync(rolePermissions);
+            await dbContext.SaveChangesAsync();
+        }
+        private static async Task SeedCountriesAsync(ApplicationDbContext dbContext)
+        {
+            if (await dbContext.Countries.AnyAsync())
+                return;
+
+            var countries = new List<Country>
+            {
+                new Country { Name = "United States" },
+                new Country { Name = "Canada" },
+                new Country { Name = "Brazil" },
+                new Country { Name = "United Kingdom" },
+                new Country { Name = "France" },
+                new Country { Name = "Germany" },
+                new Country { Name = "Italy" },
+                new Country { Name = "Spain" },
+                new Country { Name = "Netherlands" },
+                new Country { Name = "Belgium" },
+                new Country { Name = "Portugal" },
+                new Country { Name = "Argentina" },
+                new Country { Name = "Mexico" },
+                new Country { Name = "Japan" },
+                new Country { Name = "China" },
+                new Country { Name = "South Korea" },
+                new Country { Name = "Australia" },
+                new Country { Name = "South Africa" },
+                new Country { Name = "Russia" },
+                new Country { Name = "India" }
+            };
+            await dbContext.Countries.AddRangeAsync(countries);
             await dbContext.SaveChangesAsync();
         }
     }

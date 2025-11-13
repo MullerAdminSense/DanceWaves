@@ -34,6 +34,32 @@
                     <form @onsubmit="HandleRegister">
                         <div class="row">
                             <div class="col-md-6 mb-3">
+                                <label for="franchiseName" class="form-label">Franchise <span class="text-danger">*</span></label>
+                                <input type="text"
+                                       class="form-control @(ValidationErrors.ContainsKey(nameof(RegisterRequest.FranchiseName)) ? "is-invalid" : "")"
+                                       id="franchiseName"
+                                       @bind="RegisterRequest.FranchiseName"
+                                       placeholder="Franchise name"
+                                       required>
+                                @if (ValidationErrors.ContainsKey(nameof(RegisterRequest.FranchiseName)))
+                                {
+                                    <div class="invalid-feedback d-block">@ValidationErrors[nameof(RegisterRequest.FranchiseName)]</div>
+                                }
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="danceSchoolName" class="form-label">Dance School <span class="text-danger">*</span></label>
+                                <input type="text"
+                                       class="form-control @(ValidationErrors.ContainsKey(nameof(RegisterRequest.DanceSchoolName)) ? "is-invalid" : "")"
+                                       id="danceSchoolName"
+                                       @bind="RegisterRequest.DanceSchoolName"
+                                       placeholder="Dance school name"
+                                       required>
+                                @if (ValidationErrors.ContainsKey(nameof(RegisterRequest.DanceSchoolName)))
+                                {
+                                    <div class="invalid-feedback d-block">@ValidationErrors[nameof(RegisterRequest.DanceSchoolName)]</div>
+                                }
+                            </div>
+                            <div class="col-md-6 mb-3">
                                 <label for="firstName" class="form-label">First Name <span class="text-danger">*</span></label>
                                 <input type="text" 
                                        class="form-control @(ValidationErrors.ContainsKey(nameof(RegisterRequest.FirstName)) ? "is-invalid" : "")" 
@@ -46,7 +72,6 @@
                                     <div class="invalid-feedback d-block">@ValidationErrors[nameof(RegisterRequest.FirstName)]</div>
                                 }
                             </div>
-
                             <div class="col-md-6 mb-3">
                                 <label for="lastName" class="form-label">Last Name <span class="text-danger">*</span></label>
                                 <input type="text" 

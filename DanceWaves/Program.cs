@@ -14,6 +14,8 @@ using DanceWaves.Adapters.Persistence;
 using DanceWaves.Adapters.Presenters;
 using Microsoft.AspNetCore.Identity;
 using DanceWaves.Models;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 // ...existing code...
 
 SerilogConfig.ConfigureLogger();
@@ -108,23 +110,33 @@ if (currentCulture != null)
 
 // Endpoint para definir cultura via cookie (funciona sem JavaScript)
 // Deve ser mapeado ANTES do UseHttpsRedirection para evitar redirecionamento prematuro
-app.MapGet("/setculture/{culture}", (string culture, HttpContext context) =>
+app.MapGet("/setculture/{culture}", (string culture, HttpContext context, [FromQuery] string? returnUrl) =>
 {
-    var cookieValue = $"c={culture}|uic={culture}";
-    var expires = DateTimeOffset.UtcNow.AddYears(1).ToString("R");
-    var isSecure = context.Request.IsHttps;
-    
-    // Define o cookie diretamente no header Set-Cookie
-    var cookieHeader = $".AspNetCore.Culture={cookieValue}; Path=/; Expires={expires}; SameSite=Lax";
-    if (isSecure)
+    var requestCulture = new RequestCulture(culture);
+    var cookieValue = CookieRequestCultureProvider.MakeCookieValue(requestCulture);
+
+    var cookieOptions = new CookieOptions
     {
-        cookieHeader += "; Secure";
+        Path = "/",
+        Expires = DateTimeOffset.UtcNow.AddYears(1),
+        IsEssential = true,
+        SameSite = SameSiteMode.Lax
+    };
+
+    if (context.Request.IsHttps)
+    {
+        cookieOptions.Secure = true;
     }
-    
-    context.Response.Headers.Append("Set-Cookie", cookieHeader);
-    context.Response.Redirect("/", permanent: false);
-    
-    return Task.CompletedTask;
+
+    context.Response.Cookies.Append(CookieRequestCultureProvider.DefaultCookieName, cookieValue, cookieOptions);
+
+    var targetUrl = "/";
+    if (!string.IsNullOrWhiteSpace(returnUrl) && Uri.TryCreate(returnUrl, UriKind.Relative, out _))
+    {
+        targetUrl = returnUrl;
+    }
+
+    return Results.Redirect(targetUrl);
 });
 
 // Continue with the rest of the pipeline
