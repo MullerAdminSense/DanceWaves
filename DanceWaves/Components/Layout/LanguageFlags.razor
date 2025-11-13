@@ -23,9 +23,7 @@
     {
         try
         {
-            Logger.LogInformation("Iniciando mudança de cultura para: {Culture}", culture);
             await JS.InvokeVoidAsync("setCulture", culture);
-            Logger.LogInformation("Função JavaScript setCulture chamada com sucesso para: {Culture}", culture);
         }
         catch (Exception ex)
         {

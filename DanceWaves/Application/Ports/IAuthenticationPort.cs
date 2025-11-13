@@ -69,4 +69,13 @@ public interface IAuthenticationPort
     /// Refresh access token
     /// </summary>
     Task<AuthenticationResponse> RefreshTokenAsync(string refreshToken);
+    /// <summary>
+    /// Get all dance schools
+    /// </summary>
+    Task<List<DanceSchool>> GetAllDanceSchoolsAsync();
+
+    /// <summary>
+    /// Get franchises by dance school
+    /// </summary>
+    Task<List<Franchise>> GetFranchisesByDanceSchoolAsync(int danceSchoolId);
 }

@@ -66,6 +66,16 @@ public class UserDto
     public string? PhoneNumber { get; set; }
     public string Provider { get; set; } = "local";
     public DateTime? LastLoginAt { get; set; }
+    public string? Address { get; set; }
+    public string? City { get; set; }
+    public string? Zip { get; set; }
+    public string? Province { get; set; }
+    public int? CountryId { get; set; }
+    public int? DanceSchoolId { get; set; }
+    public string? Phone { get; set; }
+    public int? DefaultFranchiseId { get; set; }
+    public int? AgeGroupId { get; set; }
+    public int RolePermissionId { get; set; }
 }
 
 /// <summary>

@@ -10,14 +10,29 @@ using Serilog;
 
 namespace DanceWaves.Adapters.Persistence
 {
-	public class AuthenticationAdapter : IAuthenticationPort
-	{
-		private readonly ApplicationDbContext _dbContext;
-
-		public AuthenticationAdapter(ApplicationDbContext dbContext)
+		public class AuthenticationAdapter : IAuthenticationPort
 		{
-			_dbContext = dbContext;
-		}
+			private readonly ApplicationDbContext _dbContext;
+
+			public AuthenticationAdapter(ApplicationDbContext dbContext)
+			{
+				_dbContext = dbContext;
+			}
+
+			public async Task<List<DanceSchool>> GetAllDanceSchoolsAsync()
+			{
+				return await _dbContext.DanceSchools.ToListAsync();
+			}
+
+			public async Task<List<Franchise>> GetFranchisesByDanceSchoolAsync(int danceSchoolId)
+			{
+				// Exemplo: retorna todas as franchises (ajuste conforme relação real)
+				// Se houver relação direta, filtre por ela
+				return await _dbContext.Franchises
+					.Where(f => _dbContext.DanceSchools.Any(ds => ds.Id == danceSchoolId && ds.DefaultFranchiseId == f.Id))
+					.ToListAsync();
+			}
+
 
 		public async Task<AuthenticationResponse> LoginAsync(LoginRequest request)
 		{

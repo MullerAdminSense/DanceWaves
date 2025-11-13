@@ -2,8 +2,10 @@
 @using DanceWaves.Application.Dtos
 @using DanceWaves.Application.UseCases
 @using DanceWaves.Application.Ports
+@using DanceWaves.Models
 @inject IAuthenticationPort AuthenticationPort
 @inject NavigationManager Navigation
+@inject ILogger<SignUp> Logger
 @rendermode InteractiveServer
 
 <div class="container-fluid mt-5">
@@ -24,50 +26,93 @@
                     {
                         <div class="alert alert-success">@SuccessMessage</div>
                     }
-                    <form @onsubmit="HandleRegister">
-                        <div class="mb-3">
-                            <label for="firstName" class="form-label">First Name *</label>
-                            <input type="text" class="form-control" id="firstName" placeholder="Enter your first name" @bind="RegisterRequest.FirstName" required />
-                        </div>
-                        <div class="mb-3">
-                            <label for="lastName" class="form-label">Last Name *</label>
-                            <input type="text" class="form-control" id="lastName" placeholder="Enter your last name" @bind="RegisterRequest.LastName" required />
-                        </div>
-                        <div class="mb-3">
-                            <label for="email" class="form-label">Email Address *</label>
-                            <input type="email" class="form-control" id="email" placeholder="Enter your email" @bind="RegisterRequest.Email" required />
-                        </div>
-                        <div class="mb-3">
-                            <label for="phone" class="form-label">Phone Number</label>
-                            <input type="tel" class="form-control" id="phone" placeholder="Enter your phone number" @bind="RegisterRequest.PhoneNumber" />
-                        </div>
-                        <div class="mb-3 position-relative">
-                            <label for="password" class="form-label">Password *</label>
-                            <input type="@(ShowPassword ? "text" : "password")" class="form-control" id="password" placeholder="Create a password" @bind="RegisterRequest.Password" required />
-                            <button type="button" tabindex="-1" class="btn btn-outline-secondary btn-sm position-absolute top-50 end-0 translate-middle-y me-2" style="z-index:2;" @onclick="() => ShowPassword = !ShowPassword">
-                                <span class="bi" style="font-size:1.2rem;">@(ShowPassword ? "👁️" : "👁️‍🗨️")</span>
+                    @if (User != null)
+                    {
+                        <form @onsubmit="HandleRegister">
+                            <div class="mb-3">
+                                <label for="firstName" class="form-label">First Name *</label>
+                                <input type="text" class="form-control" id="firstName" placeholder="Enter your first name" @bind="User.FirstName" required />
+                            </div>
+                            <div class="mb-3">
+                                <label for="lastName" class="form-label">Last Name *</label>
+                                <input type="text" class="form-control" id="lastName" placeholder="Enter your last name" @bind="User.LastName" required />
+                            </div>
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email Address *</label>
+                                <input type="email" class="form-control" id="email" placeholder="Enter your email" @bind="User.Email" required />
+                            </div>
+                            <div class="mb-3">
+                                <label for="phone" class="form-label">Phone Number</label>
+                                <input type="text" class="form-control" id="phone" placeholder="Enter your phone number" @bind="User.Phone" />
+                            </div>
+                            <div class="mb-3">
+                                <label for="address" class="form-label">Address</label>
+                                <input type="text" class="form-control" id="address" @bind="User.Address" />
+                            </div>
+                            <div class="mb-3">
+                                <label for="city" class="form-label">City</label>
+                                <input type="text" class="form-control" id="city" @bind="User.City" />
+                            </div>
+                            <div class="mb-3">
+                                <label for="zip" class="form-label">Zip</label>
+                                <input type="text" class="form-control" id="zip" @bind="User.Zip" />
+                            </div>
+                            <div class="mb-3">
+                                <label for="province" class="form-label">Province</label>
+                                <input type="text" class="form-control" id="province" @bind="User.Province" />
+                            </div>
+                            <div class="mb-3">
+                                <label for="country" class="form-label">Country</label>
+                                <select class="form-select" id="country" @bind="User.CountryId">
+                                    <option value="">Select a country</option>
+                                    @foreach (var country in Countries)
+                                    {
+                                        <option value="@country.Id">@country.Name</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="danceSchool" class="form-label">Dance School</label>
+                                <select class="form-select" id="danceSchool" @bind-value="User.DanceSchoolId" @bind-value:event="onchange">
+                                    <option value="">Select a dance school</option>
+                                    @foreach (var school in DanceSchools)
+                                    {
+                                        <option value="@school.Id">@school.LegalName</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="franchise" class="form-label">Default Franchise</label>
+                                <select class="form-select" id="franchise" @bind="User.DefaultFranchiseId">
+                                    <option value="">Select a franchise</option>
+                                    @foreach (var franchise in FilteredFranchises)
+                                    {
+                                        <option value="@franchise.Id">@franchise.LegalName</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="ageGroup" class="form-label">Age Group</label>
+                                <select class="form-select" id="ageGroup" @bind="User.AgeGroupId">
+                                    <option value="">Select an age group</option>
+                                    @foreach (var ageGroup in AgeGroups)
+                                    {
+                                        <option value="@ageGroup.Id">@ageGroup.Name</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="rolePermission" class="form-label">Role Permission</label>
+                                <input type="text" class="form-control" id="rolePermission" value="@User.RolePermissionId" readonly />
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-lg w-100" disabled="@IsLoading">
+                                @(IsLoading ? "Creating..." : "Create Account")
                             </button>
-                        </div>
-                        <div class="mb-3 position-relative">
-                            <label for="confirmPassword" class="form-label">Confirm Password *</label>
-                            <input type="@(ShowConfirmPassword ? "text" : "password")" class="form-control" id="confirmPassword" placeholder="Confirm your password" @bind="RegisterRequest.ConfirmPassword" required />
-                            <button type="button" tabindex="-1" class="btn btn-outline-secondary btn-sm position-absolute top-50 end-0 translate-middle-y me-2" style="z-index:2;" @onclick="() => ShowConfirmPassword = !ShowConfirmPassword">
-                                <span class="bi" style="font-size:1.2rem;">@(ShowConfirmPassword ? "👁️" : "👁️‍🗨️")</span>
-                            </button>
-                        </div>
-                        <div class="mb-3 form-check">
-                            <input type="checkbox" class="form-check-input" id="terms" @bind="RegisterRequest.AcceptTerms" required />
-                            <label class="form-check-label" for="terms">
-                                I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>
-                            </label>
-                        </div>
-                        <button type="submit" class="btn btn-primary btn-lg w-100" disabled="@IsLoading">
-                            @(IsLoading ? "Creating..." : "Create Account")
-                        </button>
-                        <div class="text-center mt-3">
-                            <p class="text-muted">Already have an account? <a href="/login">Sign In</a></p>
-                        </div>
-                    </form>
+                            <div class="text-center mt-3">
+                                <p class="text-muted">Already have an account? <a href="/login">Sign In</a></p>
+                            </div>
+                        </form>
+                    }
                 </div>
             </div>
         </div>
@@ -75,12 +120,83 @@
 </div>
 
 @code {
-    private RegisterRequest RegisterRequest { get; set; } = new();
+    private UserDto User { get; set; } = new();
+    private List<(int Id, string Name)> Countries { get; set; } = new();
+    private List<DanceSchool> DanceSchools { get; set; } = new();
+    private List<Franchise> FilteredFranchises { get; set; } = new();
+    private List<AgeGroup> AgeGroups { get; set; } = new();
+    private List<UserRolePermission> RolePermissions { get; set; } = new();
+    private int? SelectedDanceSchoolId { get; set; }
+    private int? SelectedFranchiseId { get; set; }
+    private int? SelectedCountryId { get; set; }
+    private int? SelectedAgeGroupId { get; set; }
     private string? ErrorMessage { get; set; }
     private string? SuccessMessage { get; set; }
     private bool IsLoading { get; set; }
     private bool ShowPassword { get; set; }
     private bool ShowConfirmPassword { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Carregar dados do usuário logado e preencher campos
+            User = await AuthenticationPort.GetCurrentUserAsync("me"); // ajuste para pegar o usuário logado
+            Countries = new List<(int, string)>
+            {
+                ((int)CountryId.USA, "United States"),
+                ((int)CountryId.Netherlands, "Netherlands"),
+                ((int)CountryId.France, "France"),
+                ((int)CountryId.Germany, "Germany")
+            };
+            DanceSchools = await AuthenticationPort.GetAllDanceSchoolsAsync();
+            // AgeGroups and RolePermissions loading removed (methods not present in IAuthenticationPort)
+            if (User != null)
+            {
+                if (User.DanceSchoolId != null)
+                {
+                    SelectedDanceSchoolId = User.DanceSchoolId;
+                    await LoadFranchisesForSelectedSchool();
+                }
+                if (User.CountryId != null)
+                {
+                    SelectedCountryId = User.CountryId;
+                }
+                if (User.AgeGroupId != null)
+                {
+                    SelectedAgeGroupId = User.AgeGroupId;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Erro ao carregar dados do perfil: {ex.Message}";
+            Logger.LogError(ex, "Erro ao carregar dados do perfil no SignUp");
+        }
+    }
+
+    private async Task LoadFranchisesForSelectedSchool()
+    {
+        if (SelectedDanceSchoolId != null)
+        {
+            FilteredFranchises = await AuthenticationPort.GetFranchisesByDanceSchoolAsync(SelectedDanceSchoolId.Value);
+        }
+        else
+        {
+            FilteredFranchises = new List<Franchise>();
+        }
+    }
+
+    private async Task OnDanceSchoolChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var schoolId))
+        {
+            SelectedDanceSchoolId = schoolId;
+            User.DanceSchoolId = schoolId;
+            await LoadFranchisesForSelectedSchool();
+            StateHasChanged();
+        }
+    }
 
     private async Task HandleRegister()
     {
@@ -89,8 +205,7 @@
         IsLoading = true;
         try
         {
-            var useCase = new RegisterUseCase(AuthenticationPort);
-            var response = await useCase.ExecuteAsync(RegisterRequest);
+            var response = await AuthenticationPort.UpdateProfileAsync(User.Id.ToString(), User);
             if (response.IsSuccess)
             {
                 SuccessMessage = "Account created successfully! Redirecting to login...";
@@ -105,6 +220,7 @@
         catch (Exception ex)
         {
             ErrorMessage = $"An error occurred: {ex.Message}";
+            Logger.LogError(ex, "Erro ao registrar/atualizar perfil no SignUp");
         }
         finally
         {
