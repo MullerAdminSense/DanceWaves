@@ -18,22 +18,152 @@ namespace DanceWaves.Adapters.Persistence
 			_dbContext = dbContext;
 		}
 
-		public async Task<List<DanceSchool>> GetAllDanceSchoolsAsync()
+	public async Task<List<DanceSchool>> GetAllDanceSchoolsAsync()
+	{
+		// Sempre busca dados atualizados do banco sem cache
+		return await _dbContext.DanceSchools
+			.AsNoTracking()
+			.OrderBy(ds => ds.LegalName)
+			.ToListAsync();
+	}
+
+	public async Task<List<Franchise>> GetAllFranchisesAsync()
+	{
+		// Sempre busca dados atualizados do banco sem cache
+		return await _dbContext.Franchises
+			.AsNoTracking()
+			.OrderBy(f => f.LegalName)
+			.ToListAsync();
+	}
+
+	public async Task<List<Franchise>> GetFranchisesByDanceSchoolAsync(int danceSchoolId)
+	{
+		// Sempre busca dados atualizados do banco sem cache
+		// Busca a DanceSchool primeiro para obter informações relacionadas
+		var danceSchool = await _dbContext.DanceSchools
+			.AsNoTracking()
+			.FirstOrDefaultAsync(ds => ds.Id == danceSchoolId);
+
+		if (danceSchool == null)
 		{
-			return await _dbContext.DanceSchools.ToListAsync();
+			return new List<Franchise>();
 		}
 
-		public async Task<List<Franchise>> GetFranchisesByDanceSchoolAsync(int danceSchoolId)
+		// Se a DanceSchool tem uma Franchise padrão, inclui essa Franchise na lista
+		var franchises = new List<Franchise>();
+		
+		if (danceSchool.DefaultFranchiseId.HasValue)
 		{
-            
-			return await _dbContext.Franchises
-				.Where(f => _dbContext.DanceSchools.Any(ds => ds.Id == danceSchoolId && ds.DefaultFranchiseId == f.Id))
-				.ToListAsync();
+			var defaultFranchise = await _dbContext.Franchises
+				.AsNoTracking()
+				.FirstOrDefaultAsync(f => f.Id == danceSchool.DefaultFranchiseId.Value);
+
+			if (defaultFranchise != null)
+			{
+				franchises.Add(defaultFranchise);
+			}
 		}
+
+		// Também busca todas as outras Franchises do mesmo país
+		// para dar mais opções ao usuário
+		var countryFranchises = await _dbContext.Franchises
+			.AsNoTracking()
+			.Where(f => f.CountryId == danceSchool.CountryId)
+			.OrderBy(f => f.LegalName)
+			.ToListAsync();
+
+		// Remove duplicatas mantendo a ordem (DefaultFranchise primeiro, se houver)
+		var result = franchises.Union(countryFranchises)
+			.GroupBy(f => f.Id)
+			.Select(g => g.First())
+			.OrderByDescending(f => danceSchool.DefaultFranchiseId == f.Id) // DefaultFranchise primeiro
+			.ThenBy(f => f.LegalName)
+			.ToList();
+
+		return result;
+	}
 
 		public async Task<List<UserRolePermission>> GetAllRolePermissionsAsync()
 		{
 			return await _dbContext.UserRolePermissions.ToListAsync();
+		}
+
+		public async Task<List<AgeGroup>> GetAllAgeGroupsAsync()
+		{
+			// Sempre busca dados atualizados do banco sem cache
+			return await _dbContext.AgeGroups
+				.AsNoTracking()
+				.OrderBy(ag => ag.Name)
+				.ToListAsync();
+		}
+
+		public async Task<List<UserDto>> GetAllUsersAsync()
+		{
+			// Sempre busca dados atualizados do banco sem cache
+			var users = await _dbContext.Users
+				.AsNoTracking()
+				.Include(u => u.RolePermission)
+				.Include(u => u.DanceSchool)
+				.Include(u => u.DefaultFranchise)
+				.OrderBy(u => u.LastName)
+				.ThenBy(u => u.FirstName)
+				.ToListAsync();
+
+			return users.Select(u => new UserDto
+			{
+				Id = u.Id,
+				Email = u.Email,
+				FirstName = u.FirstName ?? string.Empty,
+				LastName = u.LastName ?? string.Empty,
+				PhoneNumber = u.Phone,
+				Phone = u.Phone,
+				Provider = "local",
+				Address = u.Address,
+				City = u.City,
+				Zip = u.Zip,
+				Province = u.Province,
+				CountryId = u.CountryId,
+				DanceSchoolId = u.DanceSchoolId,
+				DefaultFranchiseId = u.DefaultFranchiseId,
+				AgeGroupId = u.AgeGroupId,
+				RolePermissionId = u.RolePermissionId
+			}).ToList();
+		}
+
+		public async Task<AuthenticationResponse> DeleteUserAsync(int userId)
+		{
+			try
+			{
+				var user = await _dbContext.Users.FindAsync(userId);
+				if (user == null)
+				{
+					return new AuthenticationResponse
+					{
+						IsSuccess = false,
+						Message = "User not found."
+					};
+				}
+
+				_dbContext.Users.Remove(user);
+				await _dbContext.SaveChangesAsync();
+
+				Log.Information("User deleted: {Email} (ID: {UserId})", user.Email, user.Id);
+
+				return new AuthenticationResponse
+				{
+					IsSuccess = true,
+					Message = "User deleted successfully."
+				};
+			}
+			catch (Exception ex)
+			{
+				Log.Error(ex, "Error deleting user: {UserId}", userId);
+				return new AuthenticationResponse
+				{
+					IsSuccess = false,
+					Message = $"An error occurred while deleting the user: {ex.Message}"
+				};
+			}
 		}
 
 		public async Task<AuthenticationResponse> LoginAsync(LoginRequest request)
@@ -175,11 +305,46 @@ namespace DanceWaves.Adapters.Persistence
 				LastName = user.LastName ?? string.Empty,
 				PhoneNumber = user.Phone,
 				Provider = "local",
+				Address = user.Address,
+				City = user.City,
+				Zip = user.Zip,
+				Province = user.Province,
+				CountryId = user.CountryId,
+				DanceSchoolId = user.DanceSchoolId,
+				Phone = user.Phone,
+				DefaultFranchiseId = user.DefaultFranchiseId,
+				AgeGroupId = user.AgeGroupId,
 				RolePermissionId = user.RolePermissionId
 			};
 		}
 
-		public async Task<AuthenticationResponse> UpdateProfileAsync(string userId, UserDto updatedProfile) => throw new NotImplementedException();
+		public async Task<AuthenticationResponse> UpdateProfileAsync(string userId, UserDto updatedProfile)
+		{
+			if (string.IsNullOrWhiteSpace(userId) || !int.TryParse(userId, out var id))
+				return new AuthenticationResponse { IsSuccess = false, Message = "Invalid user id." };
+
+			var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Id == id);
+			if (user == null)
+				return new AuthenticationResponse { IsSuccess = false, Message = "User not found." };
+
+			user.FirstName = updatedProfile.FirstName;
+			user.LastName = updatedProfile.LastName;
+			user.Address = updatedProfile.Address;
+			user.City = updatedProfile.City;
+			user.Zip = updatedProfile.Zip;
+			user.Province = updatedProfile.Province;
+			user.CountryId = updatedProfile.CountryId ?? user.CountryId;
+			user.Email = updatedProfile.Email;
+			user.DanceSchoolId = updatedProfile.DanceSchoolId;
+			user.Phone = updatedProfile.Phone;
+			user.DefaultFranchiseId = updatedProfile.DefaultFranchiseId;
+			user.AgeGroupId = updatedProfile.AgeGroupId;
+			user.RolePermissionId = updatedProfile.RolePermissionId;
+
+			await _dbContext.SaveChangesAsync();
+
+			return new AuthenticationResponse { IsSuccess = true, Message = "Profile updated successfully." };
+		}
 		public async Task<AuthenticationResponse> ChangePasswordAsync(string userId, ChangePasswordRequest request) => throw new NotImplementedException();
 		public async Task<AuthenticationResponse> RequestPasswordResetAsync(ResetPasswordRequest request) => throw new NotImplementedException();
 		public async Task<AuthenticationResponse> ResetPasswordAsync(ResetPasswordConfirmRequest request) => throw new NotImplementedException();
@@ -188,16 +353,35 @@ namespace DanceWaves.Adapters.Persistence
 
 		public async Task LogoutAsync(string userId)
 		{
-			if (string.IsNullOrWhiteSpace(userId) || !int.TryParse(userId, out var id))
-				return;
-
-			var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Id == id);
-			if (user != null)
+			try
 			{
-				Log.Information("User {UserId} ({Email}) logged out at {Time}", user.Id, user.Email, DateTime.UtcNow);
-			}
+				if (string.IsNullOrWhiteSpace(userId) || !int.TryParse(userId, out var id))
+				{
+					Log.Warning("LogoutAsync called with invalid userId: {UserId}", userId);
+					return;
+				}
 
-			Log.Information("Logout process completed for user {UserId}", userId);
+				// Usa AsNoTracking para evitar problemas de concorrência e não precisa salvar mudanças
+				var user = await _dbContext.Users
+					.AsNoTracking()
+					.FirstOrDefaultAsync(u => u.Id == id);
+					
+				if (user != null)
+				{
+					Log.Information("User {UserId} ({Email}) logged out at {Time}", user.Id, user.Email, DateTime.UtcNow);
+				}
+				else
+				{
+					Log.Warning("LogoutAsync: User not found with ID {UserId}", id);
+				}
+
+				Log.Information("Logout process completed for user {UserId}", userId);
+			}
+			catch (Exception ex)
+			{
+				Log.Error(ex, "Error in LogoutAsync for user {UserId}: {Error}", userId, ex.Message);
+				// Não relança a exceção para não interromper o processo de logout
+			}
 		}
 
 		public async Task<AuthenticationResponse> RefreshTokenAsync(string refreshToken) => throw new NotImplementedException();

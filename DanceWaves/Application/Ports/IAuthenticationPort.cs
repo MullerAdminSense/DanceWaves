@@ -50,5 +50,17 @@ public interface IAuthenticationPort
     Task<List<Franchise>> GetFranchisesByDanceSchoolAsync(int danceSchoolId);
 
     
+    Task<List<Franchise>> GetAllFranchisesAsync();
+
+    
     Task<List<UserRolePermission>> GetAllRolePermissionsAsync();
+
+    
+    Task<List<AgeGroup>> GetAllAgeGroupsAsync();
+
+    
+    Task<List<UserDto>> GetAllUsersAsync();
+
+    
+    Task<AuthenticationResponse> DeleteUserAsync(int userId);
 }

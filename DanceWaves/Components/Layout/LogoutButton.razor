@@ -1,34 +1,127 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using System.Linq
 @using System
+@using System.Security.Claims
 @rendermode InteractiveServer
 @inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Navigation
 @inject DanceWaves.Application.Ports.IAuthenticationPort AuthenticationPort
+@inject ILogger<LogoutButton> Logger
+@inject IJSRuntime JSRuntime
 
-<button class="btn btn-danger btn-sm" @onclick="LogoutAsync" type="button">Logout</button>
+<button class="btn btn-danger btn-sm" @onclick="HandleLogout" type="button" disabled="@IsLoggingOut">
+    @if (IsLoggingOut)
+    {
+        <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+        <span>Logging out...</span>
+    }
+    else
+    {
+        <span>Logout</span>
+    }
+</button>
 
 @code {
-    private async Task LogoutAsync()
+    private bool IsLoggingOut { get; set; } = false;
+
+    private async Task HandleLogout()
     {
-        // Get userId before clearing auth state
-        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-        var userId = authState.User.Claims.FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (IsLoggingOut) return;
         
-        // Call LogoutAsync from adapter
-        if (!string.IsNullOrWhiteSpace(userId))
+        IsLoggingOut = true;
+        StateHasChanged();
+        
+        try
         {
-            await AuthenticationPort.LogoutAsync(userId);
+            // Primeiro, obtém o userId ANTES de limpar o estado de autenticação
+            string? userId = null;
+            try
+            {
+                var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+                userId = authState.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "Could not get userId during logout, continuing anyway");
+            }
+
+            // Limpa o estado de autenticação - CRÍTICO para o logout funcionar
+            if (AuthStateProvider is DanceWaves.Infrastructure.Security.CustomAuthenticationStateProvider customProvider)
+            {
+                try
+                {
+                    await customProvider.MarkUserAsLoggedOut();
+                    Logger.LogInformation("Authentication state cleared successfully");
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Error clearing authentication state during logout: {Error}", ex.Message);
+                }
+            }
+
+            // Chama o método de logout do adapter (para logging no banco)
+            if (!string.IsNullOrWhiteSpace(userId))
+            {
+                try
+                {
+                    await AuthenticationPort.LogoutAsync(userId);
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Error calling LogoutAsync from adapter: {Error}", ex.Message);
+                }
+            }
+
+            // Limpa o localStorage diretamente via JavaScript para garantir
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "accessToken");
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "Could not clear localStorage via JS: {Error}", ex.Message);
+            }
+
+            // Aguarda um pouco para garantir que o estado seja atualizado
+            await Task.Delay(200);
         }
-        
-        // Clear authentication state
-        if (AuthStateProvider is DanceWaves.Infrastructure.Security.CustomAuthenticationStateProvider customProvider)
+        catch (Exception ex)
         {
-            await customProvider.MarkUserAsLoggedOut();
+            Logger.LogError(ex, "Unexpected error during logout process: {Error}", ex.Message);
         }
-        
-        await Task.Delay(100);
-        Navigation.NavigateTo("/login", true);
+        finally
+        {
+            IsLoggingOut = false;
+            
+            // SEMPRE redireciona para a página de login
+            try
+            {
+                // Primeiro tenta usar a navegação do Blazor
+                Navigation.NavigateTo("/login", forceLoad: true);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error navigating to login page with Blazor: {Error}", ex.Message);
+                // Se a navegação do Blazor falhar, usa JavaScript para redirecionar
+                try
+                {
+                    await JSRuntime.InvokeVoidAsync("logoutRedirect", "/login");
+                }
+                catch (Exception jsEx)
+                {
+                    Logger.LogError(jsEx, "Error navigating using JavaScript: {Error}", jsEx.Message);
+                    // Se tudo falhar, tenta redirecionar diretamente via window.location
+                    try
+                    {
+                        await JSRuntime.InvokeVoidAsync("eval", "window.location.href = '/login'");
+                    }
+                    catch
+                    {
+                        Logger.LogError("All logout navigation attempts failed - manual navigation required");
+                    }
+                }
+            }
+        }
     }
 }
 
