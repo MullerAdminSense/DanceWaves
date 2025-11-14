@@ -178,14 +178,14 @@
     [Parameter]
     [SupplyParameterFromQuery]
     public string? userId { get; set; }
-    [SupplyParameterFromQuery]
-    public string? newUser { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
             RolePermissions = await GetAllRolePermissionsAsync();
+            
+            // Verifica se o usuário atual é admin
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             var userPrincipal = authState.User;
             string? currentUserId = userPrincipal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -198,15 +198,9 @@
                     IsAdmin = userRole != null && (userRole.Name == "SuperAdmin" || userRole.Name == "FranchiseAdmin");
                 }
             }
-
-            // Se é admin e veio do botão Add User, inicia cadastro em branco
-            if (IsAdmin && !string.IsNullOrEmpty(newUser))
-            {
-                User = new UserDto();
-                User.RolePermissionId = RolePermissions.FirstOrDefault(r => r.Name == "User")?.Id ?? 3;
-            }
+            
             // Se há um userId na query string, carrega esse usuário (modo edição para admin)
-            else if (!string.IsNullOrEmpty(userId) && int.TryParse(userId, out var editUserId))
+            if (!string.IsNullOrEmpty(userId) && int.TryParse(userId, out var editUserId))
             {
                 // Apenas admins podem editar outros usuários
                 if (IsAdmin)
@@ -220,6 +214,7 @@
                 }
                 else
                 {
+                    // Se não é admin, redireciona para a página de usuários
                     Navigation.NavigateTo("/administration/users");
                     return;
                 }
@@ -242,7 +237,7 @@
                     User.RolePermissionId = RolePermissions.FirstOrDefault(r => r.Name == "User")?.Id ?? 3;
                 }
             }
-
+            
             Countries = new List<(int, string)>
             {
                 ((int)CountryId.USA, "United States"),
@@ -250,10 +245,11 @@
                 ((int)CountryId.France, "France"),
                 ((int)CountryId.Germany, "Germany")
             };
-
+            
+            // Carrega dados iniciais do banco
             await LoadDanceSchoolsFromDatabase();
             await LoadAgeGroupsFromDatabase();
-
+            
             if (User.DanceSchoolId != null)
             {
                 SelectedDanceSchoolId = User.DanceSchoolId;
@@ -267,6 +263,7 @@
             {
                 SelectedAgeGroupId = User.AgeGroupId;
             }
+            
         }
         catch (Exception ex)
         {

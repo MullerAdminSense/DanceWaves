@@ -252,9 +252,7 @@
     {
         // Navega para a página de signup para criar novo usuário
         // Admin pode criar novos usuários
-        SuccessMessage = null;
-        ErrorMessage = null;
-        Navigation.NavigateTo("/signup?newUser=1");
+        Navigation.NavigateTo("/signup");
     }
 
     private void NavigateBack()
@@ -266,8 +264,6 @@
     {
         // Navega para a página de signup com o ID do usuário para edição
         // O parâmetro userId na query string permite que o admin edite qualquer usuário
-        SuccessMessage = null;
-        ErrorMessage = null;
         Navigation.NavigateTo($"/signup?userId={user.Id}");
     }
 
@@ -291,7 +287,7 @@
             
             if (response.IsSuccess)
             {
-                SuccessMessage = "Usuário excluído com sucesso.";
+                SuccessMessage = "User deleted successfully.";
                 ShowDeleteConfirm = false;
                 UserToDelete = null;
                 await LoadUsers();
@@ -299,13 +295,13 @@
             }
             else
             {
-                ErrorMessage = response.Message ?? "Falha ao excluir usuário.";
+                ErrorMessage = response.Message ?? "Failed to delete user.";
             }
         }
         catch (Exception ex)
         {
-            ErrorMessage = $"Erro ao excluir usuário: {ex.Message}";
-            Logger.LogError(ex, $"Erro ao excluir usuário: {UserToDelete?.Id}");
+            ErrorMessage = $"Error deleting user: {ex.Message}";
+            Logger.LogError(ex, "Error deleting user: {UserToDelete.Id}");
         }
         finally
         {
