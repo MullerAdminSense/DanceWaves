@@ -37,10 +37,10 @@ namespace DanceWaves.Models
 		[MaxLength(500)]
 		public string Song { get; set; }
 
-		// Duration in seconds for simplicity
+        
 		public int? DurationSeconds { get; set; }
 
-		// Navigation
+        
 		public ICollection<EntryMember> Members { get; set; }
 		public ICollection<Score> Scores { get; set; }
 	}

@@ -23,23 +23,23 @@ namespace DanceWaves.Data
         public DbSet<Level> Levels { get; set; }
         public DbSet<EntryType> EntryTypes { get; set; }
         public DbSet<UserRolePermission> UserRolePermissions { get; set; }
-    //
+    
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
-            // Seed user role permissions
+            
             modelBuilder.SeedUserRolePermissions();
 
-            // Basic configuration
+            
             modelBuilder.Entity<Franchise>(b =>
             {
                 b.HasKey(f => f.Id);
                 b.Property(f => f.Id).ValueGeneratedOnAdd();
                 b.Property(f => f.LegalName).HasMaxLength(100).IsRequired();
                 b.HasIndex(f => f.VatNumber).IsUnique(false);
-                // ...existing code...
+                
             });
 
             modelBuilder.Entity<User>(b =>
@@ -66,7 +66,7 @@ namespace DanceWaves.Data
                 b.HasKey(s => s.Id);
                 b.Property(s => s.Id).ValueGeneratedOnAdd();
                 b.Property(s => s.LegalName).HasMaxLength(200).IsRequired();
-                // ...existing code...
+                
             });
 
             modelBuilder.Entity<Competition>(b =>
@@ -158,7 +158,7 @@ namespace DanceWaves.Data
                 b.Property(et => et.Name).HasMaxLength(100).IsRequired();
             });
 
-            //
+            
         }
     }
 }

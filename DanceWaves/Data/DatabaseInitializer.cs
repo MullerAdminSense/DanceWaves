@@ -10,17 +10,14 @@ namespace DanceWaves.Data
             using (var scope = app.Services.CreateScope())
             {
                 var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-                
                 try
                 {
                     // Ensure database is created
                     await dbContext.Database.EnsureCreatedAsync();
-                    
                     // Seed user role permissions
                     await SeedUserRolePermissionsAsync(dbContext);
-
-                    // Seed countries
-                    await SeedCountriesAsync(dbContext);
+                    // Seed test Franchises and DanceSchools
+                    await SeedTestFranchisesAndDanceSchoolsAsync(dbContext);
                 }
                 catch (Exception ex)
                 {
@@ -29,6 +26,29 @@ namespace DanceWaves.Data
                     throw;
                 }
             }
+        }
+
+        private static async Task SeedTestFranchisesAndDanceSchoolsAsync(ApplicationDbContext dbContext)
+        {
+            if (!await dbContext.Franchises.AnyAsync())
+            {
+                var franchises = new List<Franchise>
+                {
+                    new Franchise { LegalName = "Franchise USA", CountryId = 1, IsPartOfEU = false, ContactEmail = "usa@franchise.com" },
+                    new Franchise { LegalName = "Franchise NL", CountryId = 2, IsPartOfEU = true, ContactEmail = "nl@franchise.com" }
+                };
+                await dbContext.Franchises.AddRangeAsync(franchises);
+            }
+            if (!await dbContext.DanceSchools.AnyAsync())
+            {
+                var danceSchools = new List<DanceSchool>
+                {
+                    new DanceSchool { LegalName = "DanceSchool FR", CountryId = 3, Email = "fr@school.com" },
+                    new DanceSchool { LegalName = "DanceSchool DE", CountryId = 4, Email = "de@school.com" }
+                };
+                await dbContext.DanceSchools.AddRangeAsync(danceSchools);
+            }
+            await dbContext.SaveChangesAsync();
         }
 
         private static async Task SeedUserRolePermissionsAsync(ApplicationDbContext dbContext)
@@ -64,37 +84,6 @@ namespace DanceWaves.Data
             };
 
             await dbContext.UserRolePermissions.AddRangeAsync(rolePermissions);
-            await dbContext.SaveChangesAsync();
-        }
-        private static async Task SeedCountriesAsync(ApplicationDbContext dbContext)
-        {
-            if (await dbContext.Countries.AnyAsync())
-                return;
-
-            var countries = new List<Country>
-            {
-                new Country { Name = "United States" },
-                new Country { Name = "Canada" },
-                new Country { Name = "Brazil" },
-                new Country { Name = "United Kingdom" },
-                new Country { Name = "France" },
-                new Country { Name = "Germany" },
-                new Country { Name = "Italy" },
-                new Country { Name = "Spain" },
-                new Country { Name = "Netherlands" },
-                new Country { Name = "Belgium" },
-                new Country { Name = "Portugal" },
-                new Country { Name = "Argentina" },
-                new Country { Name = "Mexico" },
-                new Country { Name = "Japan" },
-                new Country { Name = "China" },
-                new Country { Name = "South Korea" },
-                new Country { Name = "Australia" },
-                new Country { Name = "South Africa" },
-                new Country { Name = "Russia" },
-                new Country { Name = "India" }
-            };
-            await dbContext.Countries.AddRangeAsync(countries);
             await dbContext.SaveChangesAsync();
         }
     }

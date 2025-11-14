@@ -39,7 +39,7 @@ namespace DanceWaves.Models
 		[MaxLength(200)]
 		public string SystemEmail { get; set; }
 
-		// Navigation
+        
 		public ICollection<User> Users { get; set; }
 		public ICollection<DanceSchool> DanceSchools { get; set; }
 	}

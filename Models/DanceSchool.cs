@@ -38,7 +38,7 @@ namespace DanceWaves.Models
 		public int? DefaultFranchiseId { get; set; }
 		public Franchise DefaultFranchise { get; set; }
 
-		// Navigation
+        
 		public ICollection<User> Users { get; set; }
 		public ICollection<Entry> Entries { get; set; }
 	}

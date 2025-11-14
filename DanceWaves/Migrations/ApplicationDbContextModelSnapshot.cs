@@ -17,7 +17,7 @@ namespace DanceWaves.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.10")
+                .HasAnnotation("ProductVersion", "9.0.10")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -63,11 +63,9 @@ namespace DanceWaves.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("GeoPoints")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Location")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("MaxContestants")
@@ -88,7 +86,6 @@ namespace DanceWaves.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("Venue")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
@@ -163,9 +160,8 @@ namespace DanceWaves.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<string>("Country")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                    b.Property<int>("CountryId")
+                        .HasColumnType("int");
 
                     b.Property<int?>("DefaultFranchiseId")
                         .HasColumnType("int");
@@ -222,7 +218,6 @@ namespace DanceWaves.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("Song")
-                        .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
@@ -311,9 +306,8 @@ namespace DanceWaves.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
-                    b.Property<string>("Country")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                    b.Property<int>("CountryId")
+                        .HasColumnType("int");
 
                     b.Property<bool>("IsPartOfEU")
                         .HasColumnType("bit");
@@ -469,9 +463,8 @@ namespace DanceWaves.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<string>("Country")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                    b.Property<int>("CountryId")
+                        .HasColumnType("int");
 
                     b.Property<int?>("DanceSchoolId")
                         .HasColumnType("int");
@@ -491,6 +484,10 @@ namespace DanceWaves.Migrations
                     b.Property<string>("LastName")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Password")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
 
                     b.Property<string>("Phone")
                         .HasMaxLength(50)

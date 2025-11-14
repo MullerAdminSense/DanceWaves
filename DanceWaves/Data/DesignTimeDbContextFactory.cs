@@ -5,7 +5,7 @@ using System.IO;
 
 namespace DanceWaves.Data
 {
-    // Used by EF tools at design time to create the DbContext
+    
     public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<ApplicationDbContext>
     {
         public ApplicationDbContext CreateDbContext(string[] args)

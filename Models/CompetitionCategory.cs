@@ -25,14 +25,14 @@ namespace DanceWaves.Models
 		[MaxLength(50)]
 		public string GenderMix { get; set; }
 
-		// stored as seconds or formatted string; using TimeSpan for clarity
+        
 		public int MaxMusicLengthSeconds { get; set; }
 
 		public decimal FeeAmount { get; set; }
 
 		public int Capacity { get; set; }
 
-		// Navigation
+        
 		public ICollection<JudgePanel> JudgePanels { get; set; }
 		public ICollection<Entry> Entries { get; set; }
 	}

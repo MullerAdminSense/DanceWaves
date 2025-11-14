@@ -1,5 +1,9 @@
+    
+@using System.Security.Claims
+@inject AuthenticationStateProvider AuthenticationStateProvider
 @page "/signup"
 @using DanceWaves.Application.Dtos
+    
 @using DanceWaves.Application.UseCases
 @using DanceWaves.Application.Ports
 @using DanceWaves.Models
@@ -26,9 +30,8 @@
                     {
                         <div class="alert alert-success">@SuccessMessage</div>
                     }
-                    @if (User != null)
-                    {
-                        <form @onsubmit="HandleRegister">
+                    <form @onsubmit="HandleRegister">
+                            
                             <div class="mb-3">
                                 <label for="firstName" class="form-label">First Name *</label>
                                 <input type="text" class="form-control" id="firstName" placeholder="Enter your first name" @bind="User.FirstName" required />
@@ -36,14 +39,6 @@
                             <div class="mb-3">
                                 <label for="lastName" class="form-label">Last Name *</label>
                                 <input type="text" class="form-control" id="lastName" placeholder="Enter your last name" @bind="User.LastName" required />
-                            </div>
-                            <div class="mb-3">
-                                <label for="email" class="form-label">Email Address *</label>
-                                <input type="email" class="form-control" id="email" placeholder="Enter your email" @bind="User.Email" required />
-                            </div>
-                            <div class="mb-3">
-                                <label for="phone" class="form-label">Phone Number</label>
-                                <input type="text" class="form-control" id="phone" placeholder="Enter your phone number" @bind="User.Phone" />
                             </div>
                             <div class="mb-3">
                                 <label for="address" class="form-label">Address</label>
@@ -72,6 +67,10 @@
                                 </select>
                             </div>
                             <div class="mb-3">
+                                <label for="email" class="form-label">Email Address *</label>
+                                <input type="email" class="form-control" id="email" placeholder="Enter your email" @bind="User.Email" required />
+                            </div>
+                            <div class="mb-3">
                                 <label for="danceSchool" class="form-label">Dance School</label>
                                 <select class="form-select" id="danceSchool" @bind-value="User.DanceSchoolId" @bind-value:event="onchange">
                                     <option value="">Select a dance school</option>
@@ -80,6 +79,10 @@
                                         <option value="@school.Id">@school.LegalName</option>
                                     }
                                 </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="phone" class="form-label">Phone Number</label>
+                                <input type="text" class="form-control" id="phone" placeholder="Enter your phone number" @bind="User.Phone" />
                             </div>
                             <div class="mb-3">
                                 <label for="franchise" class="form-label">Default Franchise</label>
@@ -103,8 +106,9 @@
                             </div>
                             <div class="mb-3">
                                 <label for="rolePermission" class="form-label">Role Permission</label>
-                                <input type="text" class="form-control" id="rolePermission" value="@User.RolePermissionId" readonly />
+                                <input type="text" class="form-control" id="rolePermission" value="@RoleName" readonly disabled />
                             </div>
+                            
                             <button type="submit" class="btn btn-primary btn-lg w-100" disabled="@IsLoading">
                                 @(IsLoading ? "Creating..." : "Create Account")
                             </button>
@@ -112,7 +116,7 @@
                                 <p class="text-muted">Already have an account? <a href="/login">Sign In</a></p>
                             </div>
                         </form>
-                    }
+                    
                 </div>
             </div>
         </div>
@@ -125,7 +129,7 @@
     private List<DanceSchool> DanceSchools { get; set; } = new();
     private List<Franchise> FilteredFranchises { get; set; } = new();
     private List<AgeGroup> AgeGroups { get; set; } = new();
-    private List<UserRolePermission> RolePermissions { get; set; } = new();
+    private List<UserRolePermission> RolePermissions { get; set; } = new List<UserRolePermission>();
     private int? SelectedDanceSchoolId { get; set; }
     private int? SelectedFranchiseId { get; set; }
     private int? SelectedCountryId { get; set; }
@@ -140,8 +144,24 @@
     {
         try
         {
-            // Carregar dados do usuário logado e preencher campos
-            User = await AuthenticationPort.GetCurrentUserAsync("me"); // ajuste para pegar o usuário logado
+            RolePermissions = await GetAllRolePermissionsAsync();
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var userPrincipal = authState.User;
+            string? userId = userPrincipal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            UserDto? loadedUser = null;
+            if (!string.IsNullOrEmpty(userId))
+            {
+                loadedUser = await AuthenticationPort.GetCurrentUserAsync(userId);
+            }
+            if (loadedUser != null)
+            {
+                User = loadedUser;
+            }
+            else
+            {
+                User = new UserDto();
+                User.RolePermissionId = RolePermissions.FirstOrDefault(r => r.Name == "User")?.Id ?? 3;
+            }
             Countries = new List<(int, string)>
             {
                 ((int)CountryId.USA, "United States"),
@@ -150,29 +170,32 @@
                 ((int)CountryId.Germany, "Germany")
             };
             DanceSchools = await AuthenticationPort.GetAllDanceSchoolsAsync();
-            // AgeGroups and RolePermissions loading removed (methods not present in IAuthenticationPort)
-            if (User != null)
+            
+            if (User.DanceSchoolId != null)
             {
-                if (User.DanceSchoolId != null)
-                {
-                    SelectedDanceSchoolId = User.DanceSchoolId;
-                    await LoadFranchisesForSelectedSchool();
-                }
-                if (User.CountryId != null)
-                {
-                    SelectedCountryId = User.CountryId;
-                }
-                if (User.AgeGroupId != null)
-                {
-                    SelectedAgeGroupId = User.AgeGroupId;
-                }
+                SelectedDanceSchoolId = User.DanceSchoolId;
+                await LoadFranchisesForSelectedSchool();
             }
+            if (User.CountryId != null)
+            {
+                SelectedCountryId = User.CountryId;
+            }
+            if (User.AgeGroupId != null)
+            {
+                SelectedAgeGroupId = User.AgeGroupId;
+            }
+            
         }
         catch (Exception ex)
         {
-            ErrorMessage = $"Erro ao carregar dados do perfil: {ex.Message}";
-            Logger.LogError(ex, "Erro ao carregar dados do perfil no SignUp");
+            ErrorMessage = $"Error loading profile data: {ex.Message}";
+            Logger.LogError(ex, "Error loading profile data in SignUp");
         }
+    }
+    private async Task<List<UserRolePermission>> GetAllRolePermissionsAsync()
+    {
+        
+        return await AuthenticationPort.GetAllRolePermissionsAsync();
     }
 
     private async Task LoadFranchisesForSelectedSchool()
@@ -195,6 +218,23 @@
             User.DanceSchoolId = schoolId;
             await LoadFranchisesForSelectedSchool();
             StateHasChanged();
+        }
+    }
+
+    private string RoleName
+    {
+        get
+        {
+            if (User.RolePermissionId == 0)
+                return string.Empty;
+            var role = RolePermissions.FirstOrDefault(r => r.Id == User.RolePermissionId);
+            if (role != null && !string.IsNullOrWhiteSpace(role.Name))
+                return role.Name;
+            
+            role = RolePermissions.FirstOrDefault(r => r.Name?.Equals("User", StringComparison.OrdinalIgnoreCase) == true);
+            if (role != null)
+                return role.Name;
+            return $"Role {User.RolePermissionId}";
         }
     }
 
