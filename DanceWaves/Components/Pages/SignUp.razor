@@ -17,8 +17,12 @@
         <div class="col-md-8 offset-md-2">
             <div class="card shadow">
                 <div class="card-header bg-primary text-white">
-                    <h3 class="mb-0">📋 Sign Up</h3>
-                    <p class="mb-0 small">Create your DanceWaves account</p>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h3 class="mb-0">📋 Sign Up</h3>
+                            <p class="mb-0 small">Create your DanceWaves account</p>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="card-body p-5">
@@ -72,7 +76,10 @@
                             </div>
                             <div class="mb-3">
                                 <label for="danceSchool" class="form-label">Dance School</label>
-                                <select class="form-select" id="danceSchool" @bind-value="User.DanceSchoolId" @bind-value:event="onchange">
+                                <select class="form-select" id="danceSchool" 
+                                        value="@(User.DanceSchoolId?.ToString() ?? "")"
+                                        @onchange="OnDanceSchoolChanged" 
+                                        @onfocus="OnDanceSchoolFocus">
                                     <option value="">Select a dance school</option>
                                     @foreach (var school in DanceSchools)
                                     {
@@ -86,7 +93,11 @@
                             </div>
                             <div class="mb-3">
                                 <label for="franchise" class="form-label">Default Franchise</label>
-                                <select class="form-select" id="franchise" @bind="User.DefaultFranchiseId">
+                                <select class="form-select" id="franchise" 
+                                        value="@(User.DefaultFranchiseId?.ToString() ?? "")"
+                                        @onchange="OnFranchiseChanged"
+                                        @onfocus="OnFranchiseFocus"
+                                        disabled="@(User.DanceSchoolId == null)">
                                     <option value="">Select a franchise</option>
                                     @foreach (var franchise in FilteredFranchises)
                                     {
@@ -96,7 +107,10 @@
                             </div>
                             <div class="mb-3">
                                 <label for="ageGroup" class="form-label">Age Group</label>
-                                <select class="form-select" id="ageGroup" @bind="User.AgeGroupId">
+                                <select class="form-select" id="ageGroup" 
+                                        value="@(User.AgeGroupId?.ToString() ?? "")"
+                                        @onchange="OnAgeGroupChanged"
+                                        @onfocus="OnAgeGroupFocus">
                                     <option value="">Select an age group</option>
                                     @foreach (var ageGroup in AgeGroups)
                                     {
@@ -106,15 +120,32 @@
                             </div>
                             <div class="mb-3">
                                 <label for="rolePermission" class="form-label">Role Permission</label>
-                                <input type="text" class="form-control" id="rolePermission" value="@RoleName" readonly disabled />
+                                @if (IsAdmin && User.Id > 0)
+                                {
+                                    <select class="form-select" id="rolePermission" 
+                                            value="@(User.RolePermissionId.ToString() ?? "")"
+                                            @onchange="OnRolePermissionChanged">
+                                        @foreach (var role in RolePermissions)
+                                        {
+                                            <option value="@role.Id">@role.Name</option>
+                                        }
+                                    </select>
+                                }
+                                else
+                                {
+                                    <input type="text" class="form-control" id="rolePermission" value="@RoleName" readonly disabled />
+                                }
                             </div>
                             
                             <button type="submit" class="btn btn-primary btn-lg w-100" disabled="@IsLoading">
-                                @(IsLoading ? "Creating..." : "Create Account")
+                                @(IsLoading ? (User.Id > 0 ? "Updating..." : "Creating...") : (User.Id > 0 ? "Update Account" : "Create Account"))
                             </button>
-                            <div class="text-center mt-3">
-                                <p class="text-muted">Already have an account? <a href="/login">Sign In</a></p>
-                            </div>
+                            @if (User.Id == 0)
+                            {
+                                <div class="text-center mt-3">
+                                    <p class="text-muted">Already have an account? <a href="/login">Sign In</a></p>
+                                </div>
+                            }
                         </form>
                     
                 </div>
@@ -134,11 +165,21 @@
     private int? SelectedFranchiseId { get; set; }
     private int? SelectedCountryId { get; set; }
     private int? SelectedAgeGroupId { get; set; }
+    private bool _isLoadingFranchises = false;
+    private bool _isLoadingDanceSchools = false;
+    private bool _isLoadingAgeGroups = false;
+    private bool IsAdmin { get; set; } = false;
     private string? ErrorMessage { get; set; }
     private string? SuccessMessage { get; set; }
     private bool IsLoading { get; set; }
     private bool ShowPassword { get; set; }
     private bool ShowConfirmPassword { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? userId { get; set; }
+    [SupplyParameterFromQuery]
+    public string? newUser { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
@@ -147,21 +188,61 @@
             RolePermissions = await GetAllRolePermissionsAsync();
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             var userPrincipal = authState.User;
-            string? userId = userPrincipal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            UserDto? loadedUser = null;
-            if (!string.IsNullOrEmpty(userId))
+            string? currentUserId = userPrincipal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!string.IsNullOrEmpty(currentUserId) && int.TryParse(currentUserId, out var currentId))
             {
-                loadedUser = await AuthenticationPort.GetCurrentUserAsync(userId);
+                var currentUser = await AuthenticationPort.GetCurrentUserAsync(currentUserId);
+                if (currentUser != null)
+                {
+                    var userRole = RolePermissions.FirstOrDefault(r => r.Id == currentUser.RolePermissionId);
+                    IsAdmin = userRole != null && (userRole.Name == "SuperAdmin" || userRole.Name == "FranchiseAdmin");
+                }
             }
-            if (loadedUser != null)
-            {
-                User = loadedUser;
-            }
-            else
+
+            // Se é admin e veio do botão Add User, inicia cadastro em branco
+            if (IsAdmin && !string.IsNullOrEmpty(newUser))
             {
                 User = new UserDto();
                 User.RolePermissionId = RolePermissions.FirstOrDefault(r => r.Name == "User")?.Id ?? 3;
             }
+            // Se há um userId na query string, carrega esse usuário (modo edição para admin)
+            else if (!string.IsNullOrEmpty(userId) && int.TryParse(userId, out var editUserId))
+            {
+                // Apenas admins podem editar outros usuários
+                if (IsAdmin)
+                {
+                    var editUser = await AuthenticationPort.GetAllUsersAsync();
+                    var userToEdit = editUser.FirstOrDefault(u => u.Id == editUserId);
+                    if (userToEdit != null)
+                    {
+                        User = userToEdit;
+                    }
+                }
+                else
+                {
+                    Navigation.NavigateTo("/administration/users");
+                    return;
+                }
+            }
+            else
+            {
+                // Caso contrário, carrega o usuário atual (modo normal)
+                UserDto? loadedUser = null;
+                if (!string.IsNullOrEmpty(currentUserId))
+                {
+                    loadedUser = await AuthenticationPort.GetCurrentUserAsync(currentUserId);
+                }
+                if (loadedUser != null)
+                {
+                    User = loadedUser;
+                }
+                else
+                {
+                    User = new UserDto();
+                    User.RolePermissionId = RolePermissions.FirstOrDefault(r => r.Name == "User")?.Id ?? 3;
+                }
+            }
+
             Countries = new List<(int, string)>
             {
                 ((int)CountryId.USA, "United States"),
@@ -169,8 +250,10 @@
                 ((int)CountryId.France, "France"),
                 ((int)CountryId.Germany, "Germany")
             };
-            DanceSchools = await AuthenticationPort.GetAllDanceSchoolsAsync();
-            
+
+            await LoadDanceSchoolsFromDatabase();
+            await LoadAgeGroupsFromDatabase();
+
             if (User.DanceSchoolId != null)
             {
                 SelectedDanceSchoolId = User.DanceSchoolId;
@@ -184,7 +267,6 @@
             {
                 SelectedAgeGroupId = User.AgeGroupId;
             }
-            
         }
         catch (Exception ex)
         {
@@ -192,33 +274,171 @@
             Logger.LogError(ex, "Error loading profile data in SignUp");
         }
     }
+    
     private async Task<List<UserRolePermission>> GetAllRolePermissionsAsync()
     {
-        
         return await AuthenticationPort.GetAllRolePermissionsAsync();
+    }
+
+    private async Task OnDanceSchoolFocus()
+    {
+        // Evita chamadas concorrentes
+        if (_isLoadingDanceSchools) return;
+        
+        try
+        {
+            _isLoadingDanceSchools = true;
+            // Recarrega DanceSchools do banco quando o combo é focado (clicado)
+            // Isso garante que mudanças feitas por outros usuários sejam refletidas
+            await LoadDanceSchoolsFromDatabase();
+            StateHasChanged();
+        }
+        finally
+        {
+            _isLoadingDanceSchools = false;
+        }
+    }
+
+    private async Task OnFranchiseFocus()
+    {
+        // Evita chamadas concorrentes
+        if (_isLoadingFranchises) return;
+        
+        // Recarrega as franchises do banco quando o combo é focado (clicado)
+        // Isso garante que mudanças feitas por outros usuários sejam refletidas
+        if (User.DanceSchoolId != null)
+        {
+            SelectedDanceSchoolId = User.DanceSchoolId;
+            await LoadFranchisesForSelectedSchool();
+            StateHasChanged();
+        }
+    }
+
+    private async Task OnAgeGroupFocus()
+    {
+        // Evita chamadas concorrentes
+        if (_isLoadingAgeGroups) return;
+        
+        try
+        {
+            _isLoadingAgeGroups = true;
+            // Recarrega AgeGroups do banco quando o combo é focado (clicado)
+            // Isso garante que mudanças feitas por outros usuários sejam refletidas
+            await LoadAgeGroupsFromDatabase();
+            StateHasChanged();
+        }
+        finally
+        {
+            _isLoadingAgeGroups = false;
+        }
+    }
+
+    private async Task OnAgeGroupChanged(ChangeEventArgs e)
+    {
+        var newValue = e.Value?.ToString();
+        int? newAgeGroupId = null;
+        
+        if (!string.IsNullOrEmpty(newValue) && int.TryParse(newValue, out var ageGroupId))
+        {
+            newAgeGroupId = ageGroupId;
+        }
+        
+        User.AgeGroupId = newAgeGroupId;
+        SelectedAgeGroupId = newAgeGroupId;
+        StateHasChanged();
+    }
+
+    private async Task LoadDanceSchoolsFromDatabase()
+    {
+        // Sempre busca dados atualizados do banco
+        DanceSchools = await AuthenticationPort.GetAllDanceSchoolsAsync();
+    }
+
+    private async Task LoadAgeGroupsFromDatabase()
+    {
+        // Sempre busca dados atualizados do banco
+        AgeGroups = await AuthenticationPort.GetAllAgeGroupsAsync();
     }
 
     private async Task LoadFranchisesForSelectedSchool()
     {
-        if (SelectedDanceSchoolId != null)
+        // Evita chamadas concorrentes
+        if (_isLoadingFranchises) return;
+        
+        try
         {
-            FilteredFranchises = await AuthenticationPort.GetFranchisesByDanceSchoolAsync(SelectedDanceSchoolId.Value);
+            _isLoadingFranchises = true;
+            
+            int? schoolId = SelectedDanceSchoolId ?? User.DanceSchoolId;
+            
+            if (schoolId != null)
+            {
+                // Sempre busca dados atualizados do banco
+                FilteredFranchises = await AuthenticationPort.GetFranchisesByDanceSchoolAsync(schoolId.Value);
+            }
+            else
+            {
+                FilteredFranchises = new List<Franchise>();
+            }
         }
-        else
+        finally
         {
-            FilteredFranchises = new List<Franchise>();
+            _isLoadingFranchises = false;
         }
+        
+        // Garante que a UI seja atualizada
+        StateHasChanged();
     }
 
     private async Task OnDanceSchoolChanged(ChangeEventArgs e)
     {
-        if (int.TryParse(e.Value?.ToString(), out var schoolId))
+        var newValue = e.Value?.ToString();
+        int? newSchoolId = null;
+        
+        if (!string.IsNullOrEmpty(newValue) && int.TryParse(newValue, out var schoolId))
         {
-            SelectedDanceSchoolId = schoolId;
-            User.DanceSchoolId = schoolId;
-            await LoadFranchisesForSelectedSchool();
-            StateHasChanged();
+            newSchoolId = schoolId;
         }
+        
+        SelectedDanceSchoolId = newSchoolId;
+        User.DanceSchoolId = newSchoolId;
+        
+        // Reset franchise selection when dance school changes
+        User.DefaultFranchiseId = null;
+        
+        // Recarrega as franchises do banco quando a dance school muda
+        await LoadFranchisesForSelectedSchool();
+        
+        // Força atualização da UI
+        StateHasChanged();
+    }
+
+    private async Task OnFranchiseChanged(ChangeEventArgs e)
+    {
+        var newValue = e.Value?.ToString();
+        int? newFranchiseId = null;
+        
+        if (!string.IsNullOrEmpty(newValue) && int.TryParse(newValue, out var franchiseId))
+        {
+            newFranchiseId = franchiseId;
+        }
+        
+        User.DefaultFranchiseId = newFranchiseId;
+        StateHasChanged();
+    }
+
+    private async Task OnRolePermissionChanged(ChangeEventArgs e)
+    {
+        var newValue = e.Value?.ToString();
+        int newRolePermissionId = 3; // Default: User
+        
+        if (!string.IsNullOrEmpty(newValue) && int.TryParse(newValue, out var roleId))
+        {
+            newRolePermissionId = roleId;
+        }
+        
+        User.RolePermissionId = newRolePermissionId;
+        StateHasChanged();
     }
 
     private string RoleName
@@ -238,6 +458,7 @@
         }
     }
 
+
     private async Task HandleRegister()
     {
         ErrorMessage = null;
@@ -245,22 +466,67 @@
         IsLoading = true;
         try
         {
-            var response = await AuthenticationPort.UpdateProfileAsync(User.Id.ToString(), User);
-            if (response.IsSuccess)
+            // Se é admin editando outro usuário, usa o ID do usuário sendo editado
+            string userIdToUpdate = User.Id.ToString();
+            
+            // Se está editando outro usuário (modo admin), usa o ID do usuário sendo editado
+            if (IsAdmin && !string.IsNullOrEmpty(userId) && int.TryParse(userId, out var editUserId) && editUserId > 0)
             {
-                SuccessMessage = "Account created successfully! Redirecting to login...";
-                await Task.Delay(2000);
-                Navigation.NavigateTo("/login");
+                userIdToUpdate = editUserId.ToString();
             }
             else
             {
-                ErrorMessage = response.Message ?? "Registration failed. Please try again.";
+                // Caso contrário, usa o ID do usuário atual
+                var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                var userPrincipal = authState.User;
+                string? currentUserId = userPrincipal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (!string.IsNullOrEmpty(currentUserId))
+                {
+                    userIdToUpdate = currentUserId;
+                }
+            }
+            
+            var response = await AuthenticationPort.UpdateProfileAsync(userIdToUpdate, User);
+            if (response.IsSuccess)
+            {
+                // Recarrega os dados do usuário para refletir alterações
+                if (IsAdmin && User.Id > 0)
+                {
+                    // Se é admin editando outro usuário, recarrega da lista de usuários
+                    var allUsers = await AuthenticationPort.GetAllUsersAsync();
+                    var updatedUser = allUsers.FirstOrDefault(u => u.Id == User.Id);
+                    if (updatedUser != null)
+                    {
+                        User = updatedUser;
+                    }
+                }
+                else
+                {
+                    // Caso contrário, recarrega o usuário atual
+                    var updatedUser = await AuthenticationPort.GetCurrentUserAsync(userIdToUpdate);
+                    if (updatedUser != null)
+                    {
+                        User = updatedUser;
+                    }
+                }
+                SuccessMessage = "Profile updated successfully!";
+                
+                // Se é admin editando outro usuário, volta para a página de gerenciamento após 2 segundos
+                if (IsAdmin && !string.IsNullOrEmpty(userId))
+                {
+                    await Task.Delay(2000);
+                    Navigation.NavigateTo("/administration/users");
+                }
+            }
+            else
+            {
+                ErrorMessage = response.Message ?? "Profile update failed. Please try again.";
             }
         }
         catch (Exception ex)
         {
             ErrorMessage = $"An error occurred: {ex.Message}";
-            Logger.LogError(ex, "Erro ao registrar/atualizar perfil no SignUp");
+            Logger.LogError(ex, "Error updating profile in SignUp");
         }
         finally
         {

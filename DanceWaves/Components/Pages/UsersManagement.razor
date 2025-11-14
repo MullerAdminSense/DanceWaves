@@ -1,0 +1,316 @@
+@page "/administration/users"
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@using DanceWaves.Application.Dtos
+@using DanceWaves.Application.Ports
+@using DanceWaves.Models
+@inject IAuthenticationPort AuthenticationPort
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+@inject ILogger<UsersManagement> Logger
+@rendermode InteractiveServer
+
+<AuthorizeView>
+    <Authorized>
+        @if (IsAdmin)
+        {
+            <div class="container-fluid mt-4">
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div>
+                                <a href="/administration" class="btn btn-outline-secondary btn-sm me-2">
+                                    <i class="bi bi-arrow-left"></i> Back to Administration
+                                </a>
+                                <h2 class="d-inline-block ms-2 mb-0"><i class="bi bi-people"></i> User Management</h2>
+                            </div>
+                            <button class="btn btn-primary" @onclick="HandleAddUser">
+                                <i class="bi bi-plus-circle"></i> Add User
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrEmpty(ErrorMessage))
+                {
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        @ErrorMessage
+                        <button type="button" class="btn-close" @onclick="@(() => ErrorMessage = null)"></button>
+                    </div>
+                }
+
+                @if (!string.IsNullOrEmpty(SuccessMessage))
+                {
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        @SuccessMessage
+                        <button type="button" class="btn-close" @onclick="@(() => SuccessMessage = null)"></button>
+                    </div>
+                }
+
+                @if (IsLoading)
+                {
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                }
+                else if (Users == null || !Users.Any())
+                {
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> No users found.
+                    </div>
+                }
+                else
+                {
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Name</th>
+                                            <th>Email</th>
+                                            <th>Phone</th>
+                                            <th>Role</th>
+                                            <th>Dance School</th>
+                                            <th>Franchise</th>
+                                            <th class="text-center">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var user in Users)
+                                        {
+                                            <tr>
+                                                <td>@user.Id</td>
+                                                <td>@user.FirstName @user.LastName</td>
+                                                <td>@user.Email</td>
+                                                <td>@(user.Phone ?? "-")</td>
+                                                <td>
+                                                    @{
+                                                        var role = RolePermissions?.FirstOrDefault(r => r.Id == user.RolePermissionId);
+                                                        <span class="badge bg-secondary">@(role?.Name ?? "Unknown")</span>
+                                                    }
+                                                </td>
+                                                <td>@(user.DanceSchoolId.HasValue ? DanceSchools?.FirstOrDefault(ds => ds.Id == user.DanceSchoolId)?.LegalName ?? "-" : "-")</td>
+                                                <td>@(user.DefaultFranchiseId.HasValue ? Franchises?.FirstOrDefault(f => f.Id == user.DefaultFranchiseId)?.LegalName ?? "-" : "-")</td>
+                                                <td class="text-center">
+                                                    <div class="btn-group" role="group">
+                                                        <button class="btn btn-sm btn-outline-primary" 
+                                                                @onclick="@(() => HandleEditUser(user))" 
+                                                                title="Edit User">
+                                                            <i class="bi bi-pencil"></i>
+                                                        </button>
+                                                        <button class="btn btn-sm btn-outline-danger" 
+                                                                @onclick="@(() => HandleDeleteUser(user))" 
+                                                                title="Delete User"
+                                                                disabled="@(user.Id == CurrentUserId)">
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            @* Modal de confirmação de exclusão *@
+            @if (ShowDeleteConfirm && UserToDelete != null)
+            {
+                <div class="modal fade show" style="display: block;" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Confirm Deletion</h5>
+                                <button type="button" class="btn-close" @onclick="@(() => ShowDeleteConfirm = false)"></button>
+                            </div>
+                            <div class="modal-body">
+                                <p>Are you sure you want to delete user <strong>@UserToDelete.FirstName @UserToDelete.LastName</strong> (@UserToDelete.Email)?</p>
+                                <p class="text-danger"><small>This action cannot be undone.</small></p>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" @onclick="@(() => ShowDeleteConfirm = false)">Cancel</button>
+                                <button type="button" class="btn btn-danger" @onclick="ConfirmDeleteUser" disabled="@IsDeleting">
+                                    @if (IsDeleting)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2"></span>
+                                    }
+                                    Delete User
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-backdrop fade show"></div>
+            }
+        }
+        else
+        {
+            <div class="container-fluid mt-5">
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i> You do not have permission to access this page.
+                </div>
+            </div>
+        }
+    </Authorized>
+    <NotAuthorized>
+        <div class="container-fluid mt-5">
+            <div class="alert alert-danger">
+                <i class="bi bi-lock"></i> Please log in to access this page.
+            </div>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private List<UserDto> Users { get; set; } = new();
+    private List<UserRolePermission> RolePermissions { get; set; } = new();
+    private List<DanceSchool> DanceSchools { get; set; } = new();
+    private List<Franchise> Franchises { get; set; } = new();
+    private bool IsLoading { get; set; } = true;
+    private bool IsAdmin { get; set; } = false;
+    private int? CurrentUserId { get; set; }
+    private string? ErrorMessage { get; set; }
+    private string? SuccessMessage { get; set; }
+    private bool ShowDeleteConfirm { get; set; } = false;
+    private UserDto? UserToDelete { get; set; }
+    private bool IsDeleting { get; set; } = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            
+            if (!string.IsNullOrEmpty(userId) && int.TryParse(userId, out var id))
+            {
+                CurrentUserId = id;
+                var currentUser = await AuthenticationPort.GetCurrentUserAsync(userId);
+                if (currentUser != null)
+                {
+                    // Verifica se o usuário é SuperAdmin ou FranchiseAdmin
+                    var role = await AuthenticationPort.GetAllRolePermissionsAsync();
+                    var userRole = role.FirstOrDefault(r => r.Id == currentUser.RolePermissionId);
+                    IsAdmin = userRole != null && (userRole.Name == "SuperAdmin" || userRole.Name == "FranchiseAdmin");
+                }
+            }
+
+            if (IsAdmin)
+            {
+                await LoadUsers();
+                await LoadReferenceData();
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error loading users: {ex.Message}";
+            Logger.LogError(ex, "Error loading users in UsersManagement");
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private async Task LoadUsers()
+    {
+        try
+        {
+            Users = await AuthenticationPort.GetAllUsersAsync();
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error loading users: {ex.Message}";
+            Logger.LogError(ex, "Error loading users");
+        }
+    }
+
+    private async Task LoadReferenceData()
+    {
+        try
+        {
+            RolePermissions = await AuthenticationPort.GetAllRolePermissionsAsync();
+            DanceSchools = await AuthenticationPort.GetAllDanceSchoolsAsync();
+            
+            // Carrega todas as franchises do banco
+            Franchises = await AuthenticationPort.GetAllFranchisesAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading reference data");
+        }
+    }
+
+    private void HandleAddUser()
+    {
+        // Navega para a página de signup para criar novo usuário
+        // Admin pode criar novos usuários
+        SuccessMessage = null;
+        ErrorMessage = null;
+        Navigation.NavigateTo("/signup?newUser=1");
+    }
+
+    private void NavigateBack()
+    {
+        Navigation.NavigateTo("/administration");
+    }
+
+    private void HandleEditUser(UserDto user)
+    {
+        // Navega para a página de signup com o ID do usuário para edição
+        // O parâmetro userId na query string permite que o admin edite qualquer usuário
+        SuccessMessage = null;
+        ErrorMessage = null;
+        Navigation.NavigateTo($"/signup?userId={user.Id}");
+    }
+
+    private void HandleDeleteUser(UserDto user)
+    {
+        UserToDelete = user;
+        ShowDeleteConfirm = true;
+    }
+
+    private async Task ConfirmDeleteUser()
+    {
+        if (UserToDelete == null) return;
+
+        IsDeleting = true;
+        ErrorMessage = null;
+        SuccessMessage = null;
+
+        try
+        {
+            var response = await AuthenticationPort.DeleteUserAsync(UserToDelete.Id);
+            
+            if (response.IsSuccess)
+            {
+                SuccessMessage = "Usuário excluído com sucesso.";
+                ShowDeleteConfirm = false;
+                UserToDelete = null;
+                await LoadUsers();
+                await LoadReferenceData();
+            }
+            else
+            {
+                ErrorMessage = response.Message ?? "Falha ao excluir usuário.";
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Erro ao excluir usuário: {ex.Message}";
+            Logger.LogError(ex, $"Erro ao excluir usuário: {UserToDelete?.Id}");
+        }
+        finally
+        {
+            IsDeleting = false;
+        }
+    }
+}
+

@@ -1,3 +1,19 @@
+@inject IJSRuntime JS
+@code {
+
+    private async Task HandleLogout()
+    {
+        // Chama função JS para limpar tokens e redirecionar
+        await JS.InvokeVoidAsync("logoutRedirect", "/login");
+    }
+}
+
+            @if (CurrentUser != null)
+            {
+                <div class="d-flex justify-content-end mb-3">
+                    <button class="btn btn-outline-secondary" @onclick="HandleLogout">Logout</button>
+                </div>
+            }
 @using Microsoft.AspNetCore.Components.Authorization
 @page "/profile"
 @using DanceWaves.Application.Dtos
@@ -61,28 +77,31 @@
                                     <div class="row">
                                         <div class="col-md-6 mb-3">
                                             <label for="firstName" class="form-label">First Name</label>
-                                            <input type="text" class="form-control" id="firstName" @bind="CurrentUser.FirstName" required>
+                                            <input type="text" class="form-control" id="firstName" @bind="CurrentUser?.FirstName" required>
                                         </div>
                                         <div class="col-md-6 mb-3">
                                             <label for="lastName" class="form-label">Last Name</label>
-                                            <input type="text" class="form-control" id="lastName" @bind="CurrentUser.LastName" required>
+                                            <input type="text" class="form-control" id="lastName" @bind="CurrentUser?.LastName" required>
                                         </div>
                                     </div>
 
                                     <div class="mb-3">
                                         <label for="email" class="form-label">Email Address</label>
-                                        <input type="email" class="form-control" id="email" value="@CurrentUser.Email" disabled>
+                                        <input type="email" class="form-control" id="email" value="@(CurrentUser?.Email ?? "")" disabled>
                                         <small class="form-text text-muted">Email cannot be changed</small>
                                     </div>
 
                                     <div class="mb-3">
                                         <label for="phone" class="form-label">Phone Number</label>
-                                        <input type="tel" class="form-control" id="phone" @bind="CurrentUser.PhoneNumber">
+                                        <input type="tel" class="form-control" id="phone" @bind="CurrentUser?.PhoneNumber">
                                     </div>
 
                                     <div class="mb-3">
                                         <label for="danceSchool" class="form-label">Dance School</label>
-                                        <select class="form-select" id="danceSchool" value="@CurrentUser.DanceSchoolId" @onchange="OnDanceSchoolChanged">
+                                        <select class="form-select" id="danceSchool" 
+                                                value="@(CurrentUser?.DanceSchoolId?.ToString() ?? "")"
+                                                @onchange="OnDanceSchoolChanged" 
+                                                @onfocus="OnDanceSchoolFocus">
                                             <option value="">Select a dance school</option>
                                             @if (DanceSchools != null)
                                             {
@@ -96,7 +115,11 @@
 
                                     <div class="mb-3">
                                         <label for="franchise" class="form-label">Franchise</label>
-                                        <select class="form-select" id="franchise" @bind="CurrentUser.DefaultFranchiseId">
+                                        <select class="form-select" id="franchise" 
+                                                value="@(CurrentUser?.DefaultFranchiseId?.ToString() ?? "")"
+                                                @onchange="OnFranchiseChanged"
+                                                @onfocus="OnFranchiseFocus" 
+                                                disabled="@(CurrentUser == null || CurrentUser.DanceSchoolId == null)">
                                             <option value="">Select a franchise</option>
                                             @if (FilteredFranchises != null)
                                             {
@@ -110,12 +133,12 @@
 
                                     <div class="mb-3">
                                         <label for="provider" class="form-label">Authentication Method</label>
-                                        <input type="text" class="form-control" id="provider" value="@(CurrentUser.Provider == "local" ? "Local Account" : CurrentUser.Provider)" disabled>
+                                        <input type="text" class="form-control" id="provider" value="@(CurrentUser?.Provider == "local" ? "Local Account" : CurrentUser?.Provider ?? "")" disabled>
                                     </div>
 
                                     <div class="mb-3">
                                         <label for="lastLogin" class="form-label">Last Login</label>
-                                        <input type="text" class="form-control" id="lastLogin" value="@(CurrentUser.LastLoginAt?.ToString("g") ?? "")" disabled>
+                                        <input type="text" class="form-control" id="lastLogin" value="@(CurrentUser?.LastLoginAt?.ToString("g") ?? "")" disabled>
                                     </div>
 
                                     <button type="submit" class="btn btn-primary" disabled="@IsUpdatingProfile">
@@ -133,10 +156,9 @@
                             </div>
                         </div>
                     </div>
-
                     
                     <div class="tab-pane fade" id="security-content" role="tabpanel" aria-labelledby="security-tab">
-                        @if (CurrentUser.Provider == "local")
+                        @if (CurrentUser?.Provider == "local")
                         {
                             <div class="card shadow-sm mb-4">
                                 <div class="card-header bg-warning text-white">
@@ -196,8 +218,8 @@
                         {
                             <div class="alert alert-info">
                                 <strong>Federated Account</strong><br>
-                                Your account is linked to @CurrentUser.Provider. 
-                                Password changes are managed by @CurrentUser.Provider.
+                                Your account is linked to @(CurrentUser?.Provider ?? ""). 
+                                Password changes are managed by @(CurrentUser?.Provider ?? "").
                             </div>
                         }
 
@@ -245,6 +267,8 @@
 
     private List<DanceSchool> DanceSchools { get; set; } = new();
     private List<Franchise> FilteredFranchises { get; set; } = new();
+    private bool _isLoadingFranchises = false;
+    private bool _isLoadingDanceSchools = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -255,31 +279,119 @@
             CurrentUser = await AuthenticationPort.GetCurrentUserAsync(userId);
         }
         
-        DanceSchools = await AuthenticationPort.GetAllDanceSchoolsAsync();
-        
+        // Carrega dados iniciais do banco
+        await LoadDanceSchoolsFromDatabase();
         await LoadFranchisesForSelectedSchool();
+    }
+
+    private async Task OnDanceSchoolFocus()
+    {
+        // Evita chamadas concorrentes
+        if (_isLoadingDanceSchools) return;
+        
+        try
+        {
+            _isLoadingDanceSchools = true;
+            // Recarrega DanceSchools do banco quando o combo é focado (clicado)
+            // Isso garante que mudanças feitas por outros usuários sejam refletidas
+            await LoadDanceSchoolsFromDatabase();
+            StateHasChanged();
+        }
+        finally
+        {
+            _isLoadingDanceSchools = false;
+        }
     }
 
     private async Task OnDanceSchoolChanged(ChangeEventArgs e)
     {
-        if (CurrentUser != null && int.TryParse(e.Value?.ToString(), out var schoolId))
+        if (CurrentUser != null)
         {
-            CurrentUser.DanceSchoolId = schoolId;
+            var newValue = e.Value?.ToString();
+            int? newSchoolId = null;
+            
+            if (!string.IsNullOrEmpty(newValue) && int.TryParse(newValue, out var schoolId))
+            {
+                newSchoolId = schoolId;
+            }
+            
+            // Atualiza o CurrentUser com o novo valor
+            CurrentUser.DanceSchoolId = newSchoolId;
+            
+            // Reset franchise selection when dance school changes
+            CurrentUser.DefaultFranchiseId = null;
+            
+            // Recarrega as franchises do banco quando a dance school muda
+            await LoadFranchisesForSelectedSchool();
+            
+            // Força atualização da UI
+            StateHasChanged();
+        }
+    }
+
+    private async Task OnFranchiseChanged(ChangeEventArgs e)
+    {
+        if (CurrentUser != null)
+        {
+            var newValue = e.Value?.ToString();
+            int? newFranchiseId = null;
+            
+            if (!string.IsNullOrEmpty(newValue) && int.TryParse(newValue, out var franchiseId))
+            {
+                newFranchiseId = franchiseId;
+            }
+            
+            CurrentUser.DefaultFranchiseId = newFranchiseId;
+            StateHasChanged();
+        }
+    }
+
+    private async Task OnFranchiseFocus()
+    {
+        // Evita chamadas concorrentes
+        if (_isLoadingFranchises) return;
+        
+        // Recarrega as franchises do banco quando o combo é focado (clicado)
+        // Isso garante que mudanças feitas por outros usuários sejam refletidas
+        if (CurrentUser?.DanceSchoolId != null)
+        {
             await LoadFranchisesForSelectedSchool();
             StateHasChanged();
         }
     }
 
+    private async Task LoadDanceSchoolsFromDatabase()
+    {
+        // Sempre busca dados atualizados do banco
+        DanceSchools = await AuthenticationPort.GetAllDanceSchoolsAsync();
+    }
+
     private async Task LoadFranchisesForSelectedSchool()
     {
-        if (CurrentUser?.DanceSchoolId != null)
+        // Evita chamadas concorrentes
+        if (_isLoadingFranchises) return;
+        
+        try
         {
-            FilteredFranchises = await AuthenticationPort.GetFranchisesByDanceSchoolAsync(CurrentUser.DanceSchoolId.Value);
+            _isLoadingFranchises = true;
+            
+            if (CurrentUser?.DanceSchoolId != null)
+            {
+                // Sempre busca dados atualizados do banco
+                FilteredFranchises = await AuthenticationPort.GetFranchisesByDanceSchoolAsync(CurrentUser.DanceSchoolId.Value);
+            }
+            else
+            {
+                FilteredFranchises = new List<Franchise>();
+            }
         }
-        else
+        finally
         {
-            FilteredFranchises = new List<Franchise>();
+            _isLoadingFranchises = false;
         }
+        
+        // Garante que a UI seja atualizada
+        StateHasChanged();
     }
 
     private async Task HandleUpdateProfile()
@@ -303,7 +415,9 @@
             if (response.IsSuccess)
             {
                 ProfileSuccessMessage = "Profile updated successfully!";
-                CurrentUser = response.User;
+                // Always reload user data from backend to ensure all updated fields are reflected
+                var refreshedUser = await AuthenticationPort.GetCurrentUserAsync(userId);
+                CurrentUser = refreshedUser ?? response.User;
             }
             else
             {
