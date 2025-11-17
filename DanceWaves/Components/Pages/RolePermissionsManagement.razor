@@ -1,0 +1,237 @@
+@page "/administration/rolepermissions"
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@using DanceWaves.Models
+@using DanceWaves.Application.Ports
+@inject IAuthenticationPort AuthenticationPort
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+@inject ILogger<RolePermissionsManagement> Logger
+@rendermode InteractiveServer
+
+<AuthorizeView>
+    <Authorized>
+        @if (IsAdmin)
+        {
+            <div class="container-fluid mt-4">
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div>
+                                <a href="/administration" class="btn btn-outline-secondary btn-sm me-2">
+                                    <i class="bi bi-arrow-left"></i> Back to Administration
+                                </a>
+                                <h2 class="d-inline-block ms-2 mb-0"><i class="bi bi-shield-lock"></i> Role Permission Management</h2>
+                            </div>
+                            <button class="btn btn-primary" @onclick="HandleAddRolePermission">
+                                <i class="bi bi-plus-circle"></i> Add Role Permission
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrEmpty(ErrorMessage))
+                {
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        @ErrorMessage
+                        <button type="button" class="btn-close" @onclick="@(() => ErrorMessage = null)"></button>
+                    </div>
+                }
+
+                @if (!string.IsNullOrEmpty(SuccessMessage))
+                {
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        @SuccessMessage
+                        <button type="button" class="btn-close" @onclick="@(() => SuccessMessage = null)"></button>
+                    </div>
+                }
+
+                @if (IsLoading)
+                {
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                }
+                else if (RolePermissions == null || !RolePermissions.Any())
+                {
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> No role permissions found.
+                    </div>
+                }
+                else
+                {
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Name</th>
+                                            <th>Description</th>
+                                            <th class="text-center">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var rp in RolePermissions)
+                                        {
+                                            <tr>
+                                                <td>@rp.Id</td>
+                                                <td>@rp.Name</td>
+                                                <td>@rp.Description</td>
+                                                <td class="text-center">
+                                                    <div class="btn-group" role="group">
+                                                        <button class="btn btn-sm btn-outline-primary" 
+                                                                @onclick="@(() => HandleEditRolePermission(rp))" 
+                                                                title="Edit Role Permission">
+                                                            <i class="bi bi-pencil"></i>
+                                                        </button>
+                                                        <button class="btn btn-sm btn-outline-danger" 
+                                                                @onclick="@(() => HandleDeleteRolePermission(rp))" 
+                                                                title="Delete Role Permission">
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            @* Modal de confirmação de exclusão *@
+            @if (ShowDeleteConfirm && RolePermissionToDelete != null)
+            {
+                <div class="modal fade show" style="display: block;" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Confirm Deletion</h5>
+                                <button type="button" class="btn-close" @onclick="@(() => ShowDeleteConfirm = false)"></button>
+                            </div>
+                            <div class="modal-body">
+                                <p>Are you sure you want to delete role permission <strong>@RolePermissionToDelete.Name</strong>?</p>
+                                <p class="text-danger"><small>This action cannot be undone.</small></p>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" @onclick="@(() => ShowDeleteConfirm = false)">Cancel</button>
+                                <button type="button" class="btn btn-danger" @onclick="ConfirmDeleteRolePermission" disabled="@IsDeleting">
+                                    @if (IsDeleting)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2"></span>
+                                    }
+                                    Delete Role Permission
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-backdrop fade show"></div>
+            }
+        }
+        else
+        {
+            <div class="container-fluid mt-5">
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i> You do not have permission to access this page.
+                </div>
+            </div>
+        }
+    </Authorized>
+    <NotAuthorized>
+        <div class="container-fluid mt-5">
+            <div class="alert alert-danger">
+                <i class="bi bi-lock"></i> Please log in to access this page.
+            </div>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private List<UserRolePermission> RolePermissions { get; set; } = new();
+    private bool IsLoading { get; set; } = true;
+    private bool IsAdmin { get; set; } = false;
+    private string? ErrorMessage { get; set; }
+    private string? SuccessMessage { get; set; }
+    private bool ShowDeleteConfirm { get; set; } = false;
+    private UserRolePermission? RolePermissionToDelete { get; set; }
+    private bool IsDeleting { get; set; } = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!string.IsNullOrEmpty(userId) && int.TryParse(userId, out var id))
+            {
+                var currentUser = await AuthenticationPort.GetCurrentUserAsync(userId);
+                if (currentUser != null)
+                {
+                    var role = await AuthenticationPort.GetAllRolePermissionsAsync();
+                    var userRole = role.FirstOrDefault(r => r.Id == currentUser.RolePermissionId);
+                    IsAdmin = userRole != null && (userRole.Name == "SuperAdmin" || userRole.Name == "FranchiseAdmin");
+                }
+            }
+            if (IsAdmin)
+            {
+                await LoadRolePermissions();
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error loading role permissions: {ex.Message}";
+            Logger.LogError(ex, "Error loading role permissions in RolePermissionsManagement");
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private async Task LoadRolePermissions()
+    {
+        try
+        {
+            RolePermissions = await AuthenticationPort.GetAllRolePermissionsAsync();
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error loading role permissions: {ex.Message}";
+            Logger.LogError(ex, "Error loading role permissions");
+        }
+    }
+
+    private void HandleAddRolePermission()
+    {
+        Navigation.NavigateTo("/register-userrolepermission");
+    }
+
+    private void HandleEditRolePermission(UserRolePermission rp)
+    {
+        Navigation.NavigateTo($"/register-userrolepermission?rolePermissionId={rp.Id}");
+    }
+
+    private void HandleDeleteRolePermission(UserRolePermission rp)
+    {
+        RolePermissionToDelete = rp;
+        ShowDeleteConfirm = true;
+    }
+
+    private async Task ConfirmDeleteRolePermission()
+    {
+        if (RolePermissionToDelete == null) return;
+        IsDeleting = true;
+        ErrorMessage = null;
+        SuccessMessage = null;
+        // TODO: Implement delete logic in AuthenticationPort
+        ErrorMessage = "Role permission deletion not implemented.";
+        IsDeleting = false;
+    }
+}

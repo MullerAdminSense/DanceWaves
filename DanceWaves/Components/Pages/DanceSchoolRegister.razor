@@ -1,0 +1,81 @@
+
+@page "/register-danceschool"
+@rendermode InteractiveServer
+
+@using DanceWaves.Models
+
+<!-- Dance School Registration Form -->
+<div class="container-fluid mt-5">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">Register Dance School</h3>
+                </div>
+                <div class="card-body p-5">
+                    @if (!string.IsNullOrEmpty(ErrorMessage))
+                    {
+                        <div class="alert alert-danger">@ErrorMessage</div>
+                    }
+                    @if (!string.IsNullOrEmpty(SuccessMessage))
+                    {
+                        <div class="alert alert-success">@SuccessMessage</div>
+                    }
+                    <form @onsubmit="HandleRegister">
+                        <div class="mb-3">
+                            <label for="legalName" class="form-label">Legal Name *</label>
+                            <input type="text" class="form-control" id="legalName" @bind="School.LegalName" required />
+                        </div>
+                        <div class="mb-3">
+                            <label for="address" class="form-label">Address</label>
+                            <input type="text" class="form-control" id="address" @bind="School.Address" />
+                        </div>
+                        <div class="mb-3">
+                            <label for="city" class="form-label">City</label>
+                            <input type="text" class="form-control" id="city" @bind="School.City" />
+                        </div>
+                        <div class="mb-3">
+                            <label for="zip" class="form-label">Zip</label>
+                            <input type="text" class="form-control" id="zip" @bind="School.Zip" />
+                        </div>
+                        <div class="mb-3">
+                            <label for="province" class="form-label">Province</label>
+                            <input type="text" class="form-control" id="province" @bind="School.Province" />
+                        </div>
+                        <div class="mb-3">
+                            <label for="vatNumber" class="form-label">Tax Registration Number</label>
+                            <input type="text" class="form-control" id="vatNumber" @bind="School.VatNumber" />
+                        </div>
+                        <div class="mb-3">
+                            <label for="isPartOfEU" class="form-label">Is Part of EU</label>
+                            <input type="checkbox" id="isPartOfEU" @bind="School.IsPartOfEU" />
+                        </div>
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="email" @bind="School.Email" />
+                        </div>
+                        <div class="mb-3">
+                            <label for="countryId" class="form-label">Country *</label>
+                            <input type="number" class="form-control" id="countryId" @bind="School.CountryId" required />
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-lg w-100">Register Dance School</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private DanceSchool School { get; set; } = new DanceSchool();
+    private string ErrorMessage { get; set; } = string.Empty;
+    private string SuccessMessage { get; set; } = string.Empty;
+
+    private async Task HandleRegister()
+    {
+        ErrorMessage = string.Empty;
+        SuccessMessage = string.Empty;
+        // TODO: Adicionar lógica de persistência
+        SuccessMessage = "Dance School registered successfully.";
+    }
+}

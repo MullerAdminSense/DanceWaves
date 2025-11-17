@@ -1,0 +1,138 @@
+@page "/register-userrolepermission"
+@using DanceWaves.Models
+@using DanceWaves.Application.Ports
+@inject IAuthenticationPort AuthenticationPort
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <a href="/administration" class="btn btn-outline-secondary btn-sm me-2">
+                <i class="bi bi-arrow-left"></i> Back to Administration
+            </a>
+            <h2 class="d-inline-block ms-2 mb-0"><i class="bi bi-shield-lock"></i> Role Permission Management</h2>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(ErrorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @ErrorMessage
+            <button type="button" class="btn-close" @onclick="@(() => ErrorMessage = null)"></button>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(SuccessMessage))
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @SuccessMessage
+            <button type="button" class="btn-close" @onclick="@(() => SuccessMessage = null)"></button>
+        </div>
+    }
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <form @onsubmit="HandleRegister">
+                <div class="mb-3">
+                    <label for="roleName" class="form-label">Role Name</label>
+                    <input type="text" id="roleName" class="form-control" @bind="RolePermission.Name" required />
+                </div>
+                <div class="mb-3">
+                    <label for="roleDescription" class="form-label">Description</label>
+                    <input type="text" id="roleDescription" class="form-control" @bind="RolePermission.Description" />
+                </div>
+                <button type="submit" class="btn btn-primary">Register Role Permission</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">Existing Role Permissions</h5>
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Description</th>
+                            <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (RolePermissions != null && RolePermissions.Any())
+                        {
+                            @foreach (var rp in RolePermissions)
+                            {
+                                <tr>
+                                    <td>@rp.Id</td>
+                                    <td>@rp.Name</td>
+                                    <td>@rp.Description</td>
+                                    <td class="text-center">
+                                        <button class="btn btn-sm btn-outline-primary" @onclick="() => EditRolePermission(rp)">Edit</button>
+                                        <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteRolePermission(rp)">Delete</button>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr><td colspan="4" class="text-center">No role permissions found.</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<UserRolePermission> RolePermissions { get; set; } = new();
+    private UserRolePermission RolePermission { get; set; } = new();
+    private string? ErrorMessage { get; set; }
+    private string? SuccessMessage { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadRolePermissions();
+    }
+
+    private async Task LoadRolePermissions()
+    {
+        try
+        {
+            RolePermissions = await AuthenticationPort.GetAllRolePermissionsAsync();
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error loading role permissions: {ex.Message}";
+        }
+    }
+
+    private async Task HandleRegister()
+    {
+        ErrorMessage = null;
+        SuccessMessage = null;
+        // TODO: Implement CreateRolePermissionAsync in AuthenticationPort if needed
+        ErrorMessage = "Role permission creation not implemented.";
+    }
+
+    private void EditRolePermission(UserRolePermission rp)
+    {
+        RolePermission = new UserRolePermission
+        {
+            Id = rp.Id,
+            Name = rp.Name,
+            Description = rp.Description
+        };
+    }
+
+    private async Task DeleteRolePermission(UserRolePermission rp)
+    {
+        ErrorMessage = null;
+        SuccessMessage = null;
+        // TODO: Implement DeleteRolePermissionAsync in AuthenticationPort if needed
+        ErrorMessage = "Role permission deletion not implemented.";
+    }
+}

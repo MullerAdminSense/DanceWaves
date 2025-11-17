@@ -117,12 +117,12 @@
 
                                     <div class="mb-3">
                                         <label for="provider" class="form-label">Authentication Method</label>
-                                        <input type="text" class="form-control" id="provider" value="@(CurrentUser.Provider == "local" ? "Local Account" : CurrentUser.Provider)" disabled>
+                                        <input type="text" class="form-control" id="provider" value="@(CurrentUser?.Provider == "local" ? "Local Account" : (CurrentUser?.Provider ?? "Unknown"))" disabled>
                                     </div>
 
                                     <div class="mb-3">
                                         <label for="lastLogin" class="form-label">Last Login</label>
-                                        <input type="text" class="form-control" id="lastLogin" value="@(CurrentUser.LastLoginAt?.ToString("g") ?? "")" disabled>
+                                        <input type="text" class="form-control" id="lastLogin" value="@(CurrentUser?.LastLoginAt?.ToString("g") ?? "")" disabled>
                                     </div>
 
                                     <button type="submit" class="btn btn-primary" disabled="@IsUpdatingProfile">
@@ -142,7 +142,7 @@
                     </div>
                     
                     <div class="tab-pane fade" id="security-content" role="tabpanel" aria-labelledby="security-tab">
-                        @if (CurrentUser.Provider == "local")
+                        @if (CurrentUser?.Provider == "local")
                         {
                             <div class="card shadow-sm mb-4">
                                 <div class="card-header bg-warning text-white">
@@ -202,8 +202,8 @@
                         {
                             <div class="alert alert-info">
                                 <strong>Federated Account</strong><br>
-                                Your account is linked to @CurrentUser.Provider. 
-                                Password changes are managed by @CurrentUser.Provider.
+                                Your account is linked to @(CurrentUser?.Provider ?? "Unknown"). 
+                                Password changes are managed by @(CurrentUser?.Provider ?? "Unknown").
                             </div>
                         }
 
