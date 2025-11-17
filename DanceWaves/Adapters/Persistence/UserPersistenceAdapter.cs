@@ -5,10 +5,6 @@ using DanceWaves.Models;
 
 namespace DanceWaves.Adapters.Persistence;
 
-/// <summary>
-/// Adaptador de persistência para Usuários
-/// Implementa a porta IUserPersistencePort usando Entity Framework
-/// </summary>
 public class UserPersistenceAdapter(Data.ApplicationDbContext dbContext) : IUserPersistencePort
 {
     private readonly Data.ApplicationDbContext _dbContext = dbContext;

@@ -6,10 +6,6 @@ using DanceWaves.Data;
 
 namespace DanceWaves.Adapters.Persistence;
 
-/// <summary>
-/// Persistence adapter for Style entity
-/// Implements IStylePersistencePort using Entity Framework
-/// </summary>
 public class StylePersistenceAdapter(ApplicationDbContext dbContext) : IStylePersistencePort
 {
     private readonly ApplicationDbContext _dbContext = dbContext;

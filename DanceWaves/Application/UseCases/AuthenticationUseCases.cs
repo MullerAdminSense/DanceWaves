@@ -3,17 +3,9 @@ using DanceWaves.Application.Ports;
 
 namespace DanceWaves.Application.UseCases;
 
-/// <summary>
-/// Use case for handling local user login
-/// </summary>
-public class LoginUseCase
+public class LoginUseCase(IAuthenticationPort authenticationPort)
 {
-    private readonly IAuthenticationPort _authenticationPort;
-
-    public LoginUseCase(IAuthenticationPort authenticationPort)
-    {
-        _authenticationPort = authenticationPort;
-    }
+    private readonly IAuthenticationPort _authenticationPort = authenticationPort;
 
     public async Task<AuthenticationResponse> ExecuteAsync(LoginRequest request)
     {
@@ -30,9 +22,6 @@ public class LoginUseCase
     }
 }
 
-/// <summary>
-/// Use case for handling user registration
-/// </summary>
 public class RegisterUseCase
 {
     private readonly IAuthenticationPort _authenticationPort;
@@ -44,7 +33,6 @@ public class RegisterUseCase
 
     public async Task<AuthenticationResponse> ExecuteAsync(RegisterRequest request)
     {
-        // Validation
         if (string.IsNullOrWhiteSpace(request.Email) || 
             string.IsNullOrWhiteSpace(request.Password) ||
             string.IsNullOrWhiteSpace(request.FirstName) ||
@@ -88,9 +76,6 @@ public class RegisterUseCase
     }
 }
 
-/// <summary>
-/// Use case for federated authentication (Microsoft, Google, Apple, etc.)
-/// </summary>
 public class FederatedLoginUseCase
 {
     private readonly IAuthenticationPort _authenticationPort;
@@ -117,9 +102,6 @@ public class FederatedLoginUseCase
     }
 }
 
-/// <summary>
-/// Use case for getting current user profile
-/// </summary>
 public class GetCurrentUserUseCase
 {
     private readonly IAuthenticationPort _authenticationPort;
@@ -138,9 +120,6 @@ public class GetCurrentUserUseCase
     }
 }
 
-/// <summary>
-/// Use case for updating user profile
-/// </summary>
 public class UpdateProfileUseCase
 {
     private readonly IAuthenticationPort _authenticationPort;
@@ -165,9 +144,6 @@ public class UpdateProfileUseCase
     }
 }
 
-/// <summary>
-/// Use case for changing password
-/// </summary>
 public class ChangePasswordUseCase
 {
     private readonly IAuthenticationPort _authenticationPort;

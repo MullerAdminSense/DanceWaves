@@ -15,29 +15,25 @@ public class NavigationPresenterAdapter : INavigationPresenterPort
     {
         var menuItems = new List<MenuItem>
         {
-            new MenuItem
-            {
+            new() {
                 Id = "administration",
                 Label = "Administration",
                 Route = "/administration",
                 Icon = "⚙️"
             },
-            new MenuItem
-            {
+            new() {
                 Id = "entry-menu",
                 Label = "Entry",
                 Route = "/entry-menu",
                 Icon = "📝"
             },
-            new MenuItem
-            {
+            new() {
                 Id = "registrations",
                 Label = "Registrations",
                 Route = "/registrations",
                 Icon = "✅"
             },
-            new MenuItem
-            {
+            new() {
                 Id = "signup",
                 Label = "Sign-up",
                 Route = "/signup",

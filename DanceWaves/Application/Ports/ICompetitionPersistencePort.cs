@@ -4,10 +4,6 @@ using DanceWaves.Models;
 
 namespace DanceWaves.Application.Ports
 {
-    /// <summary>
-    /// Porta para persistência de Competições
-    /// Interface que define as operações de competições do domínio
-    /// </summary>
     public interface ICompetitionPersistencePort
     {
         Task<Competition> GetByIdAsync(int id);
