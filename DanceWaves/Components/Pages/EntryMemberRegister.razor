@@ -1,0 +1,61 @@
+
+@page "/register-entrymember"
+@rendermode InteractiveServer
+
+@using DanceWaves.Models
+
+<!-- Entry Member Registration Form -->
+<div class="container-fluid mt-5">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">Register Entry Member</h3>
+                </div>
+                <div class="card-body p-5">
+                    @if (!string.IsNullOrEmpty(ErrorMessage))
+                    {
+                        <div class="alert alert-danger">@ErrorMessage</div>
+                    }
+                    @if (!string.IsNullOrEmpty(SuccessMessage))
+                    {
+                        <div class="alert alert-success">@SuccessMessage</div>
+                    }
+                    <form @onsubmit="HandleRegister">
+                        <div class="mb-3">
+                            <label for="entryId" class="form-label">Entry ID *</label>
+                            <input type="number" class="form-control" id="entryId" @bind="Member.EntryId" required />
+                        </div>
+                        <div class="mb-3">
+                            <label for="userId" class="form-label">User ID *</label>
+                            <input type="number" class="form-control" id="userId" @bind="Member.UserId" required />
+                        </div>
+                        <div class="mb-3">
+                            <label for="paymentStatus" class="form-label">Payment Status</label>
+                            <select class="form-select" id="paymentStatus" @bind="Member.PaymentStatus">
+                                <option value="0">Pending</option>
+                                <option value="1">Paid</option>
+                                <option value="2">Failed</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-lg w-100">Register Entry Member</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private EntryMember Member { get; set; } = new EntryMember();
+    private string ErrorMessage { get; set; } = string.Empty;
+    private string SuccessMessage { get; set; } = string.Empty;
+
+    private async Task HandleRegister()
+    {
+        ErrorMessage = string.Empty;
+        SuccessMessage = string.Empty;
+        // TODO: Adicionar lógica de persistência
+        SuccessMessage = "Entry Member registered successfully.";
+    }
+}

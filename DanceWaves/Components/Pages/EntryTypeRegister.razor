@@ -1,0 +1,53 @@
+
+@page "/register-entrytype"
+@rendermode InteractiveServer
+
+@using DanceWaves.Models
+
+<!-- Entry Type Registration Form -->
+<div class="container-fluid mt-5">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">Register Entry Type</h3>
+                </div>
+                <div class="card-body p-5">
+                    @if (!string.IsNullOrEmpty(ErrorMessage))
+                    {
+                        <div class="alert alert-danger">@ErrorMessage</div>
+                    }
+                    @if (!string.IsNullOrEmpty(SuccessMessage))
+                    {
+                        <div class="alert alert-success">@SuccessMessage</div>
+                    }
+                    <form @onsubmit="HandleRegister">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Name *</label>
+                            <input type="text" class="form-control" id="name" @bind="EntryType.Name" required />
+                        </div>
+                        <div class="mb-3">
+                            <label for="numberOfDancers" class="form-label">Number of Dancers *</label>
+                            <input type="number" class="form-control" id="numberOfDancers" @bind="EntryType.NumberOfDancers" required />
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-lg w-100">Register Entry Type</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private EntryType EntryType { get; set; } = new EntryType();
+    private string ErrorMessage { get; set; } = string.Empty;
+    private string SuccessMessage { get; set; } = string.Empty;
+
+    private async Task HandleRegister()
+    {
+        ErrorMessage = string.Empty;
+        SuccessMessage = string.Empty;
+        // TODO: Adicionar lógica de persistência
+        SuccessMessage = "Entry Type registered successfully.";
+    }
+}

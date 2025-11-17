@@ -1,0 +1,85 @@
+
+@page "/register-entry"
+@rendermode InteractiveServer
+
+@using DanceWaves.Models
+
+<!-- Entry Registration Form -->
+<div class="container-fluid mt-5">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">Register Entry</h3>
+                </div>
+                <div class="card-body p-5">
+                    @if (!string.IsNullOrEmpty(ErrorMessage))
+                    {
+                        <div class="alert alert-danger">@ErrorMessage</div>
+                    }
+                    @if (!string.IsNullOrEmpty(SuccessMessage))
+                    {
+                        <div class="alert alert-success">@SuccessMessage</div>
+                    }
+                    <form @onsubmit="HandleRegister">
+                        <div class="mb-3">
+                            <label for="competitionCategoryId" class="form-label">Competition Category ID *</label>
+                            <input type="number" class="form-control" id="competitionCategoryId" @bind="Entry.CompetitionCategoryId" required />
+                        </div>
+                        <div class="mb-3">
+                            <label for="startNumber" class="form-label">Start Number *</label>
+                            <input type="number" class="form-control" id="startNumber" @bind="Entry.StartNumber" required />
+                        </div>
+                        <div class="mb-3">
+                            <label for="startTime" class="form-label">Start Time</label>
+                            <input type="datetime-local" class="form-control" id="startTime" @bind="Entry.StartTime" />
+                        </div>
+                        <div class="mb-3">
+                            <label for="schoolId" class="form-label">School ID</label>
+                            <input type="number" class="form-control" id="schoolId" @bind="Entry.SchoolId" />
+                        </div>
+                        <div class="mb-3">
+                            <label for="status" class="form-label">Status</label>
+                            <select class="form-select" id="status" @bind="Entry.Status">
+                                <option value="0">Pending</option>
+                                <option value="1">Accepted</option>
+                                <option value="2">NotAccepted</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="paymentStatus" class="form-label">Payment Status</label>
+                            <select class="form-select" id="paymentStatus" @bind="Entry.PaymentStatus">
+                                <option value="0">Pending</option>
+                                <option value="1">Paid</option>
+                                <option value="2">Failed</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="song" class="form-label">Song</label>
+                            <input type="text" class="form-control" id="song" @bind="Entry.Song" />
+                        </div>
+                        <div class="mb-3">
+                            <label for="durationSeconds" class="form-label">Duration (seconds)</label>
+                            <input type="number" class="form-control" id="durationSeconds" @bind="Entry.DurationSeconds" />
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-lg w-100">Register Entry</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private Entry Entry { get; set; } = new Entry();
+    private string ErrorMessage { get; set; } = string.Empty;
+    private string SuccessMessage { get; set; } = string.Empty;
+
+    private async Task HandleRegister()
+    {
+        ErrorMessage = string.Empty;
+        SuccessMessage = string.Empty;
+        // TODO: Adicionar lógica de persistência
+        SuccessMessage = "Entry registered successfully.";
+    }
+}

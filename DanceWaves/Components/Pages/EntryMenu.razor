@@ -1,0 +1,46 @@
+@page "/entry-menu"
+@rendermode InteractiveServer
+
+<div class="container-fluid mt-5">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h1>📝 Entry Menu</h1>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-4 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Entry Member</h5>
+                    <p class="card-text">Register or manage entry members.</p>
+                    <a href="/register-entrymember" class="btn btn-outline-primary btn-sm">Entry Member Form</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Entry</h5>
+                    <p class="card-text">Register or manage entries.</p>
+                    <a href="/register-entry" class="btn btn-outline-primary btn-sm">Entry Form</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Entry Type</h5>
+                    <p class="card-text">Register or manage entry types.</p>
+                    <a href="/register-entrytype" class="btn btn-outline-primary btn-sm">Entry Type Form</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    protected override Task OnInitializedAsync()
+    {
+        return Task.CompletedTask;
+    }
+}
