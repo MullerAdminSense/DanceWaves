@@ -3,13 +3,9 @@ using DanceWaves.Models;
 
 namespace DanceWaves.Data
 {
-	public class ApplicationDbContext : DbContext
+	public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : DbContext(options), DbContext
 	{
-		public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
-		{
-		}
-
-		public DbSet<Franchise> Franchises { get; set; }
+        public DbSet<Franchise> Franchises { get; set; }
 		public DbSet<User> Users { get; set; }
 		public DbSet<DanceSchool> DanceSchools { get; set; }
 		public DbSet<Competition> Competitions { get; set; }

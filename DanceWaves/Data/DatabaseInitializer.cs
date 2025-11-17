@@ -34,8 +34,8 @@ namespace DanceWaves.Data
             {
                 var franchises = new List<Franchise>
                 {
-                    new Franchise { LegalName = "Franchise USA", CountryId = 1, IsPartOfEU = false, ContactEmail = "usa@franchise.com" },
-                    new Franchise { LegalName = "Franchise NL", CountryId = 2, IsPartOfEU = true, ContactEmail = "nl@franchise.com" }
+                    new() { LegalName = "Franchise USA", CountryId = 1, IsPartOfEU = false, ContactEmail = "usa@franchise.com" },
+                    new() { LegalName = "Franchise NL", CountryId = 2, IsPartOfEU = true, ContactEmail = "nl@franchise.com" }
                 };
                 await dbContext.Franchises.AddRangeAsync(franchises);
             }
@@ -43,8 +43,8 @@ namespace DanceWaves.Data
             {
                 var danceSchools = new List<DanceSchool>
                 {
-                    new DanceSchool { LegalName = "DanceSchool FR", CountryId = 3, Email = "fr@school.com" },
-                    new DanceSchool { LegalName = "DanceSchool DE", CountryId = 4, Email = "de@school.com" }
+                    new() { LegalName = "DanceSchool FR", CountryId = 3, Email = "fr@school.com" },
+                    new() { LegalName = "DanceSchool DE", CountryId = 4, Email = "de@school.com" }
                 };
                 await dbContext.DanceSchools.AddRangeAsync(danceSchools);
             }
@@ -61,25 +61,29 @@ namespace DanceWaves.Data
 
             var rolePermissions = new List<UserRolePermission>
             {
-                new UserRolePermission
-                {
-                    Name = "SuperAdmin",
-                    Description = "Sees everything"
-                },
-                new UserRolePermission
-                {
+                        new() {
+                            Name = "GlobalAdmin",
+                            Description = "Sees everything"
+                        },
+                new() {
                     Name = "FranchiseAdmin",
                     Description = "Manages all connected users, contests, results"
                 },
-                new UserRolePermission
-                {
+                new() {
                     Name = "User",
                     Description = "Sees his own data and joined contests"
                 },
-                new UserRolePermission
-                {
-                    Name = "Jury",
+                new() {
+                    Name = "Judge",
                     Description = "Can put results in the system per connected contest"
+                },
+                new() {
+                    Name = "DanceSchool",
+                    Description = "Manages dance school data and members"
+                },
+                new() {
+                    Name = "Dancer",
+                    Description = "Participates in contests and events"
                 }
             };
 

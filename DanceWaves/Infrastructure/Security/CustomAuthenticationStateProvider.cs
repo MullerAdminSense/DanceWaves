@@ -11,7 +11,7 @@ namespace DanceWaves.Infrastructure.Security
     public class CustomAuthenticationStateProvider : AuthenticationStateProvider
     {
         private readonly IJSRuntime _jsRuntime;
-        private readonly ClaimsPrincipal _anonymous = new ClaimsPrincipal(new ClaimsIdentity());
+        private readonly ClaimsPrincipal _anonymous = new(new ClaimsIdentity());
         // Cache tokens by circuit ID (Blazor Server session)
         private static readonly ConcurrentDictionary<string, string> _tokenCache = new();
 

@@ -9,14 +9,9 @@ namespace DanceWaves.Application.UseCases
     /// Use Case para listar todas as Entries
     /// Implementa o núcleo de lógica de negócio para consulta de entradas
     /// </summary>
-    public class ListEntriesUseCase
+    public class ListEntriesUseCase(IEntryPersistencePort entryPersistencePort)
     {
-        private readonly IEntryPersistencePort _entryPersistencePort;
-
-        public ListEntriesUseCase(IEntryPersistencePort entryPersistencePort)
-        {
-            _entryPersistencePort = entryPersistencePort;
-        }
+        private readonly IEntryPersistencePort _entryPersistencePort = entryPersistencePort;
 
         /// <summary>
         /// Executa o caso de uso para listar todas as entradas
