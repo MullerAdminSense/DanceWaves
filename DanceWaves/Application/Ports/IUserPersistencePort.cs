@@ -4,10 +4,6 @@ using DanceWaves.Models;
 
 namespace DanceWaves.Application.Ports
 {
-    /// <summary>
-    /// Porta para persistência de Usuários
-    /// Interface que define as operações de usuários do domínio
-    /// </summary>
     public interface IUserPersistencePort
     {
     Task<User?> GetByIdAsync(int id);
