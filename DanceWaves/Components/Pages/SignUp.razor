@@ -1,13 +1,13 @@
-    
-@using System.Security.Claims
-@inject AuthenticationStateProvider AuthenticationStateProvider
 @page "/signup"
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Authorization
 @using DanceWaves.Application.Dtos
-    
-@using DanceWaves.Application.UseCases
 @using DanceWaves.Application.Ports
 @using DanceWaves.Models
+@using CountryEnum = DanceWaves.Models.CountryId
+@inject IUserPersistencePort UserPort
 @inject IAuthenticationPort AuthenticationPort
+@inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Navigation
 @inject ILogger<SignUp> Logger
 @rendermode InteractiveServer
@@ -19,8 +19,8 @@
                 <div class="card-header bg-primary text-white">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h3 class="mb-0">📋 Sign Up</h3>
-                            <p class="mb-0 small">Create your DanceWaves account</p>
+                            <h3 class="mb-0">@(IsEditMode ? "✏️ Edit Profile" : "📋 Sign Up")</h3>
+                            <p class="mb-0 small">@(IsEditMode ? "Update your personal information" : "Create your DanceWaves account")</p>
                         </div>
                     </div>
                 </div>
@@ -28,126 +28,139 @@
                 <div class="card-body p-5">
                     @if (!string.IsNullOrEmpty(ErrorMessage))
                     {
-                        <div class="alert alert-danger">@ErrorMessage</div>
+                        <div class="alert alert-danger alert-dismissible fade show">
+                            @ErrorMessage
+                            <button type="button" class="btn-close" @onclick="@(() => ErrorMessage = null)"></button>
+                        </div>
                     }
                     @if (!string.IsNullOrEmpty(SuccessMessage))
                     {
-                        <div class="alert alert-success">@SuccessMessage</div>
+                        <div class="alert alert-success alert-dismissible fade show">
+                            @SuccessMessage
+                            <button type="button" class="btn-close" @onclick="@(() => SuccessMessage = null)"></button>
+                        </div>
                     }
-                    <form @onsubmit="HandleRegister">
-                            
-                            <div class="mb-3">
-                                <label for="firstName" class="form-label">First Name *</label>
-                                <input type="text" class="form-control" id="firstName" placeholder="Enter your first name" @bind="User.FirstName" required />
-                            </div>
-                            <div class="mb-3">
-                                <label for="lastName" class="form-label">Last Name *</label>
-                                <input type="text" class="form-control" id="lastName" placeholder="Enter your last name" @bind="User.LastName" required />
-                            </div>
-                            <div class="mb-3">
-                                <label for="address" class="form-label">Address</label>
-                                <input type="text" class="form-control" id="address" @bind="User.Address" />
-                            </div>
-                            <div class="mb-3">
-                                <label for="city" class="form-label">City</label>
-                                <input type="text" class="form-control" id="city" @bind="User.City" />
-                            </div>
-                            <div class="mb-3">
-                                <label for="zip" class="form-label">Zip</label>
-                                <input type="text" class="form-control" id="zip" @bind="User.Zip" />
-                            </div>
-                            <div class="mb-3">
-                                <label for="province" class="form-label">Province</label>
-                                <input type="text" class="form-control" id="province" @bind="User.Province" />
-                            </div>
-                            <div class="mb-3">
-                                <label for="country" class="form-label">Country</label>
-                                <select class="form-select" id="country" @bind="User.CountryId">
-                                    <option value="">Select a country</option>
-                                    @foreach (var country in Countries)
-                                    {
-                                        <option value="@country.Id">@country.Name</option>
-                                    }
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label for="email" class="form-label">Email Address *</label>
-                                <input type="email" class="form-control" id="email" placeholder="Enter your email" @bind="User.Email" required />
-                            </div>
+                    
+                    <form @onsubmit="HandleSubmit" @onsubmit:preventDefault="true">
+                        <div class="mb-3">
+                            <label for="firstName" class="form-label">First Name *</label>
+                            <input type="text" class="form-control" id="firstName" @bind="FirstName" required />
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="lastName" class="form-label">Last Name *</label>
+                            <input type="text" class="form-control" id="lastName" @bind="LastName" required />
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email Address *</label>
+                            <input type="email" class="form-control" id="email" @bind="Email" required />
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="phone" class="form-label">Phone Number</label>
+                            <input type="text" class="form-control" id="phone" @bind="Phone" />
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="address" class="form-label">Address</label>
+                            <input type="text" class="form-control" id="address" @bind="Address" />
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="city" class="form-label">City</label>
+                            <input type="text" class="form-control" id="city" @bind="City" />
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="zip" class="form-label">Zip</label>
+                            <input type="text" class="form-control" id="zip" @bind="Zip" />
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="province" class="form-label">Province</label>
+                            <input type="text" class="form-control" id="province" @bind="Province" />
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="country" class="form-label">Country</label>
+                            <select class="form-select" id="country" @bind="SelectedCountryId">
+                                <option value="0">Select a country</option>
+                                @foreach (var country in Countries)
+                                {
+                                    <option value="@country.Id">@country.Name</option>
+                                }
+                            </select>
+                        </div>
+                        
+                        @if (IsEditMode)
+                        {
                             <div class="mb-3">
                                 <label for="danceSchool" class="form-label">Dance School</label>
-                                <select class="form-select" id="danceSchool" 
-                                        value="@(User.DanceSchoolId?.ToString() ?? "")"
-                                        @onchange="OnDanceSchoolChanged" 
-                                        @onfocus="OnDanceSchoolFocus">
-                                    <option value="">Select a dance school</option>
-                                    @foreach (var school in DanceSchools)
-                                    {
-                                        <option value="@school.Id">@school.LegalName</option>
-                                    }
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label for="phone" class="form-label">Phone Number</label>
-                                <input type="text" class="form-control" id="phone" placeholder="Enter your phone number" @bind="User.Phone" />
-                            </div>
-                            <div class="mb-3">
-                                <label for="franchise" class="form-label">Default Franchise</label>
-                                <select class="form-select" id="franchise" 
-                                        value="@(User.DefaultFranchiseId?.ToString() ?? "")"
-                                        @onchange="OnFranchiseChanged"
-                                        @onfocus="OnFranchiseFocus"
-                                        disabled="@(User.DanceSchoolId == null)">
-                                    <option value="">Select a franchise</option>
-                                    @foreach (var franchise in FilteredFranchises)
-                                    {
-                                        <option value="@franchise.Id">@franchise.LegalName</option>
-                                    }
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label for="ageGroup" class="form-label">Age Group</label>
-                                <select class="form-select" id="ageGroup" 
-                                        value="@(User.AgeGroupId?.ToString() ?? "")"
-                                        @onchange="OnAgeGroupChanged"
-                                        @onfocus="OnAgeGroupFocus">
-                                    <option value="">Select an age group</option>
-                                    @foreach (var ageGroup in AgeGroups)
-                                    {
-                                        <option value="@ageGroup.Id">@ageGroup.Name</option>
-                                    }
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label for="rolePermission" class="form-label">Role Permission</label>
-                                @if (IsAdmin && User.Id > 0)
-                                {
-                                    <select class="form-select" id="rolePermission" 
-                                            value="@(User.RolePermissionId.ToString() ?? "")"
-                                            @onchange="OnRolePermissionChanged">
-                                        @foreach (var role in RolePermissions)
-                                        {
-                                            <option value="@role.Id">@role.Name</option>
-                                        }
-                                    </select>
-                                }
-                                else
-                                {
-                                    <input type="text" class="form-control" id="rolePermission" value="@RoleName" readonly disabled />
-                                }
+                                <input type="text" class="form-control" id="danceSchool" value="@DanceSchoolName" readonly disabled />
                             </div>
                             
-                            <button type="submit" class="btn btn-primary btn-lg w-100" disabled="@IsLoading">
-                                @(IsLoading ? (User.Id > 0 ? "Updating..." : "Creating...") : (User.Id > 0 ? "Update Account" : "Create Account"))
-                            </button>
-                            @if (User.Id == 0)
-                            {
-                                <div class="text-center mt-3">
-                                    <p class="text-muted">Already have an account? <a href="/login">Sign In</a></p>
+                            <div class="mb-3">
+                                <label for="franchise" class="form-label">Default Franchise</label>
+                                <input type="text" class="form-control" id="franchise" value="@FranchiseName" readonly disabled />
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="ageGroup" class="form-label">Age Group</label>
+                                <input type="text" class="form-control" id="ageGroup" value="@AgeGroupName" readonly disabled />
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="rolePermission" class="form-label">Role Permission</label>
+                                <input type="text" class="form-control" id="rolePermission" value="@RolePermissionName" readonly disabled />
+                            </div>
+                        }
+                        
+                        @if (!IsEditMode)
+                        {
+                            <div class="mb-3">
+                                <label for="password" class="form-label">Password *</label>
+                                <div class="input-group">
+                                    <input type="@(ShowPassword ? "text" : "password")" class="form-control" id="password" @bind="Password" required />
+                                    <button class="btn btn-outline-secondary" type="button" @onclick="@(() => ShowPassword = !ShowPassword)">
+                                        <i class="bi bi-eye@(ShowPassword ? "-slash" : "")"></i>
+                                    </button>
                                 </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="mb-3">
+                                <label for="password" class="form-label">Password (leave blank to keep current)</label>
+                                <div class="input-group">
+                                    <input type="@(ShowPassword ? "text" : "password")" class="form-control" id="password" @bind="Password" />
+                                    <button class="btn btn-outline-secondary" type="button" @onclick="@(() => ShowPassword = !ShowPassword)">
+                                        <i class="bi bi-eye@(ShowPassword ? "-slash" : "")"></i>
+                                    </button>
+                                </div>
+                                <small class="text-muted">Leave blank to keep your current password</small>
+                            </div>
+                        }
+                        
+                        <button type="submit" class="btn btn-primary btn-lg w-100" disabled="@IsLoading">
+                            @if (IsLoading)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2"></span>
+                                @(IsEditMode ? "Updating..." : "Creating Account...")
                             }
-                        </form>
-                    
+                            else
+                            {
+                                @(IsEditMode ? "Update Profile" : "Create Account")
+                            }
+                        </button>
+                        
+                        @if (!IsEditMode)
+                        {
+                            <div class="text-center mt-3">
+                                <p class="text-muted">Already have an account? <a href="/login">Sign In</a></p>
+                            </div>
+                        }
+                    </form>
                 </div>
             </div>
         </div>
@@ -155,379 +168,247 @@
 </div>
 
 @code {
-    private UserDto User { get; set; } = new();
+    private string? FirstName { get; set; }
+    private string? LastName { get; set; }
+    private string? Email { get; set; }
+    private string? Phone { get; set; }
+    private string? Address { get; set; }
+    private string? City { get; set; }
+    private string? Zip { get; set; }
+    private string? Province { get; set; }
+    private int SelectedCountryId { get; set; }
+    private string? Password { get; set; }
+    
+    private string DanceSchoolName { get; set; } = "-";
+    private string FranchiseName { get; set; } = "-";
+    private string AgeGroupName { get; set; } = "-";
+    private string RolePermissionName { get; set; } = "-";
+    
     private List<(int Id, string Name)> Countries { get; set; } = new();
-    private List<DanceSchool> DanceSchools { get; set; } = new();
-    private List<Franchise> FilteredFranchises { get; set; } = new();
-    private List<AgeGroup> AgeGroups { get; set; } = new();
-    private List<UserRolePermission> RolePermissions { get; set; } = new List<UserRolePermission>();
-    private int? SelectedDanceSchoolId { get; set; }
-    private int? SelectedFranchiseId { get; set; }
-    private int? SelectedCountryId { get; set; }
-    private int? SelectedAgeGroupId { get; set; }
-    private bool _isLoadingFranchises = false;
-    private bool _isLoadingDanceSchools = false;
-    private bool _isLoadingAgeGroups = false;
-    private bool IsAdmin { get; set; } = false;
     private string? ErrorMessage { get; set; }
     private string? SuccessMessage { get; set; }
     private bool IsLoading { get; set; }
     private bool ShowPassword { get; set; }
-    private bool ShowConfirmPassword { get; set; }
-
-    [Parameter]
-    [SupplyParameterFromQuery]
-    public string? userId { get; set; }
+    private bool IsEditMode { get; set; }
+    private int? CurrentUserId { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            RolePermissions = await GetAllRolePermissionsAsync();
-            
-            // Verifica se o usuário atual é admin
-            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-            var userPrincipal = authState.User;
-            string? currentUserId = userPrincipal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!string.IsNullOrEmpty(currentUserId) && int.TryParse(currentUserId, out var currentId))
+            Countries = new List<(int, string)>
             {
-                var currentUser = await AuthenticationPort.GetCurrentUserAsync(currentUserId);
-                if (currentUser != null)
-                {
-                    var userRole = RolePermissions.FirstOrDefault(r => r.Id == currentUser.RolePermissionId);
-                    IsAdmin = userRole != null && (userRole.Name == "SuperAdmin" || userRole.Name == "FranchiseAdmin");
-                }
-            }
+                ((int)CountryEnum.USA, "United States"),
+                ((int)CountryEnum.Netherlands, "Netherlands"),
+                ((int)CountryEnum.France, "France"),
+                ((int)CountryEnum.Germany, "Germany")
+            };
+
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var userIdClaim = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             
-            // Se há um userId na query string, carrega esse usuário (modo edição para admin)
-            if (!string.IsNullOrEmpty(userId) && int.TryParse(userId, out var editUserId))
+            if (!string.IsNullOrEmpty(userIdClaim) && int.TryParse(userIdClaim, out var userId))
             {
-                // Apenas admins podem editar outros usuários
-                if (IsAdmin)
-                {
-                    var editUser = await AuthenticationPort.GetAllUsersAsync();
-                    var userToEdit = editUser.FirstOrDefault(u => u.Id == editUserId);
-                    if (userToEdit != null)
-                    {
-                        User = userToEdit;
-                    }
-                }
-                else
-                {
-                    // Se não é admin, redireciona para a página de usuários
-                    Navigation.NavigateTo("/administration/users");
-                    return;
-                }
+                CurrentUserId = userId;
+                IsEditMode = true;
+                await LoadUserProfile(userId);
             }
             else
             {
-                // Caso contrário, carrega o usuário atual (modo normal)
-                UserDto? loadedUser = null;
-                if (!string.IsNullOrEmpty(currentUserId))
-                {
-                    loadedUser = await AuthenticationPort.GetCurrentUserAsync(currentUserId);
-                }
-                if (loadedUser != null)
-                {
-                    User = loadedUser;
-                }
-                else
-                {
-                    User = new UserDto();
-                    User.RolePermissionId = RolePermissions.FirstOrDefault(r => r.Name == "User")?.Id ?? 3;
-                }
+                IsEditMode = false;
             }
-            
-            Countries = new List<(int, string)>
-            {
-                ((int)CountryId.USA, "United States"),
-                ((int)CountryId.Netherlands, "Netherlands"),
-                ((int)CountryId.France, "France"),
-                ((int)CountryId.Germany, "Germany")
-            };
-            
-            // Carrega dados iniciais do banco
-            await LoadDanceSchoolsFromDatabase();
-            await LoadAgeGroupsFromDatabase();
-            
-            if (User.DanceSchoolId != null)
-            {
-                SelectedDanceSchoolId = User.DanceSchoolId;
-                await LoadFranchisesForSelectedSchool();
-            }
-            if (User.CountryId != null)
-            {
-                SelectedCountryId = User.CountryId;
-            }
-            if (User.AgeGroupId != null)
-            {
-                SelectedAgeGroupId = User.AgeGroupId;
-            }
-            
         }
         catch (Exception ex)
         {
-            ErrorMessage = $"Error loading profile data: {ex.Message}";
-            Logger.LogError(ex, "Error loading profile data in SignUp");
+            ErrorMessage = $"Error loading profile: {ex.Message}";
+            Logger.LogError(ex, "Error loading profile in SignUp");
         }
     }
-    
-    private async Task<List<UserRolePermission>> GetAllRolePermissionsAsync()
-    {
-        return await AuthenticationPort.GetAllRolePermissionsAsync();
-    }
 
-    private async Task OnDanceSchoolFocus()
+    private async Task LoadUserProfile(int userId)
     {
-        // Evita chamadas concorrentes
-        if (_isLoadingDanceSchools) return;
-        
         try
         {
-            _isLoadingDanceSchools = true;
-            // Recarrega DanceSchools do banco quando o combo é focado (clicado)
-            // Isso garante que mudanças feitas por outros usuários sejam refletidas
-            await LoadDanceSchoolsFromDatabase();
-            StateHasChanged();
-        }
-        finally
-        {
-            _isLoadingDanceSchools = false;
-        }
-    }
-
-    private async Task OnFranchiseFocus()
-    {
-        // Evita chamadas concorrentes
-        if (_isLoadingFranchises) return;
-        
-        // Recarrega as franchises do banco quando o combo é focado (clicado)
-        // Isso garante que mudanças feitas por outros usuários sejam refletidas
-        if (User.DanceSchoolId != null)
-        {
-            SelectedDanceSchoolId = User.DanceSchoolId;
-            await LoadFranchisesForSelectedSchool();
-            StateHasChanged();
-        }
-    }
-
-    private async Task OnAgeGroupFocus()
-    {
-        // Evita chamadas concorrentes
-        if (_isLoadingAgeGroups) return;
-        
-        try
-        {
-            _isLoadingAgeGroups = true;
-            // Recarrega AgeGroups do banco quando o combo é focado (clicado)
-            // Isso garante que mudanças feitas por outros usuários sejam refletidas
-            await LoadAgeGroupsFromDatabase();
-            StateHasChanged();
-        }
-        finally
-        {
-            _isLoadingAgeGroups = false;
-        }
-    }
-
-    private async Task OnAgeGroupChanged(ChangeEventArgs e)
-    {
-        var newValue = e.Value?.ToString();
-        int? newAgeGroupId = null;
-        
-        if (!string.IsNullOrEmpty(newValue) && int.TryParse(newValue, out var ageGroupId))
-        {
-            newAgeGroupId = ageGroupId;
-        }
-        
-        User.AgeGroupId = newAgeGroupId;
-        SelectedAgeGroupId = newAgeGroupId;
-        StateHasChanged();
-    }
-
-    private async Task LoadDanceSchoolsFromDatabase()
-    {
-        // Sempre busca dados atualizados do banco
-        DanceSchools = await AuthenticationPort.GetAllDanceSchoolsAsync();
-    }
-
-    private async Task LoadAgeGroupsFromDatabase()
-    {
-        // Sempre busca dados atualizados do banco
-        AgeGroups = await AuthenticationPort.GetAllAgeGroupsAsync();
-    }
-
-    private async Task LoadFranchisesForSelectedSchool()
-    {
-        // Evita chamadas concorrentes
-        if (_isLoadingFranchises) return;
-        
-        try
-        {
-            _isLoadingFranchises = true;
-            
-            int? schoolId = SelectedDanceSchoolId ?? User.DanceSchoolId;
-            
-            if (schoolId != null)
+            var user = await UserPort.GetByIdAsync(userId);
+            if (user != null)
             {
-                // Sempre busca dados atualizados do banco
-                FilteredFranchises = await AuthenticationPort.GetFranchisesByDanceSchoolAsync(schoolId.Value);
-            }
-            else
-            {
-                FilteredFranchises = new List<Franchise>();
+                FirstName = user.FirstName;
+                LastName = user.LastName;
+                Email = user.Email;
+                Phone = user.Phone;
+                Address = user.Address;
+                City = user.City;
+                Zip = user.Zip;
+                Province = user.Province;
+                SelectedCountryId = user.CountryId;
+                
+                // Carregar dados relacionados para exibição (readonly)
+                await LoadRelatedData(user);
             }
         }
-        finally
+        catch (Exception ex)
         {
-            _isLoadingFranchises = false;
+            ErrorMessage = $"Error loading user data: {ex.Message}";
+            Logger.LogError(ex, "Error loading user {UserId}", userId);
         }
-        
-        // Garante que a UI seja atualizada
-        StateHasChanged();
     }
 
-    private async Task OnDanceSchoolChanged(ChangeEventArgs e)
+    private async Task LoadRelatedData(User user)
     {
-        var newValue = e.Value?.ToString();
-        int? newSchoolId = null;
-        
-        if (!string.IsNullOrEmpty(newValue) && int.TryParse(newValue, out var schoolId))
+        try
         {
-            newSchoolId = schoolId;
-        }
-        
-        SelectedDanceSchoolId = newSchoolId;
-        User.DanceSchoolId = newSchoolId;
-        
-        // Reset franchise selection when dance school changes
-        User.DefaultFranchiseId = null;
-        
-        // Recarrega as franchises do banco quando a dance school muda
-        await LoadFranchisesForSelectedSchool();
-        
-        // Força atualização da UI
-        StateHasChanged();
-    }
-
-    private async Task OnFranchiseChanged(ChangeEventArgs e)
-    {
-        var newValue = e.Value?.ToString();
-        int? newFranchiseId = null;
-        
-        if (!string.IsNullOrEmpty(newValue) && int.TryParse(newValue, out var franchiseId))
-        {
-            newFranchiseId = franchiseId;
-        }
-        
-        User.DefaultFranchiseId = newFranchiseId;
-        StateHasChanged();
-    }
-
-    private async Task OnRolePermissionChanged(ChangeEventArgs e)
-    {
-        var newValue = e.Value?.ToString();
-        int newRolePermissionId = 3; // Default: User
-        
-        if (!string.IsNullOrEmpty(newValue) && int.TryParse(newValue, out var roleId))
-        {
-            newRolePermissionId = roleId;
-        }
-        
-        User.RolePermissionId = newRolePermissionId;
-        StateHasChanged();
-    }
-
-    private string RoleName
-    {
-        get
-        {
-            if (User.RolePermissionId == 0)
-                return string.Empty;
-            var role = RolePermissions.FirstOrDefault(r => r.Id == User.RolePermissionId);
-            if (role != null && !string.IsNullOrWhiteSpace(role.Name))
-                return role.Name;
+            // Dance School
+            if (user.DanceSchoolId.HasValue)
+            {
+                var danceSchools = await AuthenticationPort.GetAllDanceSchoolsAsync();
+                var danceSchool = danceSchools.FirstOrDefault(ds => ds.Id == user.DanceSchoolId.Value);
+                DanceSchoolName = danceSchool?.LegalName ?? "-";
+            }
             
-            role = RolePermissions.FirstOrDefault(r => r.Name?.Equals("User", StringComparison.OrdinalIgnoreCase) == true);
-            if (role != null)
-                return role.Name;
-            return $"Role {User.RolePermissionId}";
+            // Franchise
+            if (user.DefaultFranchiseId.HasValue)
+            {
+                var franchises = await AuthenticationPort.GetAllFranchisesAsync();
+                var franchise = franchises.FirstOrDefault(f => f.Id == user.DefaultFranchiseId.Value);
+                FranchiseName = franchise?.LegalName ?? "-";
+            }
+            
+            // Age Group
+            if (user.AgeGroupId.HasValue)
+            {
+                var ageGroups = await AuthenticationPort.GetAllAgeGroupsAsync();
+                var ageGroup = ageGroups.FirstOrDefault(ag => ag.Id == user.AgeGroupId.Value);
+                AgeGroupName = ageGroup?.Name ?? "-";
+            }
+            
+            // Role Permission
+            var rolePermissions = await AuthenticationPort.GetAllRolePermissionsAsync();
+            var rolePermission = rolePermissions.FirstOrDefault(rp => rp.Id == user.RolePermissionId);
+            RolePermissionName = rolePermission?.Name ?? "-";
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading related data for user {UserId}", user.Id);
         }
     }
 
-
-    private async Task HandleRegister()
+    private async Task HandleSubmit()
     {
         ErrorMessage = null;
         SuccessMessage = null;
         IsLoading = true;
+
         try
         {
-            // Se é admin editando outro usuário, usa o ID do usuário sendo editado
-            string userIdToUpdate = User.Id.ToString();
-            
-            // Se está editando outro usuário (modo admin), usa o ID do usuário sendo editado
-            if (IsAdmin && !string.IsNullOrEmpty(userId) && int.TryParse(userId, out var editUserId) && editUserId > 0)
+            if (IsEditMode && CurrentUserId.HasValue)
             {
-                userIdToUpdate = editUserId.ToString();
+                await UpdateProfile();
             }
             else
             {
-                // Caso contrário, usa o ID do usuário atual
-                var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-                var userPrincipal = authState.User;
-                string? currentUserId = userPrincipal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (!string.IsNullOrEmpty(currentUserId))
-                {
-                    userIdToUpdate = currentUserId;
-                }
-            }
-            
-            var response = await AuthenticationPort.UpdateProfileAsync(userIdToUpdate, User);
-            if (response.IsSuccess)
-            {
-                // Recarrega os dados do usuário para refletir alterações
-                if (IsAdmin && User.Id > 0)
-                {
-                    // Se é admin editando outro usuário, recarrega da lista de usuários
-                    var allUsers = await AuthenticationPort.GetAllUsersAsync();
-                    var updatedUser = allUsers.FirstOrDefault(u => u.Id == User.Id);
-                    if (updatedUser != null)
-                    {
-                        User = updatedUser;
-                    }
-                }
-                else
-                {
-                    // Caso contrário, recarrega o usuário atual
-                    var updatedUser = await AuthenticationPort.GetCurrentUserAsync(userIdToUpdate);
-                    if (updatedUser != null)
-                    {
-                        User = updatedUser;
-                    }
-                }
-                SuccessMessage = "Profile updated successfully!";
-                
-                // Se é admin editando outro usuário, volta para a página de gerenciamento após 2 segundos
-                if (IsAdmin && !string.IsNullOrEmpty(userId))
-                {
-                    await Task.Delay(2000);
-                    Navigation.NavigateTo("/administration/users");
-                }
-            }
-            else
-            {
-                ErrorMessage = response.Message ?? "Profile update failed. Please try again.";
+                await CreateAccount();
             }
         }
         catch (Exception ex)
         {
             ErrorMessage = $"An error occurred: {ex.Message}";
-            Logger.LogError(ex, "Error updating profile in SignUp");
+            Logger.LogError(ex, "Error in HandleSubmit");
         }
         finally
         {
             IsLoading = false;
+        }
+    }
+
+    private async Task UpdateProfile()
+    {
+        try
+        {
+            var user = await UserPort.GetByIdAsync(CurrentUserId!.Value);
+            if (user == null)
+            {
+                ErrorMessage = "User not found.";
+                return;
+            }
+
+            user.FirstName = FirstName;
+            user.LastName = LastName;
+            user.Email = Email ?? string.Empty;
+            user.Phone = Phone;
+            user.Address = Address;
+            user.City = City;
+            user.Zip = Zip;
+            user.Province = Province;
+            user.CountryId = SelectedCountryId;
+            
+            if (!string.IsNullOrWhiteSpace(Password))
+            {
+                user.Password = Password;
+            }
+
+            await UserPort.UpdateAsync(user);
+            SuccessMessage = "Profile updated successfully!";
+            Password = null;
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error updating profile: {ex.Message}";
+            Logger.LogError(ex, "Error updating user {UserId}", CurrentUserId);
+        }
+    }
+
+    private async Task CreateAccount()
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(Email) || string.IsNullOrWhiteSpace(Password))
+            {
+                ErrorMessage = "Email and Password are required.";
+                return;
+            }
+
+            var registerRequest = new RegisterRequest
+            {
+                FirstName = FirstName ?? string.Empty,
+                LastName = LastName ?? string.Empty,
+                Email = Email,
+                Password = Password,
+                ConfirmPassword = Password,
+                PhoneNumber = Phone,
+                AcceptTerms = true
+            };
+
+            var response = await AuthenticationPort.RegisterAsync(registerRequest);
+            
+            if (response.IsSuccess && response.User != null)
+            {
+                var createdUser = await UserPort.GetByIdAsync(response.User.Id);
+                if (createdUser != null)
+                {
+                    createdUser.Address = Address;
+                    createdUser.City = City;
+                    createdUser.Zip = Zip;
+                    createdUser.Province = Province;
+                    createdUser.CountryId = SelectedCountryId > 0 ? SelectedCountryId : (int)CountryEnum.USA;
+                    await UserPort.UpdateAsync(createdUser);
+                }
+            }
+            
+            if (response.IsSuccess)
+            {
+                SuccessMessage = "Account created successfully! Redirecting to login...";
+                await Task.Delay(2000);
+                Navigation.NavigateTo("/login");
+            }
+            else
+            {
+                ErrorMessage = response.Message ?? "Registration failed. Please try again.";
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error creating account: {ex.Message}";
+            Logger.LogError(ex, "Error creating account");
         }
     }
 }

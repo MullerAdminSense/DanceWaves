@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using DanceWaves.Application.Ports;
 using DanceWaves.Models;
 using DanceWaves.Data;
@@ -12,12 +13,12 @@ public class AgeGroupPersistenceAdapter(ApplicationDbContext dbContext) : IAgeGr
 
     public async Task<AgeGroup?> GetByIdAsync(int id)
     {
-        return await _dbContext.AgeGroups.FindAsync(id);
+        return await _dbContext.AgeGroups.AsNoTracking().FirstOrDefaultAsync(ag => ag.Id == id);
     }
 
     public async Task<IEnumerable<AgeGroup>> GetAllAsync()
     {
-        return _dbContext.AgeGroups;
+        return await _dbContext.AgeGroups.AsNoTracking().ToListAsync();
     }
 
     public async Task<AgeGroup> CreateAsync(AgeGroup ageGroup)
@@ -29,14 +30,24 @@ public class AgeGroupPersistenceAdapter(ApplicationDbContext dbContext) : IAgeGr
 
     public async Task<AgeGroup> UpdateAsync(AgeGroup ageGroup)
     {
-        _dbContext.AgeGroups.Update(ageGroup);
-        await _dbContext.SaveChangesAsync();
-        return ageGroup;
+        var existingAgeGroup = await _dbContext.AgeGroups.FindAsync(ageGroup.Id);
+        if (existingAgeGroup != null)
+        {
+            _dbContext.Entry(existingAgeGroup).CurrentValues.SetValues(ageGroup);
+            await _dbContext.SaveChangesAsync();
+            return existingAgeGroup;
+        }
+        else
+        {
+            _dbContext.AgeGroups.Update(ageGroup);
+            await _dbContext.SaveChangesAsync();
+            return ageGroup;
+        }
     }
 
     public async Task DeleteAsync(int id)
     {
-        var ageGroup = await GetByIdAsync(id);
+        var ageGroup = await _dbContext.AgeGroups.FindAsync(id);
         if (ageGroup != null)
         {
             _dbContext.AgeGroups.Remove(ageGroup);

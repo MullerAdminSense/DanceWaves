@@ -1,115 +1,154 @@
 @page "/administration"
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@using DanceWaves.Application.Ports
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IAuthenticationPort AuthenticationPort
 @rendermode InteractiveServer
 
-<div class="container-fluid mt-5">
-    <div class="row mb-4">
-        <div class="col-md-12">
-            <h1>⚙️ Administration</h1>
-            
+@if (!HasCheckedPermissions)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
         </div>
     </div>
+}
+else if (!IsSuperAdmin)
+{
+    <div class="container-fluid mt-5">
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle"></i> You do not have permission to access this page.
+        </div>
+    </div>
+}
+else
+{
+    <text>
+    <div class="container-fluid mt-5">
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <h1>⚙️ Administration</h1>
+            </div>
+        </div>
 
-    <div class="row">
-        <div class="col-md-4 mb-3">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Competition</h5>
-                    <p class="card-text">Manage competitions.</p>
-                    <a href="/register-competition" class="btn btn-outline-primary btn-sm">Competition Form</a>
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Competition</h5>
+                        <p class="card-text">Manage competitions.</p>
+                        <a href="/register-competition" class="btn btn-outline-primary btn-sm">Competition Form</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Competition Category</h5>
+                        <p class="card-text">Manage competition categories.</p>
+                        <a href="/register-competitioncategory" class="btn btn-outline-primary btn-sm">Competition Category Form</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Judge Panel</h5>
+                        <p class="card-text">Manage judge panels.</p>
+                        <a href="/register-judgepanel" class="btn btn-outline-primary btn-sm">Judge Panel Form</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Style</h5>
+                        <p class="card-text">Manage dance styles.</p>
+                        <a href="/register-style" class="btn btn-outline-primary btn-sm">Style Form</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Score</h5>
+                        <p class="card-text">Manage scores.</p>
+                        <a href="/register-score" class="btn btn-outline-primary btn-sm">Score Form</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Age Group</h5>
+                        <p class="card-text">Manage age groups.</p>
+                        <a href="/register-agegroup" class="btn btn-outline-primary btn-sm">Age Group Form</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Level</h5>
+                        <p class="card-text">Manage levels.</p>
+                        <a href="/administration/levels" class="btn btn-outline-primary btn-sm">Level Management</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">User Role Permissions</h5>
+                        <p class="card-text">Cadastrar e gerenciar permissões de papel.</p>
+                        <a href="/administration/rolepermissions" class="btn btn-outline-primary btn-sm">Role Permission Management</a>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-4 mb-3">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Competition Category</h5>
-                    <p class="card-text">Manage competition categories.</p>
-                    <a href="/register-competitioncategory" class="btn btn-outline-primary btn-sm">Competition Category Form</a>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4 mb-3">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Judge Panel</h5>
-                    <p class="card-text">Manage judge panels.</p>
-                    <a href="/register-judgepanel" class="btn btn-outline-primary btn-sm">Judge Panel Form</a>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4 mb-3">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Style</h5>
-                    <p class="card-text">Manage dance styles.</p>
-                    <a href="/register-style" class="btn btn-outline-primary btn-sm">Style Form</a>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4 mb-3">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Score</h5>
-                    <p class="card-text">Manage scores.</p>
-                    <a href="/register-score" class="btn btn-outline-primary btn-sm">Score Form</a>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4 mb-3">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Age Group</h5>
-                    <p class="card-text">Manage age groups.</p>
-                    <a href="/register-agegroup" class="btn btn-outline-primary btn-sm">Age Group Form</a>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4 mb-3">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Level</h5>
-                    <p class="card-text">Manage levels.</p>
-                    <a href="/administration/levels" class="btn btn-outline-primary btn-sm">Level Management</a>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4 mb-3">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Users</h5>
-                    <p class="card-text">Cadastrar e gerenciar usuários.</p>
-                    <a href="/administration/users" class="btn btn-outline-primary btn-sm">User Form</a>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4 mb-3">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">User Role Permissions</h5>
-                    <p class="card-text">Cadastrar e gerenciar permissões de papel.</p>
-                    <a href="/administration/rolepermissions" class="btn btn-outline-primary btn-sm">Role Permission Management</a>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <div class="row mt-4">
-        <div class="col-md-12">
-            <div class="card">
-                <div class="card-header bg-dark text-white">
-                    <h5 class="mb-0">System Logs</h5>
-                </div>
-                <div class="card-body">
-                    
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header bg-dark text-white">
+                        <h5 class="mb-0">System Logs</h5>
+                    </div>
+                    <div class="card-body">
+                        
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
+    </text>
+}
 
 @code {
-    protected override Task OnInitializedAsync()
+    private bool IsSuperAdmin { get; set; }
+    private bool HasCheckedPermissions { get; set; }
+
+    protected override async Task OnInitializedAsync()
     {
-        return Task.CompletedTask;
+        try
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!string.IsNullOrEmpty(userId))
+            {
+                var currentUser = await AuthenticationPort.GetCurrentUserAsync(userId);
+                if (currentUser != null)
+                {
+                    IsSuperAdmin = currentUser.RolePermissionId == 1;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Error checking admin permissions: {ex.Message}");
+        }
+        finally
+        {
+            HasCheckedPermissions = true;
+        }
     }
 }

@@ -4,24 +4,22 @@
 @using DanceWaves.Application.Dtos
 @using DanceWaves.Application.Ports
 @using DanceWaves.Models
+@inject IAgeGroupPersistencePort AgeGroupPort
 @inject IAuthenticationPort AuthenticationPort
 @inject AuthenticationStateProvider AuthStateProvider
 @inject ILogger<AgeGroupRegister> Logger
 @rendermode InteractiveServer
 
-<CascadingAuthenticationState>
-    <AuthorizeView>
-        <Authorized>
-            @if (!HasCheckedPermissions)
-            {
-                <div class="text-center py-5">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                </div>
-            }
-            else if (IsAdmin)
-            {
+@if (!HasCheckedPermissions)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else if (IsAdmin)
+{
                 <div class="container-fluid mt-4">
                     <div class="row mb-2">
                         <div class="col-md-12">
@@ -174,25 +172,15 @@
                         <div class="modal-backdrop fade show"></div>
                     }
                 </div>
-            }
-            else
-            {
-                <div class="container-fluid mt-5">
-                    <div class="alert alert-warning">
-                        <i class="bi bi-exclamation-triangle"></i> You do not have permission to access this page.
-                    </div>
-                </div>
-            }
-        </Authorized>
-        <NotAuthorized>
-            <div class="container-fluid mt-5">
-                <div class="alert alert-danger">
-                    <i class="bi bi-lock"></i> Please log in to access this page.
-                </div>
-            </div>
-        </NotAuthorized>
-    </AuthorizeView>
-</CascadingAuthenticationState>
+}
+else
+{
+    <div class="container-fluid mt-5">
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle"></i> You do not have permission to access this page.
+        </div>
+    </div>
+}
 
 @code {
     private List<AgeGroup> AgeGroups { get; set; } = new();
@@ -247,7 +235,8 @@
     {
         try
         {
-            AgeGroups = await AuthenticationPort.GetAllAgeGroupsAsync();
+            var ageGroups = await AgeGroupPort.GetAllAsync();
+            AgeGroups = ageGroups.ToList();
         }
         catch (Exception ex)
         {
@@ -308,26 +297,19 @@
         IsSavingAgeGroup = true;
         try
         {
-            AuthenticationResponse response;
             if (EditingAgeGroup.Id > 0)
             {
-                response = await AuthenticationPort.UpdateAgeGroupAsync(EditingAgeGroup);
+                await AgeGroupPort.UpdateAsync(EditingAgeGroup);
+                SuccessMessage = "Age group updated successfully.";
             }
             else
             {
-                response = await AuthenticationPort.CreateAgeGroupAsync(EditingAgeGroup);
+                await AgeGroupPort.CreateAsync(EditingAgeGroup);
+                SuccessMessage = "Age group created successfully.";
             }
 
-            if (response.IsSuccess)
-            {
-                SuccessMessage = response.Message ?? "Age group saved.";
-                EditingAgeGroup = new AgeGroup();
-                await LoadAgeGroups();
-            }
-            else
-            {
-                ErrorMessage = response.Message ?? "Failed to save age group.";
-            }
+            EditingAgeGroup = new AgeGroup();
+            await LoadAgeGroups();
         }
         catch (Exception ex)
         {
@@ -356,19 +338,12 @@
         SuccessMessage = null;
         try
         {
-            var response = await AuthenticationPort.DeleteAgeGroupAsync(AgeGroupToDelete.Id);
-            if (response.IsSuccess)
-            {
-                SuccessMessage = response.Message ?? "Age group deleted.";
-                ShowDeleteConfirm = false;
-                AgeGroupToDelete = null;
-                EditingAgeGroup = new AgeGroup(); // Clear fields after deletion
-                await LoadAgeGroups();
-            }
-            else
-            {
-                ErrorMessage = response.Message ?? "Failed to delete age group.";
-            }
+            await AgeGroupPort.DeleteAsync(AgeGroupToDelete.Id);
+            SuccessMessage = "Age group deleted successfully.";
+            ShowDeleteConfirm = false;
+            AgeGroupToDelete = null;
+            EditingAgeGroup = new AgeGroup();
+            await LoadAgeGroups();
         }
         catch (Exception ex)
         {

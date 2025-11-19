@@ -5,22 +5,19 @@
 @using DanceWaves.Application.Ports
 @inject AuthenticationStateProvider AuthStateProvider
 @inject ILogger<LevelRegister> Logger
-@inject ILevelService LevelService
+@inject ILevelPersistencePort LevelPersistence
 @rendermode InteractiveServer
 
-<CascadingAuthenticationState>
-    <AuthorizeView>
-        <Authorized>
-            @if (!HasCheckedPermissions)
-            {
-                <div class="text-center py-5">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                </div>
-            }
-            else if (IsAdmin)
-            {
+@if (!HasCheckedPermissions)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else if (IsAdmin)
+{
                 <div class="container-fluid mt-4">
                     <div class="row mb-2">
                         <div class="col-md-12">
@@ -163,25 +160,15 @@
                     </div>
                     <div class="modal-backdrop fade show"></div>
                 }
-            }
-            else
-            {
-                <div class="container-fluid mt-5">
-                    <div class="alert alert-warning">
-                        <i class="bi bi-exclamation-triangle"></i> You do not have permission to access this page.
-                    </div>
-                </div>
-            }
-        </Authorized>
-        <NotAuthorized>
-            <div class="container-fluid mt-5">
-                <div class="alert alert-danger">
-                    <i class="bi bi-lock"></i> Please log in to access this page.
-                </div>
-            </div>
-        </NotAuthorized>
-    </AuthorizeView>
-</CascadingAuthenticationState>
+}
+else
+{
+    <div class="container-fluid mt-5">
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle"></i> You do not have permission to access this page.
+        </div>
+    </div>
+}
 
 @code {
     private List<Level> Levels { get; set; } = new();
@@ -229,7 +216,7 @@
     {
         try
         {
-            Levels = await LevelService.GetAllLevelsAsync();
+            Levels = (await LevelPersistence.GetAllAsync()).ToList();
         }
         catch (Exception ex)
         {
@@ -276,12 +263,12 @@
             Logger.LogInformation("Saving level {LevelId}", EditingLevel.Id);
             if (EditingLevel.Id > 0)
             {
-                await LevelService.UpdateLevelAsync(EditingLevel);
+                await LevelPersistence.UpdateAsync(EditingLevel);
                 SuccessMessage = "Level updated successfully.";
             }
             else
             {
-                await LevelService.CreateLevelAsync(EditingLevel);
+                await LevelPersistence.CreateAsync(EditingLevel);
                 SuccessMessage = "Level created successfully.";
             }
 
@@ -317,7 +304,7 @@
 
         try
         {
-            await LevelService.DeleteLevelAsync(LevelToDelete.Id);
+            await LevelPersistence.DeleteAsync(LevelToDelete.Id);
             SuccessMessage = "Level deleted successfully.";
             ShowDeleteConfirm = false;
             LevelToDelete = null;

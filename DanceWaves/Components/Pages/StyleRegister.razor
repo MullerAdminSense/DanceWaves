@@ -4,16 +4,22 @@
 @using DanceWaves.Application.Dtos
 @using DanceWaves.Application.Ports
 @using DanceWaves.Models
+@inject IStylePersistencePort StylePort
 @inject IAuthenticationPort AuthenticationPort
 @inject AuthenticationStateProvider AuthStateProvider
 @inject ILogger<StyleRegister> Logger
 @rendermode InteractiveServer
 
-<CascadingAuthenticationState>
-    <AuthorizeView>
-        <Authorized>
-            @if (IsAdmin)
-            {
+@if (!HasCheckedPermissions)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else if (IsAdmin)
+{
                 <div class="container-fluid mt-4">
                     <div class="row mb-2">
                         <div class="col-md-12">
@@ -149,25 +155,15 @@
                         <div class="modal-backdrop fade show"></div>
                     }
                 </div>
-            }
-            else
-            {
-                <div class="container-fluid mt-5">
-                    <div class="alert alert-warning">
-                        <i class="bi bi-exclamation-triangle"></i> You do not have permission to access this page.
-                    </div>
-                </div>
-            }
-        </Authorized>
-        <NotAuthorized>
-            <div class="container-fluid mt-5">
-                <div class="alert alert-danger">
-                    <i class="bi bi-lock"></i> Please log in to access this page.
-                </div>
-            </div>
-        </NotAuthorized>
-    </AuthorizeView>
-</CascadingAuthenticationState>
+}
+else
+{
+    <div class="container-fluid mt-5">
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle"></i> You do not have permission to access this page.
+        </div>
+    </div>
+}
 
 @code {
     private List<Style> Styles { get; set; } = new();
@@ -176,6 +172,7 @@
     private bool IsLoading { get; set; } = true;
     private bool IsSavingStyle { get; set; } = false;
     private bool IsAdmin { get; set; } = false;
+    private bool HasCheckedPermissions { get; set; } = false;
     private string? ErrorMessage { get; set; }
     private string? SuccessMessage { get; set; }
     private bool ShowDeleteConfirm { get; set; } = false;
@@ -196,7 +193,7 @@
                 {
                     var rolePermissions = await AuthenticationPort.GetAllRolePermissionsAsync();
                     var userRole = rolePermissions.FirstOrDefault(r => r.Id == currentUser.RolePermissionId);
-                    IsAdmin = userRole != null && (userRole.Name == "SuperAdmin" || userRole.Name == "FranchiseAdmin");
+                    IsAdmin = userRole != null && (userRole.Id == 1 || userRole.Id == 2);
                 }
             }
 
@@ -213,6 +210,7 @@
         finally
         {
             IsLoading = false;
+            HasCheckedPermissions = true;
         }
     }
 
@@ -220,7 +218,8 @@
     {
         try
         {
-            Styles = await AuthenticationPort.GetAllStylesAsync();
+            var styles = await StylePort.GetAllAsync();
+            Styles = styles.ToList();
         }
         catch (Exception ex)
         {
@@ -262,26 +261,19 @@
         IsSavingStyle = true;
         try
         {
-            AuthenticationResponse response;
             if (EditingStyle.Id > 0)
             {
-                response = await AuthenticationPort.UpdateStyleAsync(EditingStyle);
+                await StylePort.UpdateAsync(EditingStyle);
+                SuccessMessage = "Style updated successfully.";
             }
             else
             {
-                response = await AuthenticationPort.CreateStyleAsync(EditingStyle);
+                await StylePort.CreateAsync(EditingStyle);
+                SuccessMessage = "Style created successfully.";
             }
 
-            if (response.IsSuccess)
-            {
-                SuccessMessage = response.Message ?? "Style saved.";
-                EditingStyle = new Style();
-                await LoadStyles();
-            }
-            else
-            {
-                ErrorMessage = response.Message ?? "Failed to save style.";
-            }
+            EditingStyle = new Style();
+            await LoadStyles();
         }
         catch (Exception ex)
         {
@@ -310,18 +302,12 @@
         SuccessMessage = null;
         try
         {
-            var response = await AuthenticationPort.DeleteStyleAsync(StyleToDelete.Id);
-            if (response.IsSuccess)
-            {
-                SuccessMessage = response.Message ?? "Style deleted.";
-                StyleToDelete = null;
-                ShowDeleteConfirm = false;
-                await LoadStyles();
-            }
-            else
-            {
-                ErrorMessage = response.Message ?? "Failed to delete style.";
-            }
+            await StylePort.DeleteAsync(StyleToDelete.Id);
+            SuccessMessage = "Style deleted successfully.";
+            StyleToDelete = null;
+            ShowDeleteConfirm = false;
+            EditingStyle = new Style();
+            await LoadStyles();
         }
         catch (Exception ex)
         {

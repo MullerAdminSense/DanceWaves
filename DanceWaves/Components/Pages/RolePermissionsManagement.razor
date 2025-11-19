@@ -10,11 +10,16 @@
 @inject ILogger<RolePermissionsManagement> Logger
 @rendermode InteractiveServer
 
-<CascadingAuthenticationState>
-    <AuthorizeView>
-    <Authorized>
-        @if (IsAdmin)
-        {
+@if (!HasCheckedPermissions)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else if (IsAdmin)
+{
             <div class="container-fluid mt-4">
                 @* Botão Back to Administration no topo *@
                 <div class="row mb-2">
@@ -59,7 +64,7 @@
                                 <label for="roleDescription" class="form-label">Description</label>
                                 <input id="roleDescription" class="form-control" @bind="EditingRole.Description" />
                             </div>
-                            <div class="col-md-5 d-flex gap-2">
+                            <div class="col-md-3 d-flex gap-2">
                                 <button type="button" class="btn btn-success" @onclick="HandleSaveRolePermission" disabled="@IsSavingRolePermission">
                                     @(EditingRole.Id > 0 ? "Update" : "Create")
                                 </button>
@@ -159,25 +164,15 @@
                 </div>
                 <div class="modal-backdrop fade show"></div>
             }
-        }
-        else
-        {
-            <div class="container-fluid mt-5">
-                <div class="alert alert-warning">
-                    <i class="bi bi-exclamation-triangle"></i> You do not have permission to access this page.
-                </div>
-            </div>
-        }
-    </Authorized>
-    <NotAuthorized>
-        <div class="container-fluid mt-5">
-            <div class="alert alert-danger">
-                <i class="bi bi-lock"></i> Please log in to access this page.
-            </div>
+}
+else
+{
+    <div class="container-fluid mt-5">
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle"></i> You do not have permission to access this page.
         </div>
-    </NotAuthorized>
-</AuthorizeView>
-</CascadingAuthenticationState>
+    </div>
+}
 
 @code {
     private List<UserRolePermission> RolePermissions { get; set; } = new();
@@ -185,6 +180,7 @@
     private bool IsSavingRolePermission { get; set; } = false;
     private bool IsLoading { get; set; } = true;
     private bool IsAdmin { get; set; } = false;
+    private bool HasCheckedPermissions { get; set; } = false;
     private string? ErrorMessage { get; set; }
     private string? SuccessMessage { get; set; }
     private bool ShowDeleteConfirm { get; set; } = false;
@@ -206,7 +202,7 @@
                 {
                     var role = await AuthenticationPort.GetAllRolePermissionsAsync();
                     var userRole = role.FirstOrDefault(r => r.Id == currentUser.RolePermissionId);
-                    IsAdmin = userRole != null && (userRole.Name == "SuperAdmin" || userRole.Name == "FranchiseAdmin");
+                    IsAdmin = userRole != null && (userRole.Id == 1 || userRole.Id == 2);
                 }
             }
             if (IsAdmin)
@@ -222,6 +218,7 @@
         finally
         {
             IsLoading = false;
+            HasCheckedPermissions = true;
         }
     }
 
@@ -337,6 +334,7 @@
                 SuccessMessage = response.Message ?? "Role permission deleted successfully.";
                 ShowDeleteConfirm = false;
                 RolePermissionToDelete = null;
+                EditingRole = new UserRolePermission(); // Clear fields after deletion
                 await LoadRolePermissions();
             }
             else

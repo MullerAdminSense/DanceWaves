@@ -10,28 +10,33 @@
 @inject ILogger<UsersManagement> Logger
 @rendermode InteractiveServer
 
-<AuthorizeView>
-    <Authorized>
-        @if (!IsSuperAdmin)
-        {
-            <div class="container-fluid mt-5">
-                <div class="alert alert-warning">
-                    <i class="bi bi-exclamation-triangle"></i> Not Allowed
-                </div>
-            </div>
-        }
-        else
-        {
+@if (!HasCheckedPermissions)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else if (IsSuperAdmin)
+{
             <div class="container-fluid mt-4">
+                <div class="row mb-2">
+                    <div class="col-md-12">
+                        <a href="/administration" class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-arrow-left"></i> Back to Administration
+                        </a>
+                    </div>
+                </div>
                 <div class="row mb-4">
                     <div class="col-md-12">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <div>
-                                <a href="/administration" class="btn btn-outline-secondary btn-sm me-2">
-                                    <i class="bi bi-arrow-left"></i> Back to Administration
-                                </a>
-                                <h2 class="d-inline-block ms-2 mb-0"><i class="bi bi-people"></i> User Management</h2>
-                            </div>
+                        <h2 class="mb-0"><i class="bi bi-people"></i> User Management</h2>
+                        <p class="text-muted">Manage, create, edit, and delete users in the system.</p>
+                    </div>
+                </div>
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <div class="d-flex justify-content-end align-items-center mb-3">
                             <button class="btn btn-primary" @onclick="HandleAddUser">
                                 <i class="bi bi-plus-circle"></i> Add User
                             </button>
@@ -157,16 +162,15 @@
                 </div>
                 <div class="modal-backdrop fade show"></div>
             }
-        }
-    </Authorized>
-    <NotAuthorized>
-        <div class="container-fluid mt-5">
-            <div class="alert alert-danger">
-                <i class="bi bi-lock"></i> Please log in to access this page.
-            </div>
+}
+else
+{
+    <div class="container-fluid mt-5">
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle"></i> Not Allowed
         </div>
-    </NotAuthorized>
-</AuthorizeView>
+    </div>
+}
 
 @code {
     private List<UserDto> Users { get; set; } = new();
@@ -175,6 +179,7 @@
     private List<Franchise> Franchises { get; set; } = new();
     private bool IsLoading { get; set; } = true;
     private bool IsSuperAdmin { get; set; } = false;
+    private bool HasCheckedPermissions { get; set; } = false;
     private int? CurrentUserId { get; set; }
     private string? ErrorMessage { get; set; }
     private string? SuccessMessage { get; set; }
@@ -196,7 +201,7 @@
                 {
                     var role = await AuthenticationPort.GetAllRolePermissionsAsync();
                     var userRole = role.FirstOrDefault(r => r.Id == currentUser.RolePermissionId);
-                    IsSuperAdmin = userRole != null && userRole.Name == "SuperAdmin";
+                    IsSuperAdmin = userRole != null && userRole.Id == 1;
                 }
             }
             if (IsSuperAdmin)
@@ -213,6 +218,7 @@
         finally
         {
             IsLoading = false;
+            HasCheckedPermissions = true;
         }
     }
 
@@ -247,9 +253,7 @@
 
     private void HandleAddUser()
     {
-        // Navega para a página de signup para criar novo usuário
-        // Admin pode criar novos usuários
-        Navigation.NavigateTo("/signup");
+        Navigation.NavigateTo("/registrations");
     }
 
     private void NavigateBack()
@@ -259,9 +263,7 @@
 
     private void HandleEditUser(UserDto user)
     {
-        // Navega para a página de signup com o ID do usuário para edição
-        // O parâmetro userId na query string permite que o admin edite qualquer usuário
-        Navigation.NavigateTo($"/signup?userId={user.Id}");
+        Navigation.NavigateTo($"/registrations?userId={user.Id}");
     }
 
     private void HandleDeleteUser(UserDto user)

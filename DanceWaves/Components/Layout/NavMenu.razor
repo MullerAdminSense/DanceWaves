@@ -1,7 +1,10 @@
 ﻿@using Microsoft.AspNetCore.Components.Authorization
 @using System.Linq
 @using System
+@using System.Security.Claims
 @inject Microsoft.Extensions.Localization.IStringLocalizer<NavMenu> localizer
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IAuthenticationPort AuthenticationPort
 <div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid d-flex justify-content-between align-items-center">
         <a class="navbar-brand" href="">DanceWaves</a>
@@ -20,37 +23,46 @@
 
 <input type="checkbox" title="Navigation menu" class="navbar-toggler" />
 
-<AuthorizeView>
-    <Authorized>
-        <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
-            <nav class="nav flex-column">
-                @if (navigationMenu?.MenuItems != null)
-                {
-                    @foreach (var item in navigationMenu.MenuItems)
-                    {
-                        <div class="nav-item px-3">
-                            <NavLink class="nav-link" href="@item.Route" Match="NavLinkMatch.All">
-                                <span>@item.Icon</span> @item.Label
-                            </NavLink>
-                        </div>
-                    }
-                }
-            </nav>
+@if (!HasCheckedAuth)
+{
+    <div class="text-center py-4">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
         </div>
-    </Authorized>
-</AuthorizeView>
+    </div>
+}
+else if (IsAuthenticated)
+{
+    <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
+        <nav class="nav flex-column">
+            @if (navigationMenu?.MenuItems != null)
+            {
+                var items = navigationMenu.MenuItems;
+                if (!IsSuperAdmin)
+                {
+                    items = items.Where(item => !IsRestrictedRoute(item.Route)).ToList();
+                }
+
+                foreach (var item in items)
+                {
+                    <div class="nav-item px-3">
+                        <NavLink class="nav-link" href="@item.Route" Match="NavLinkMatch.All">
+                            <span>@item.Icon</span> @item.Label
+                        </NavLink>
+                    </div>
+                }
+            }
+        </nav>
+    </div>
+}
 
 @code {
     private NavigationViewModel? navigationMenu;
 
-    [Inject]
-    private AuthenticationStateProvider AuthStateProvider { get; set; } = default!;
-
-    [Inject]
-    private NavigationManager NavigationManager { get; set; } = default!;
-
     private bool IsAuthenticated = false;
+    private bool IsSuperAdmin = false;
     private string CurrentUserName = string.Empty;
+    private bool HasCheckedAuth = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -91,7 +103,41 @@
         {
             CurrentUserName = string.Empty;
         }
+        await DetermineUserRoleAsync(authState);
+        HasCheckedAuth = true;
         StateHasChanged();
+    }
+
+    private async Task DetermineUserRoleAsync(AuthenticationState authState)
+    {
+        try
+        {
+            var userIdClaim = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!string.IsNullOrEmpty(userIdClaim))
+            {
+                var currentUser = await AuthenticationPort.GetCurrentUserAsync(userIdClaim);
+                if (currentUser != null)
+                {
+                    IsSuperAdmin = currentUser.RolePermissionId == 1;
+                    return;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Error determining user role: {ex.Message}");
+        }
+
+        IsSuperAdmin = false;
+    }
+
+    private static bool IsRestrictedRoute(string? route)
+    {
+        if (string.IsNullOrWhiteSpace(route))
+            return false;
+
+        route = route.ToLowerInvariant();
+        return route.StartsWith("/administration") || route.StartsWith("/registrations");
     }
 
 

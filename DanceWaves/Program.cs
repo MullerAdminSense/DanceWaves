@@ -16,7 +16,6 @@ using Microsoft.AspNetCore.Identity;
 using DanceWaves.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using DanceWaves.Infrastructure.Services;
 
 SerilogConfig.ConfigureLogger();
 var builder = WebApplication.CreateBuilder(args);
@@ -68,9 +67,13 @@ builder.Services.AddLocalization(options => options.ResourcesPath = "Resources")
  
 builder.Services.AddScoped<IEntryPersistencePort, EntryPersistenceAdapter>();
 builder.Services.AddScoped<IUserPersistencePort, UserPersistenceAdapter>();
+builder.Services.AddScoped<IDanceSchoolPersistencePort, DanceSchoolPersistenceAdapter>();
+builder.Services.AddScoped<IAgeGroupPersistencePort, AgeGroupPersistenceAdapter>();
+builder.Services.AddScoped<IStylePersistencePort, StylePersistenceAdapter>();
+builder.Services.AddScoped<IEntryTypePersistencePort, EntryTypePersistenceAdapter>();
 builder.Services.AddScoped<INavigationPresenterPort, NavigationPresenterAdapter>();
 builder.Services.AddScoped<IAuthenticationPort, AuthenticationAdapter>();
-builder.Services.AddScoped<ILevelService, LevelService>();
+builder.Services.AddScoped<ILevelPersistencePort, LevelPersistenceAdapter>();
 
  
 builder.Services.AddScoped<GetNavigationMenuUseCase>();

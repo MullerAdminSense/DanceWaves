@@ -4,222 +4,370 @@
 @using DanceWaves.Application.Dtos
 @using DanceWaves.Application.Ports
 @using DanceWaves.Models
+@inject IUserPersistencePort UserPort
+@inject IDanceSchoolPersistencePort DanceSchoolPort
+@inject IAgeGroupPersistencePort AgeGroupPort
+@inject IStylePersistencePort StylePort
 @inject IAuthenticationPort AuthenticationPort
 @inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Navigation
 @inject ILogger<Registrations> Logger
 @rendermode InteractiveServer
 
-<AuthorizeView>
-    <Authorized>
-        @if (IsSuperAdmin)
-        {
-            <div class="container-fluid mt-4">
-                <div class="row mb-4">
-                    <div class="col-md-12">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <div>
-                                <h2 class="d-inline-block ms-2 mb-0"><i class="bi bi-people"></i> User Management</h2>
-                                <p class="text-muted">View and manage user registrations</p>
-                            </div>
-                            <button class="btn btn-primary" @onclick="HandleAddUser">
-                                <i class="bi bi-plus-circle"></i> Add User
+@if (!HasCheckedPermissions)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else if (IsSuperAdmin)
+{
+    @if (ShowForm)
+    {
+                @* Formulário de criação/edição *@
+                <div class="container-fluid mt-4">
+                    <div class="row mb-2">
+                        <div class="col-md-12">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="CancelForm">
+                                <i class="bi bi-arrow-left"></i> Back to List
                             </button>
                         </div>
                     </div>
-                </div>
-
-                @if (!string.IsNullOrEmpty(ErrorMessage))
-                {
-                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                        @ErrorMessage
-                        <button type="button" class="btn-close" @onclick="@(() => ErrorMessage = null)"></button>
-                    </div>
-                }
-
-                @if (!string.IsNullOrEmpty(SuccessMessage))
-                {
-                    <div class="alert alert-success alert-dismissible fade show" role="alert">
-                        @SuccessMessage
-                        <button type="button" class="btn-close" @onclick="@(() => SuccessMessage = null)"></button>
-                    </div>
-                }
-
-                @if (IsLoading)
-                {
-                    <div class="text-center py-5">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                    </div>
-                }
-                else if (Users == null || !Users.Any())
-                {
-                    <div class="alert alert-info">
-                        <i class="bi bi-info-circle"></i> No users found.
-                    </div>
-                }
-                else
-                {
                     <div class="row mb-4">
                         <div class="col-md-12">
-                            <div class="input-group">
-                                <input type="text" class="form-control" placeholder="Search users..." @bind="searchTerm" @bind:event="oninput" />
-                                <button class="btn btn-outline-secondary" type="button">
-                                    <i class="bi bi-search"></i> Search
-                                </button>
-                            </div>
+                            <h2 class="mb-0">@(EditingUser.Id > 0 ? "Edit User" : "Add New User")</h2>
                         </div>
                     </div>
-
                     <div class="row">
-                        <div class="col-md-3">
-                            <div class="card text-center">
-                                <div class="card-body">
-                                    <h5 class="card-title">Total Users</h5>
-                                    <h3 class="text-primary">@Users.Count</h3>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="card text-center">
-                                <div class="card-body">
-                                    <h5 class="card-title">Active</h5>
-                                    <h3 class="text-success">@Users.Count</h3>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="card text-center">
-                                <div class="card-body">
-                                    <h5 class="card-title">Admins</h5>
-                                    <h3 class="text-warning">@(Users.Count(u => RolePermissions?.FirstOrDefault(r => r.Id == u.RolePermissionId)?.Name == "SuperAdmin" || RolePermissions?.FirstOrDefault(r => r.Id == u.RolePermissionId)?.Name == "FranchiseAdmin"))</h3>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="card text-center">
-                                <div class="card-body">
-                                    <h5 class="card-title">Regular Users</h5>
-                                    <h3 class="text-info">@(Users.Count(u => RolePermissions?.FirstOrDefault(r => r.Id == u.RolePermissionId)?.Name == "User"))</h3>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row mt-4">
-                        <div class="col-md-12">
-                            <div class="card">
-                                <div class="card-body">
-                                    <div class="table-responsive">
-                                        <table class="table table-striped table-hover">
-                                            <thead class="table-dark">
-                                                <tr>
-                                                    <th>ID</th>
-                                                    <th>Name</th>
-                                                    <th>Email</th>
-                                                    <th>Phone</th>
-                                                    <th>Role</th>
-                                                    <th>Dance School</th>
-                                                    <th>Franchise</th>
-                                                    <th class="text-center">Actions</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                @foreach (var user in FilteredUsers)
-                                                {
-                                                    <tr>
-                                                        <td>@user.Id</td>
-                                                        <td>@user.FirstName @user.LastName</td>
-                                                        <td>@user.Email</td>
-                                                        <td>@(user.Phone ?? "-")</td>
-                                                        <td>
-                                                            @{
-                                                                var role = RolePermissions?.FirstOrDefault(r => r.Id == user.RolePermissionId);
-                                                                <span class="badge bg-secondary">@(role?.Name ?? "Unknown")</span>
-                                                            }
-                                                        </td>
-                                                        <td>@(user.DanceSchoolId.HasValue ? DanceSchools?.FirstOrDefault(ds => ds.Id == user.DanceSchoolId)?.LegalName ?? "-" : "-")</td>
-                                                        <td>@(user.DefaultFranchiseId.HasValue ? Franchises?.FirstOrDefault(f => f.Id == user.DefaultFranchiseId)?.LegalName ?? "-" : "-")</td>
-                                                        <td class="text-center">
-                                                            <div class="btn-group" role="group">
-                                                                <button class="btn btn-sm btn-outline-primary" 
-                                                                        @onclick="@(() => HandleEditUser(user))" 
-                                                                        title="Edit User">
-                                                                    <i class="bi bi-pencil"></i>
-                                                                </button>
-                                                                <button class="btn btn-sm btn-outline-danger" 
-                                                                        @onclick="@(() => HandleDeleteUser(user))" 
-                                                                        title="Delete User">
-                                                                    <i class="bi bi-trash"></i>
-                                                                </button>
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                }
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                }
-            </div>
-
-            @* Modal de confirmação de exclusão *@
-            @if (ShowDeleteConfirm && UserToDelete != null)
-            {
-                <div class="modal fade show" style="display: block;" tabindex="-1">
-                    <div class="modal-dialog">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title">Confirm Deletion</h5>
-                                <button type="button" class="btn-close" @onclick="@(() => ShowDeleteConfirm = false)"></button>
-                            </div>
-                            <div class="modal-body">
-                                <p>Are you sure you want to delete user <strong>@UserToDelete.FirstName @UserToDelete.LastName</strong> (@UserToDelete.Email)?</p>
-                                <p class="text-danger"><small>This action cannot be undone.</small></p>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" @onclick="@(() => ShowDeleteConfirm = false)">Cancel</button>
-                                <button type="button" class="btn btn-danger" @onclick="ConfirmDeleteUser" disabled="@IsDeleting">
-                                    @if (IsDeleting)
+                        <div class="col-md-8 offset-md-2">
+                            <div class="card shadow">
+                                <div class="card-body p-5">
+                                    @if (!string.IsNullOrEmpty(ErrorMessage))
                                     {
-                                        <span class="spinner-border spinner-border-sm me-2"></span>
+                                        <div class="alert alert-danger">@ErrorMessage</div>
                                     }
-                                    Delete User
+                                    @if (!string.IsNullOrEmpty(SuccessMessage))
+                                    {
+                                        <div class="alert alert-success">@SuccessMessage</div>
+                                    }
+                                    <form @onsubmit="HandleSave" @onsubmit:preventDefault="true">
+                                        <div class="mb-3">
+                                            <label for="firstName" class="form-label">First Name *</label>
+                                            <input type="text" class="form-control" id="firstName" @bind="EditingUser.FirstName" required />
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="lastName" class="form-label">Last Name *</label>
+                                            <input type="text" class="form-control" id="lastName" @bind="EditingUser.LastName" required />
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="email" class="form-label">Email Address *</label>
+                                            <input type="email" class="form-control" id="email" @bind="EditingUser.Email" required />
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="phone" class="form-label">Phone Number</label>
+                                            <input type="text" class="form-control" id="phone" @bind="EditingUser.Phone" />
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="address" class="form-label">Address</label>
+                                            <input type="text" class="form-control" id="address" @bind="EditingUser.Address" />
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="city" class="form-label">City</label>
+                                            <input type="text" class="form-control" id="city" @bind="EditingUser.City" />
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="zip" class="form-label">Zip</label>
+                                            <input type="text" class="form-control" id="zip" @bind="EditingUser.Zip" />
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="province" class="form-label">Province</label>
+                                            <input type="text" class="form-control" id="province" @bind="EditingUser.Province" />
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="country" class="form-label">Country</label>
+                                            <select class="form-select" id="country" @bind="EditingUser.CountryId">
+                                                <option value="">Select a country</option>
+                                                @foreach (var country in Countries)
+                                                {
+                                                    <option value="@country.Id">@country.Name</option>
+                                                }
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="danceSchool" class="form-label">Dance School</label>
+                                            <select class="form-select" id="danceSchool" 
+                                                    value="@(SelectedDanceSchoolId?.ToString() ?? "")"
+                                                    @onchange="OnDanceSchoolChanged">
+                                                <option value="">Select a dance school</option>
+                                                @foreach (var school in DanceSchools)
+                                                {
+                                                    <option value="@school.Id">@school.LegalName</option>
+                                                }
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="franchise" class="form-label">Default Franchise</label>
+                                            <select class="form-select" id="franchise" 
+                                                    value="@(EditingUser.DefaultFranchiseId?.ToString() ?? "")"
+                                                    @onchange="OnFranchiseChanged"
+                                                    disabled="@(EditingUser.DanceSchoolId == null)">
+                                                <option value="">Select a franchise</option>
+                                                @foreach (var franchise in FilteredFranchises)
+                                                {
+                                                    <option value="@franchise.Id">@franchise.LegalName</option>
+                                                }
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="ageGroup" class="form-label">Age Group</label>
+                                            <select class="form-select" id="ageGroup" 
+                                                    value="@(SelectedAgeGroupId?.ToString() ?? "")"
+                                                    @onchange="OnAgeGroupChanged">
+                                                <option value="">Select an age group</option>
+                                                @foreach (var ageGroup in AgeGroups)
+                                                {
+                                                    <option value="@ageGroup.Id">@ageGroup.Name</option>
+                                                }
+                                            </select>
+                                        </div>
+                                        @if (IsSuperAdmin)
+                                        {
+                                            <div class="mb-3">
+                                                <label for="rolePermission" class="form-label">Role Permission</label>
+                                                <select class="form-select" id="rolePermission" 
+                                                        value="@EditingUser.RolePermissionId.ToString()"
+                                                        @onchange="OnRolePermissionChanged">
+                                                    @foreach (var role in RolePermissions)
+                                                    {
+                                                        <option value="@role.Id">@role.Name</option>
+                                                    }
+                                                </select>
+                                            </div>
+                                        }
+                                        <button type="submit" class="btn btn-primary btn-lg w-100" disabled="@IsSaving">
+                                            @(IsSaving ? (EditingUser.Id > 0 ? "Updating..." : "Creating...") : (EditingUser.Id > 0 ? "Update User" : "Create User"))
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+    }
+    else
+    {
+                @* Lista de usuários com painel de estatísticas *@
+                <div class="container-fluid mt-4">
+                    <div class="row mb-2">
+                        <div class="col-md-12">
+                            <a href="/administration" class="btn btn-outline-secondary btn-sm">
+                                <i class="bi bi-arrow-left"></i> Back to Administration
+                            </a>
+                        </div>
+                    </div>
+    <div class="row mb-4">
+        <div class="col-md-12">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div>
+                                    <h2 class="d-inline-block ms-2 mb-0"><i class="bi bi-people"></i> User Management</h2>
+                                    <p class="text-muted">View and manage user registrations</p>
+                                </div>
+                                <button type="button" class="btn btn-primary" @onclick="@(async () => await HandleAddUser())">
+                                    <i class="bi bi-plus-circle"></i> Add User
                                 </button>
                             </div>
+        </div>
+    </div>
+
+                    @if (!string.IsNullOrEmpty(ErrorMessage))
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            @ErrorMessage
+                            <button type="button" class="btn-close" @onclick="@(() => ErrorMessage = null)"></button>
                         </div>
-                    </div>
-                </div>
-                <div class="modal-backdrop fade show"></div>
-            }
-        }
-        else
-        {
-            <div class="container-fluid mt-5">
-                <div class="alert alert-warning">
-                    <i class="bi bi-exclamation-triangle"></i> You do not have permission to access this page.
-                </div>
-            </div>
-        }
-    </Authorized>
-    <NotAuthorized>
-        <div class="container-fluid mt-5">
-            <div class="alert alert-danger">
-                <i class="bi bi-lock"></i> Please log in to access this page.
+                    }
+
+                    @if (!string.IsNullOrEmpty(SuccessMessage))
+                    {
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            @SuccessMessage
+                            <button type="button" class="btn-close" @onclick="@(() => SuccessMessage = null)"></button>
+                        </div>
+                    }
+
+                    @if (IsLoading)
+                    {
+                        <div class="text-center py-5">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                    }
+                    else if (Users == null || !Users.Any())
+                    {
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i> No users found.
+                        </div>
+                    }
+                    else
+                    {
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="input-group">
+                                    <input type="text" class="form-control" placeholder="Search users..." @bind="searchTerm" @bind:event="oninput" />
+                                    <button class="btn btn-outline-secondary" type="button">
+                                        <i class="bi bi-search"></i> Search
+                                    </button>
             </div>
         </div>
-    </NotAuthorized>
-</AuthorizeView>
+    </div>
+
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                                        <h5 class="card-title">Total Users</h5>
+                                        <h3 class="text-primary">@Users.Count</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                                        <h5 class="card-title">Active</h5>
+                                        <h3 class="text-success">@Users.Count</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                                        <h5 class="card-title">Admins</h5>
+                                        <h3 class="text-warning">@(Users.Count(u => RolePermissions?.FirstOrDefault(r => r.Id == u.RolePermissionId)?.Name == "SuperAdmin" || RolePermissions?.FirstOrDefault(r => r.Id == u.RolePermissionId)?.Name == "FranchiseAdmin"))</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                                        <h5 class="card-title">Regular Users</h5>
+                                        <h3 class="text-info">@(Users.Count(u => RolePermissions?.FirstOrDefault(r => r.Id == u.RolePermissionId)?.Name == "User"))</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-12">
+                                <div class="card">
+                                    <div class="card-body">
+            <div class="table-responsive">
+                                            <table class="table table-striped table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                                                        <th>Phone</th>
+                                                        <th>Role</th>
+                                                        <th>Dance School</th>
+                                                        <th>Franchise</th>
+                                                        <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                                                    @foreach (var user in FilteredUsers)
+                                                    {
+                                                        var currentUser = user;
+                                                        <tr>
+                                                            <td>@currentUser.Id</td>
+                                                            <td>@currentUser.FirstName @currentUser.LastName</td>
+                                                            <td>@currentUser.Email</td>
+                                                            <td>@(currentUser.Phone ?? "-")</td>
+                                                            <td>
+                                                                @{
+                                                                    var role = RolePermissions?.FirstOrDefault(r => r.Id == currentUser.RolePermissionId);
+                                                                    <span class="badge bg-secondary">@(role?.Name ?? "Unknown")</span>
+                                                                }
+                                                            </td>
+                                                            <td>@(currentUser.DanceSchoolId.HasValue ? DanceSchools?.FirstOrDefault(ds => ds.Id == currentUser.DanceSchoolId)?.LegalName ?? "-" : "-")</td>
+                                                            <td>@(currentUser.DefaultFranchiseId.HasValue ? Franchises?.FirstOrDefault(f => f.Id == currentUser.DefaultFranchiseId)?.LegalName ?? "-" : "-")</td>
+                                                            <td class="text-center">
+                                                                <div class="btn-group" role="group">
+                                                                    <button type="button" class="btn btn-sm btn-outline-primary" 
+                                                                            @onclick="@(async () => await HandleEditUser(currentUser))" 
+                                                                            title="Edit User">
+                                                                        <i class="bi bi-pencil"></i>
+                                                                    </button>
+                                                                    <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                                            @onclick="@(() => HandleDeleteUser(currentUser))" 
+                                                                            title="Delete User">
+                                                                        <i class="bi bi-trash"></i>
+                                                                    </button>
+                                                                </div>
+                            </td>
+                        </tr>
+                                                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+                        </div>
+                    }
+                </div>
+
+                @* Modal de confirmação de exclusão *@
+                @if (ShowDeleteConfirm && UserToDelete != null)
+                {
+                    <div class="modal fade show" style="display: block;" tabindex="-1">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Confirm Deletion</h5>
+                                    <button type="button" class="btn-close" @onclick="@(() => ShowDeleteConfirm = false)"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <p>Are you sure you want to delete user <strong>@UserToDelete.FirstName @UserToDelete.LastName</strong> (@UserToDelete.Email)?</p>
+                                    <p class="text-danger"><small>This action cannot be undone.</small></p>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" @onclick="@(() => ShowDeleteConfirm = false)">Cancel</button>
+                                    <button type="button" class="btn btn-danger" @onclick="ConfirmDeleteUser" disabled="@IsDeleting">
+                                        @if (IsDeleting)
+                                        {
+                                            <span class="spinner-border spinner-border-sm me-2"></span>
+                                        }
+                                        Delete User
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-backdrop fade show"></div>
+                }
+    }
+}
+else
+{
+    <div class="container-fluid mt-5">
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle"></i> You do not have permission to access this page.
+        </div>
+    </div>
+}
 
 @code {
     private List<UserDto> Users { get; set; } = new();
     private List<UserRolePermission> RolePermissions { get; set; } = new();
     private List<DanceSchool> DanceSchools { get; set; } = new();
+    private List<Franchise> FilteredFranchises { get; set; } = new List<Franchise>();
     private List<Franchise> Franchises { get; set; } = new();
+    private List<AgeGroup> AgeGroups { get; set; } = new();
+    private UserDto EditingUser { get; set; } = new();
     private bool IsLoading { get; set; } = true;
     private bool IsSuperAdmin { get; set; } = false;
     private int? CurrentUserId { get; set; }
@@ -229,19 +377,35 @@
     private UserDto? UserToDelete { get; set; }
     private bool IsDeleting { get; set; } = false;
     private string searchTerm = "";
+    private bool ShowForm { get; set; } = false;
+    private bool IsSaving { get; set; } = false;
+    private bool HasCheckedPermissions { get; set; } = false;
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? userId { get; set; }
+
+    private List<(int Id, string Name)> Countries { get; set; } = new();
+    private int? SelectedDanceSchoolId { get; set; }
+    private int? SelectedFranchiseId { get; set; }
+    private int? SelectedCountryId { get; set; }
+    private int? SelectedAgeGroupId { get; set; }
 
     private IEnumerable<UserDto> FilteredUsers
     {
         get
         {
+            if (Users == null || !Users.Any())
+                return new List<UserDto>();
+                
             if (string.IsNullOrWhiteSpace(searchTerm))
                 return Users;
 
             var term = searchTerm.ToLowerInvariant();
             return Users.Where(u => 
-                u.FirstName.ToLowerInvariant().Contains(term) ||
-                u.LastName.ToLowerInvariant().Contains(term) ||
-                u.Email.ToLowerInvariant().Contains(term) ||
+                (u.FirstName?.ToLowerInvariant().Contains(term) ?? false) ||
+                (u.LastName?.ToLowerInvariant().Contains(term) ?? false) ||
+                (u.Email?.ToLowerInvariant().Contains(term) ?? false) ||
                 (u.Phone?.ToLowerInvariant().Contains(term) ?? false)
             );
         }
@@ -252,56 +416,57 @@
         try
         {
             var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-            var userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userIdClaim = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             
-            Logger.LogInformation("Registrations page initialized. UserId: {UserId}", userId);
-            
-            if (!string.IsNullOrEmpty(userId) && int.TryParse(userId, out var id))
+            if (!string.IsNullOrEmpty(userIdClaim) && int.TryParse(userIdClaim, out var id))
             {
                 CurrentUserId = id;
-                var currentUser = await AuthenticationPort.GetCurrentUserAsync(userId);
+                var currentUser = await AuthenticationPort.GetCurrentUserAsync(userIdClaim);
                 if (currentUser != null)
                 {
                     var role = await AuthenticationPort.GetAllRolePermissionsAsync();
                     var userRole = role.FirstOrDefault(r => r.Id == currentUser.RolePermissionId);
                     IsSuperAdmin = userRole != null && userRole.Name == "SuperAdmin";
-                    Logger.LogInformation("User role: {RoleName}, IsSuperAdmin: {IsSuperAdmin}", userRole?.Name, IsSuperAdmin);
                 }
             }
+
+            Countries = new List<(int, string)>
+            {
+                ((int)CountryId.USA, "United States"),
+                ((int)CountryId.Netherlands, "Netherlands"),
+                ((int)CountryId.France, "France"),
+                ((int)CountryId.Germany, "Germany")
+            };
+
+            await LoadReferenceData();
             
+            FilteredFranchises = new List<Franchise>();
+
             if (IsSuperAdmin)
             {
-                await LoadUsers();
-                await LoadReferenceData();
-                StateHasChanged();
-            }
-            else
-            {
-                Logger.LogWarning("User is not SuperAdmin. Access denied.");
+                if (!string.IsNullOrEmpty(userId) && int.TryParse(userId, out var editUserId))
+                {
+                    ShowForm = true;
+                    await LoadUserForEdit(editUserId);
+                    await InitializeFormFields();
+                }
+                else
+                {
+                    ShowForm = false;
+                    await LoadUsers();
+                }
             }
         }
         catch (Exception ex)
         {
-            ErrorMessage = $"Error loading users: {ex.Message}";
-            Logger.LogError(ex, "Error loading users in Registrations");
+            ErrorMessage = $"Error loading data: {ex.Message}";
+            Logger.LogError(ex, "Error loading data in Registrations");
         }
         finally
         {
             IsLoading = false;
+            HasCheckedPermissions = true;
             StateHasChanged();
-        }
-    }
-
-    private async Task LoadUsers()
-    {
-        try
-        {
-            Users = await AuthenticationPort.GetAllUsersAsync();
-        }
-        catch (Exception ex)
-        {
-            ErrorMessage = $"Error loading users: {ex.Message}";
-            Logger.LogError(ex, "Error loading users");
         }
     }
 
@@ -310,10 +475,11 @@
         try
         {
             RolePermissions = await AuthenticationPort.GetAllRolePermissionsAsync();
-            DanceSchools = await AuthenticationPort.GetAllDanceSchoolsAsync();
-            
-            // Carrega todas as franchises do banco
+            var danceSchools = await DanceSchoolPort.GetAllAsync();
+            DanceSchools = danceSchools.ToList();
             Franchises = await AuthenticationPort.GetAllFranchisesAsync();
+            var ageGroups = await AgeGroupPort.GetAllAsync();
+            AgeGroups = ageGroups.ToList();
         }
         catch (Exception ex)
         {
@@ -321,29 +487,235 @@
         }
     }
 
-    private void HandleAddUser()
+    private async Task LoadUsers()
     {
         try
         {
-            Navigation.NavigateTo("/signup");
+            var users = await UserPort.GetAllAsync();
+            Users = users.Select(u => new UserDto
+            {
+                Id = u.Id,
+                FirstName = u.FirstName,
+                LastName = u.LastName,
+                Email = u.Email,
+                Phone = u.Phone,
+                Address = u.Address,
+                City = u.City,
+                Zip = u.Zip,
+                Province = u.Province,
+                CountryId = u.CountryId,
+                DanceSchoolId = u.DanceSchoolId,
+                DefaultFranchiseId = u.DefaultFranchiseId,
+                AgeGroupId = u.AgeGroupId,
+                RolePermissionId = u.RolePermissionId
+            }).ToList();
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error navigating to signup");
-            ErrorMessage = $"Error: {ex.Message}";
+            ErrorMessage = $"Error loading users: {ex.Message}";
+            Logger.LogError(ex, "Error loading users");
         }
     }
 
-    private void HandleEditUser(UserDto user)
+    private async Task LoadUserForEdit(int userId)
     {
         try
         {
-            Navigation.NavigateTo($"/signup?userId={user.Id}");
+            var user = await UserPort.GetByIdAsync(userId);
+            if (user != null)
+            {
+                EditingUser = new UserDto
+                {
+                    Id = user.Id,
+                    FirstName = user.FirstName,
+                    LastName = user.LastName,
+                    Email = user.Email,
+                    Phone = user.Phone,
+                    Address = user.Address,
+                    City = user.City,
+                    Zip = user.Zip,
+                    Province = user.Province,
+                    CountryId = user.CountryId,
+                    DanceSchoolId = user.DanceSchoolId,
+                    DefaultFranchiseId = user.DefaultFranchiseId,
+                    AgeGroupId = user.AgeGroupId,
+                    RolePermissionId = user.RolePermissionId
+                };
+                await InitializeFormFields();
+            }
+            else
+            {
+                EditingUser = new UserDto();
+                EditingUser.RolePermissionId = RolePermissions?.FirstOrDefault(r => r.Name == "User")?.Id ?? 3;
+            }
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error navigating to edit user {UserId}", user.Id);
+            ErrorMessage = $"Error loading user: {ex.Message}";
+            Logger.LogError(ex, "Error loading user for edit");
+        }
+    }
+
+    private async Task InitializeFormFields()
+    {
+        try
+        {
+            if (EditingUser == null)
+            {
+                EditingUser = new UserDto();
+            }
+            
+            SelectedDanceSchoolId = EditingUser.DanceSchoolId;
+            SelectedCountryId = EditingUser.CountryId;
+            SelectedAgeGroupId = EditingUser.AgeGroupId;
+            
+            if (EditingUser.DanceSchoolId != null)
+            {
+                await LoadFranchisesForSelectedSchool();
+            }
+            else
+            {
+                FilteredFranchises = new List<Franchise>();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing form fields");
+            ErrorMessage = $"Error initializing form: {ex.Message}";
+        }
+    }
+
+    private async Task LoadFranchisesForSelectedSchool()
+    {
+        try
+        {
+            int? schoolId = SelectedDanceSchoolId ?? EditingUser?.DanceSchoolId;
+            if (schoolId != null)
+            {
+                FilteredFranchises = await AuthenticationPort.GetFranchisesByDanceSchoolAsync(schoolId.Value) ?? new List<Franchise>();
+            }
+            else
+            {
+                FilteredFranchises = new List<Franchise>();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading franchises");
+            FilteredFranchises = new List<Franchise>();
+            ErrorMessage = $"Error loading franchises: {ex.Message}";
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleAddUser()
+    {
+        try
+        {
+            Logger.LogInformation("HandleAddUser called");
+            
+            if (RolePermissions == null || !RolePermissions.Any())
+            {
+                Logger.LogInformation("Loading reference data");
+                await LoadReferenceData();
+            }
+            
+            EditingUser = new UserDto
+            {
+                RolePermissionId = RolePermissions?.FirstOrDefault(r => r.Name == "User")?.Id ?? 3
+            };
+            
+            Logger.LogInformation($"EditingUser created with RolePermissionId: {EditingUser.RolePermissionId}");
+            
+            FilteredFranchises = new List<Franchise>();
+            ShowForm = true;
+            
+            Logger.LogInformation("Calling InitializeFormFields");
+            await InitializeFormFields();
+            
+            Logger.LogInformation("HandleAddUser completed successfully");
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in HandleAddUser");
+            ErrorMessage = $"Error: {ex.Message} - {ex.StackTrace}";
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleEditUser(UserDto user)
+    {
+        try
+        {
+            Logger.LogInformation($"HandleEditUser called for user: {user?.Id}");
+            
+            if (user == null)
+            {
+                Logger.LogWarning("User is null in HandleEditUser");
+                return;
+            }
+            
+            if (RolePermissions == null || !RolePermissions.Any())
+            {
+                Logger.LogInformation("Loading reference data in HandleEditUser");
+                await LoadReferenceData();
+            }
+            
+            EditingUser = new UserDto
+            {
+                Id = user.Id,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Email = user.Email,
+                Phone = user.Phone,
+                Address = user.Address,
+                City = user.City,
+                Zip = user.Zip,
+                Province = user.Province,
+                CountryId = user.CountryId,
+                DanceSchoolId = user.DanceSchoolId,
+                DefaultFranchiseId = user.DefaultFranchiseId,
+                AgeGroupId = user.AgeGroupId,
+                RolePermissionId = user.RolePermissionId
+            };
+            
+            Logger.LogInformation($"EditingUser set with ID: {EditingUser.Id}");
+            
+            ShowForm = true;
+            
+            Logger.LogInformation("Calling InitializeFormFields");
+            await InitializeFormFields();
+            
+            Logger.LogInformation("HandleEditUser completed successfully");
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in HandleEditUser");
+            ErrorMessage = $"Error: {ex.Message} - {ex.StackTrace}";
+            StateHasChanged();
+        }
+    }
+
+    private void CancelForm()
+    {
+        try
+        {
+            ShowForm = false;
+            EditingUser = new UserDto();
+            ErrorMessage = null;
+            SuccessMessage = null;
+            FilteredFranchises = new List<Franchise>();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
             ErrorMessage = $"Error: {ex.Message}";
+            StateHasChanged();
         }
     }
 
@@ -351,14 +723,25 @@
     {
         try
         {
+            Logger.LogInformation($"HandleDeleteUser called for user: {user?.Id}");
+            
+            if (user == null)
+            {
+                Logger.LogWarning("User is null in HandleDeleteUser");
+                return;
+            }
+            
             UserToDelete = user;
             ShowDeleteConfirm = true;
+            
+            Logger.LogInformation("Delete confirmation modal shown");
             StateHasChanged();
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error showing delete confirmation for user {UserId}", user.Id);
-            ErrorMessage = $"Error: {ex.Message}";
+            Logger.LogError(ex, "Error in HandleDeleteUser");
+            ErrorMessage = $"Error: {ex.Message} - {ex.StackTrace}";
+            StateHasChanged();
         }
     }
 
@@ -366,7 +749,6 @@
     {
         if (UserToDelete == null) return;
 
-        Logger.LogInformation("ConfirmDeleteUser called for user: {UserId}", UserToDelete.Id);
         IsDeleting = true;
         ErrorMessage = null;
         SuccessMessage = null;
@@ -374,28 +756,18 @@
 
         try
         {
-            var response = await AuthenticationPort.DeleteUserAsync(UserToDelete.Id);
+            await UserPort.DeleteAsync(UserToDelete.Id);
             
-            if (response.IsSuccess)
-            {
-                SuccessMessage = "User deleted successfully.";
-                ShowDeleteConfirm = false;
-                UserToDelete = null;
-                await LoadUsers();
-                await LoadReferenceData();
-                StateHasChanged();
-            }
-            else
-            {
-                ErrorMessage = response.Message ?? "Failed to delete user.";
-                StateHasChanged();
-            }
+            SuccessMessage = "User deleted successfully.";
+            ShowDeleteConfirm = false;
+            UserToDelete = null;
+            await LoadUsers();
+            await LoadReferenceData();
         }
         catch (Exception ex)
         {
             ErrorMessage = $"Error deleting user: {ex.Message}";
-            Logger.LogError(ex, "Error deleting user: {UserToDelete.Id}");
-            StateHasChanged();
+            Logger.LogError(ex, "Error deleting user: {UserToDeleteId}", UserToDelete.Id);
         }
         finally
         {
@@ -403,4 +775,164 @@
             StateHasChanged();
         }
     }
+
+    private async Task HandleSave()
+    {
+        ErrorMessage = null;
+        SuccessMessage = null;
+        IsSaving = true;
+        StateHasChanged();
+
+        try
+        {
+            var user = new User
+            {
+                Id = EditingUser.Id,
+                FirstName = EditingUser.FirstName,
+                LastName = EditingUser.LastName,
+                Email = EditingUser.Email ?? string.Empty,
+                Phone = EditingUser.Phone,
+                Address = EditingUser.Address,
+                City = EditingUser.City,
+                Zip = EditingUser.Zip,
+                Province = EditingUser.Province,
+                CountryId = EditingUser.CountryId ?? 0,
+                DanceSchoolId = EditingUser.DanceSchoolId,
+                DefaultFranchiseId = EditingUser.DefaultFranchiseId,
+                AgeGroupId = EditingUser.AgeGroupId,
+                RolePermissionId = EditingUser.RolePermissionId
+            };
+
+            if (EditingUser.Id > 0)
+            {
+                await UserPort.UpdateAsync(user);
+                SuccessMessage = "User updated successfully!";
+            }
+            else
+            {
+                await UserPort.CreateAsync(user);
+                SuccessMessage = "User created successfully!";
+            }
+            
+            await Task.Delay(1500);
+            ShowForm = false;
+            await LoadUsers();
+            await LoadReferenceData();
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error saving user: {ex.Message}";
+            Logger.LogError(ex, "Error saving user");
+        }
+        finally
+        {
+            IsSaving = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task OnDanceSchoolChanged(ChangeEventArgs e)
+    {
+        try
+        {
+            var newValue = e.Value?.ToString();
+            int? newSchoolId = null;
+            
+            if (!string.IsNullOrEmpty(newValue) && int.TryParse(newValue, out var schoolId))
+            {
+                newSchoolId = schoolId;
+            }
+            
+            SelectedDanceSchoolId = newSchoolId;
+            if (EditingUser != null)
+            {
+                EditingUser.DanceSchoolId = newSchoolId;
+                EditingUser.DefaultFranchiseId = null;
+            }
+            await LoadFranchisesForSelectedSchool();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error changing dance school: {ex.Message}";
+            StateHasChanged();
+        }
+    }
+
+    private void OnFranchiseChanged(ChangeEventArgs e)
+    {
+        try
+        {
+            var newValue = e.Value?.ToString();
+            int? newFranchiseId = null;
+            
+            if (!string.IsNullOrEmpty(newValue) && int.TryParse(newValue, out var franchiseId))
+            {
+                newFranchiseId = franchiseId;
+            }
+            
+            if (EditingUser != null)
+            {
+                EditingUser.DefaultFranchiseId = newFranchiseId;
+            }
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error changing franchise: {ex.Message}";
+            StateHasChanged();
+        }
+    }
+
+    private void OnAgeGroupChanged(ChangeEventArgs e)
+    {
+        try
+        {
+            var newValue = e.Value?.ToString();
+            int? newAgeGroupId = null;
+            
+            if (!string.IsNullOrEmpty(newValue) && int.TryParse(newValue, out var ageGroupId))
+            {
+                newAgeGroupId = ageGroupId;
+            }
+            
+            if (EditingUser != null)
+            {
+                EditingUser.AgeGroupId = newAgeGroupId;
+            }
+            SelectedAgeGroupId = newAgeGroupId;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error changing age group: {ex.Message}";
+            StateHasChanged();
+        }
+    }
+
+    private void OnRolePermissionChanged(ChangeEventArgs e)
+    {
+        try
+        {
+            var newValue = e.Value?.ToString();
+            int newRolePermissionId = 3;
+            
+            if (!string.IsNullOrEmpty(newValue) && int.TryParse(newValue, out var roleId))
+            {
+                newRolePermissionId = roleId;
+            }
+            
+            if (EditingUser != null)
+            {
+                EditingUser.RolePermissionId = newRolePermissionId;
+            }
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error changing role permission: {ex.Message}";
+            StateHasChanged();
+        }
+    }
+
 }
