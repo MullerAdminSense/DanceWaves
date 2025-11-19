@@ -2,6 +2,7 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
 @using DanceWaves.Models
+@using DanceWaves.Application.Dtos
 @using DanceWaves.Application.Ports
 @inject IAuthenticationPort AuthenticationPort
 @inject AuthenticationStateProvider AuthStateProvider
@@ -9,24 +10,24 @@
 @inject ILogger<RolePermissionsManagement> Logger
 @rendermode InteractiveServer
 
-<AuthorizeView>
+<CascadingAuthenticationState>
+    <AuthorizeView>
     <Authorized>
         @if (IsAdmin)
         {
             <div class="container-fluid mt-4">
+                @* Botão Back to Administration no topo *@
+                <div class="row mb-2">
+                    <div class="col-md-12">
+                        <a href="/administration" class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-arrow-left"></i> Back to Administration
+                        </a>
+                    </div>
+                </div>
                 <div class="row mb-4">
                     <div class="col-md-12">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <div>
-                                <a href="/administration" class="btn btn-outline-secondary btn-sm me-2">
-                                    <i class="bi bi-arrow-left"></i> Back to Administration
-                                </a>
-                                <h2 class="d-inline-block ms-2 mb-0"><i class="bi bi-shield-lock"></i> Role Permission Management</h2>
-                            </div>
-                            <button class="btn btn-primary" @onclick="HandleAddRolePermission">
-                                <i class="bi bi-plus-circle"></i> Add Role Permission
-                            </button>
-                        </div>
+                        <h2 class="mb-0"><i class="bi bi-shield-lock"></i> Role Permission Management</h2>
+                        <p class="text-muted">Create, edit and delete Role Permissions</p>
                     </div>
                 </div>
 
@@ -45,6 +46,30 @@
                         <button type="button" class="btn-close" @onclick="@(() => SuccessMessage = null)"></button>
                     </div>
                 }
+
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title mb-3">@FormTitle</h5>
+                        <form class="row gx-3 gy-2 align-items-end">
+                            <div class="col-md-4">
+                                <label for="roleName" class="form-label">Role Name</label>
+                                <input id="roleName" class="form-control" @bind="EditingRole.Name" required />
+                            </div>
+                            <div class="col-md-5">
+                                <label for="roleDescription" class="form-label">Description</label>
+                                <input id="roleDescription" class="form-control" @bind="EditingRole.Description" />
+                            </div>
+                            <div class="col-md-5 d-flex gap-2">
+                                <button type="button" class="btn btn-success" @onclick="HandleSaveRolePermission" disabled="@IsSavingRolePermission">
+                                    @(EditingRole.Id > 0 ? "Update" : "Create")
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" @onclick="CancelEditRolePermission" disabled="@IsSavingRolePermission">
+                                    Cancel
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
 
                 @if (IsLoading)
                 {
@@ -116,7 +141,7 @@
                                 <button type="button" class="btn-close" @onclick="@(() => ShowDeleteConfirm = false)"></button>
                             </div>
                             <div class="modal-body">
-                                <p>Are you sure you want to delete role permission <strong>@RolePermissionToDelete.Name</strong>?</p>
+                                <p>Are you sure you want to delete role <strong>@RolePermissionToDelete?.Name</strong>?</p>
                                 <p class="text-danger"><small>This action cannot be undone.</small></p>
                             </div>
                             <div class="modal-footer">
@@ -152,9 +177,12 @@
         </div>
     </NotAuthorized>
 </AuthorizeView>
+</CascadingAuthenticationState>
 
 @code {
     private List<UserRolePermission> RolePermissions { get; set; } = new();
+    private UserRolePermission EditingRole { get; set; } = new();
+    private bool IsSavingRolePermission { get; set; } = false;
     private bool IsLoading { get; set; } = true;
     private bool IsAdmin { get; set; } = false;
     private string? ErrorMessage { get; set; }
@@ -162,6 +190,8 @@
     private bool ShowDeleteConfirm { get; set; } = false;
     private UserRolePermission? RolePermissionToDelete { get; set; }
     private bool IsDeleting { get; set; } = false;
+
+    private string FormTitle => EditingRole.Id > 0 ? "Update Role Permission" : "Create Role Permission";
 
     protected override async Task OnInitializedAsync()
     {
@@ -208,30 +238,120 @@
         }
     }
 
-    private void HandleAddRolePermission()
-    {
-        Navigation.NavigateTo("/register-userrolepermission");
-    }
-
     private void HandleEditRolePermission(UserRolePermission rp)
     {
-        Navigation.NavigateTo($"/register-userrolepermission?rolePermissionId={rp.Id}");
+        Logger.LogInformation("Editing role {RoleId}", rp.Id);
+        EditingRole = new UserRolePermission
+        {
+            Id = rp.Id,
+            Name = rp.Name,
+            Description = rp.Description
+        };
+        ErrorMessage = null;
+        SuccessMessage = null;
+        StateHasChanged();
+    }
+
+    private void CancelEditRolePermission()
+    {
+        Logger.LogInformation("Role edit canceled");
+        EditingRole = new UserRolePermission();
+        ErrorMessage = null;
+    }
+
+    private async Task HandleSaveRolePermission()
+    {
+        ErrorMessage = null;
+        SuccessMessage = null;
+
+        if (string.IsNullOrWhiteSpace(EditingRole.Name))
+        {
+            ErrorMessage = "Role name is required.";
+            return;
+        }
+
+        IsSavingRolePermission = true;
+        try
+        {
+            Logger.LogInformation("Saving role permission {RoleId}", EditingRole.Id);
+            var payload = new UserRolePermission
+            {
+                Id = EditingRole.Id,
+                Name = EditingRole.Name?.Trim() ?? string.Empty,
+                Description = EditingRole.Description?.Trim()
+            };
+
+            AuthenticationResponse response;
+            if (payload.Id > 0)
+            {
+                response = await AuthenticationPort.UpdateRolePermissionAsync(payload);
+            }
+            else
+            {
+                response = await AuthenticationPort.CreateRolePermissionAsync(payload);
+            }
+
+            if (response.IsSuccess)
+            {
+                SuccessMessage = response.Message ?? "Role permission saved successfully.";
+                EditingRole = new UserRolePermission();
+                await LoadRolePermissions();
+            }
+            else
+            {
+                ErrorMessage = response.Message ?? "Failed to save role permission.";
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error saving role permission: {ex.Message}";
+            Logger.LogError(ex, "Error saving role permission");
+        }
+        finally
+        {
+            IsSavingRolePermission = false;
+        }
     }
 
     private void HandleDeleteRolePermission(UserRolePermission rp)
     {
+        Logger.LogInformation("Preparing to delete role {RoleId}", rp.Id);
         RolePermissionToDelete = rp;
         ShowDeleteConfirm = true;
+        StateHasChanged();
     }
 
     private async Task ConfirmDeleteRolePermission()
     {
         if (RolePermissionToDelete == null) return;
+
         IsDeleting = true;
         ErrorMessage = null;
         SuccessMessage = null;
-        // TODO: Implement delete logic in AuthenticationPort
-        ErrorMessage = "Role permission deletion not implemented.";
-        IsDeleting = false;
+
+        try
+        {
+            var response = await AuthenticationPort.DeleteRolePermissionAsync(RolePermissionToDelete.Id);
+            if (response.IsSuccess)
+            {
+                SuccessMessage = response.Message ?? "Role permission deleted successfully.";
+                ShowDeleteConfirm = false;
+                RolePermissionToDelete = null;
+                await LoadRolePermissions();
+            }
+            else
+            {
+                ErrorMessage = response.Message ?? "Failed to delete role permission.";
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error deleting role permission: {ex.Message}";
+            Logger.LogError(ex, "Error deleting role permission: {RoleId}", RolePermissionToDelete?.Id);
+        }
+        finally
+        {
+            IsDeleting = false;
+        }
     }
 }

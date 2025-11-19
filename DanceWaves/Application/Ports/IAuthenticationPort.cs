@@ -55,8 +55,36 @@ public interface IAuthenticationPort
     
     Task<List<UserRolePermission>> GetAllRolePermissionsAsync();
 
+    Task<AuthenticationResponse> CreateRolePermissionAsync(UserRolePermission rolePermission);
+
+    Task<AuthenticationResponse> UpdateRolePermissionAsync(UserRolePermission rolePermission);
+
+    Task<AuthenticationResponse> DeleteRolePermissionAsync(int rolePermissionId);
+
     
     Task<List<AgeGroup>> GetAllAgeGroupsAsync();
+
+    Task<List<Style>> GetAllStylesAsync();
+
+    Task<AuthenticationResponse> CreateStyleAsync(Style style);
+
+    Task<AuthenticationResponse> UpdateStyleAsync(Style style);
+
+    Task<AuthenticationResponse> DeleteStyleAsync(int styleId);
+
+    Task<List<EntryType>> GetAllEntryTypesAsync();
+
+    Task<AuthenticationResponse> CreateEntryTypeAsync(EntryType entryType);
+
+    Task<AuthenticationResponse> UpdateEntryTypeAsync(EntryType entryType);
+
+    Task<AuthenticationResponse> DeleteEntryTypeAsync(int entryTypeId);
+
+    Task<AuthenticationResponse> CreateAgeGroupAsync(AgeGroup ageGroup);
+
+    Task<AuthenticationResponse> UpdateAgeGroupAsync(AgeGroup ageGroup);
+
+    Task<AuthenticationResponse> DeleteAgeGroupAsync(int ageGroupId);
 
     
     Task<List<UserDto>> GetAllUsersAsync();

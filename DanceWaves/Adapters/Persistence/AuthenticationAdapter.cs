@@ -4,8 +4,9 @@ using DanceWaves.Data;
 using DanceWaves.Models;
 using DanceWaves.Infrastructure.Security;
 using Microsoft.EntityFrameworkCore;
-using System.Security.Cryptography;
 using Serilog;
+using System.Linq;
+using System.Security.Cryptography;
 
 namespace DanceWaves.Adapters.Persistence;
 
@@ -87,13 +88,542 @@ public class AuthenticationAdapter(ApplicationDbContext dbContext) : IAuthentica
         return await _dbContext.UserRolePermissions.ToListAsync();
     }
 
+    public async Task<AuthenticationResponse> CreateRolePermissionAsync(UserRolePermission rolePermission)
+    {
+        try
+        {
+            if (rolePermission == null || string.IsNullOrWhiteSpace(rolePermission.Name))
+            {
+                return new AuthenticationResponse
+                {
+                    IsSuccess = false,
+                    Message = "Role permission name is required."
+                };
+            }
+
+            var exists = await _dbContext.UserRolePermissions.AnyAsync(rp => rp.Name == rolePermission.Name);
+            if (exists)
+            {
+                return new AuthenticationResponse
+                {
+                    IsSuccess = false,
+                    Message = "A role permission with the same name already exists."
+                };
+            }
+
+            var entity = new UserRolePermission
+            {
+                Name = rolePermission.Name,
+                Description = rolePermission.Description
+            };
+
+            _dbContext.UserRolePermissions.Add(entity);
+            await _dbContext.SaveChangesAsync();
+
+            return new AuthenticationResponse
+            {
+                IsSuccess = true,
+                Message = "Role permission created successfully."
+            };
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Error creating role permission: {RoleName}", rolePermission?.Name);
+            return new AuthenticationResponse
+            {
+                IsSuccess = false,
+                Message = $"An error occurred while creating the role permission: {ex.Message}"
+            };
+        }
+    }
+
+    public async Task<AuthenticationResponse> UpdateRolePermissionAsync(UserRolePermission rolePermission)
+    {
+        try
+        {
+            if (rolePermission == null || rolePermission.Id <= 0)
+            {
+                return new AuthenticationResponse
+                {
+                    IsSuccess = false,
+                    Message = "Invalid role permission."
+                };
+            }
+
+            var entity = await _dbContext.UserRolePermissions.FindAsync(rolePermission.Id);
+            if (entity == null)
+            {
+                return new AuthenticationResponse
+                {
+                    IsSuccess = false,
+                    Message = "Role permission not found."
+                };
+            }
+
+            entity.Name = rolePermission.Name;
+            entity.Description = rolePermission.Description;
+
+            await _dbContext.SaveChangesAsync();
+
+            return new AuthenticationResponse
+            {
+                IsSuccess = true,
+                Message = "Role permission updated successfully."
+            };
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Error updating role permission: {RoleId}", rolePermission?.Id);
+            return new AuthenticationResponse
+            {
+                IsSuccess = false,
+                Message = $"An error occurred while updating the role permission: {ex.Message}"
+            };
+        }
+    }
+
+    public async Task<AuthenticationResponse> DeleteRolePermissionAsync(int rolePermissionId)
+    {
+        try
+        {
+            var entity = await _dbContext.UserRolePermissions.FindAsync(rolePermissionId);
+            if (entity == null)
+            {
+                return new AuthenticationResponse
+                {
+                    IsSuccess = false,
+                    Message = "Role permission not found."
+                };
+            }
+
+            _dbContext.UserRolePermissions.Remove(entity);
+            await _dbContext.SaveChangesAsync();
+
+            return new AuthenticationResponse
+            {
+                IsSuccess = true,
+                Message = "Role permission deleted successfully."
+            };
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Error deleting role permission: {RoleId}", rolePermissionId);
+            return new AuthenticationResponse
+            {
+                IsSuccess = false,
+                Message = $"An error occurred while deleting the role permission: {ex.Message}"
+            };
+        }
+    }
+
     public async Task<List<AgeGroup>> GetAllAgeGroupsAsync()
     {
-        // Sempre busca dados atualizados do banco sem cache
         return await _dbContext.AgeGroups
             .AsNoTracking()
             .OrderBy(ag => ag.Name)
             .ToListAsync();
+    }
+
+    public async Task<List<Style>> GetAllStylesAsync()
+    {
+        return await _dbContext.Styles
+            .AsNoTracking()
+            .OrderBy(s => s.Name)
+            .ToListAsync();
+    }
+
+    public async Task<AuthenticationResponse> CreateStyleAsync(Style style)
+    {
+        try
+        {
+            if (style == null || string.IsNullOrWhiteSpace(style.Code) || string.IsNullOrWhiteSpace(style.Name))
+            {
+                return new AuthenticationResponse
+                {
+                    IsSuccess = false,
+                    Message = "Style code and name are required."
+                };
+            }
+
+            var exists = await _dbContext.Styles.AnyAsync(s => s.Code == style.Code);
+            if (exists)
+            {
+                return new AuthenticationResponse
+                {
+                    IsSuccess = false,
+                    Message = "A style with this code already exists."
+                };
+            }
+
+            _dbContext.Styles.Add(style);
+            await _dbContext.SaveChangesAsync();
+
+            return new AuthenticationResponse
+            {
+                IsSuccess = true,
+                Message = "Style created successfully."
+            };
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Error creating style: {StyleCode}", style?.Code);
+            return new AuthenticationResponse
+            {
+                IsSuccess = false,
+                Message = $"Error creating style: {ex.Message}"
+            };
+        }
+    }
+
+    public async Task<AuthenticationResponse> UpdateStyleAsync(Style style)
+    {
+        try
+        {
+            var entity = await _dbContext.Styles.FindAsync(style.Id);
+            if (entity == null)
+            {
+                return new AuthenticationResponse
+                {
+                    IsSuccess = false,
+                    Message = "Style not found."
+                };
+            }
+
+            if (string.IsNullOrWhiteSpace(style.Code) || string.IsNullOrWhiteSpace(style.Name))
+            {
+                return new AuthenticationResponse
+                {
+                    IsSuccess = false,
+                    Message = "Style code and name are required."
+                };
+            }
+
+            entity.Code = style.Code;
+            entity.Name = style.Name;
+
+            await _dbContext.SaveChangesAsync();
+
+            return new AuthenticationResponse
+            {
+                IsSuccess = true,
+                Message = "Style updated successfully."
+            };
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Error updating style: {StyleId}", style.Id);
+            return new AuthenticationResponse
+            {
+                IsSuccess = false,
+                Message = $"Error updating style: {ex.Message}"
+            };
+        }
+    }
+
+    public async Task<AuthenticationResponse> DeleteStyleAsync(int styleId)
+    {
+        try
+        {
+            var entity = await _dbContext.Styles.FindAsync(styleId);
+            if (entity == null)
+            {
+                return new AuthenticationResponse
+                {
+                    IsSuccess = false,
+                    Message = "Style not found."
+                };
+            }
+
+            _dbContext.Styles.Remove(entity);
+            await _dbContext.SaveChangesAsync();
+
+            return new AuthenticationResponse
+            {
+                IsSuccess = true,
+                Message = "Style deleted successfully."
+            };
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Error deleting style: {StyleId}", styleId);
+            return new AuthenticationResponse
+            {
+                IsSuccess = false,
+                Message = $"Error deleting style: {ex.Message}"
+            };
+        }
+    }
+
+    public async Task<List<EntryType>> GetAllEntryTypesAsync()
+    {
+        return await _dbContext.EntryTypes
+            .AsNoTracking()
+            .OrderBy(et => et.Name)
+            .ToListAsync();
+    }
+
+    public async Task<AuthenticationResponse> CreateEntryTypeAsync(EntryType entryType)
+    {
+        try
+        {
+            if (entryType == null || string.IsNullOrWhiteSpace(entryType.Name))
+            {
+                return new AuthenticationResponse
+                {
+                    IsSuccess = false,
+                    Message = "Entry type name is required."
+                };
+            }
+
+            var exists = await _dbContext.EntryTypes.AnyAsync(et => et.Name == entryType.Name);
+            if (exists)
+            {
+                return new AuthenticationResponse
+                {
+                    IsSuccess = false,
+                    Message = "An entry type with this name already exists."
+                };
+            }
+
+            _dbContext.EntryTypes.Add(entryType);
+            await _dbContext.SaveChangesAsync();
+
+            return new AuthenticationResponse
+            {
+                IsSuccess = true,
+                Message = "Entry type created successfully."
+            };
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Error creating entry type: {EntryTypeName}", entryType?.Name);
+            return new AuthenticationResponse
+            {
+                IsSuccess = false,
+                Message = $"Error creating entry type: {ex.Message}"
+            };
+        }
+    }
+
+    public async Task<AuthenticationResponse> UpdateEntryTypeAsync(EntryType entryType)
+    {
+        try
+        {
+            var entity = await _dbContext.EntryTypes.FindAsync(entryType.Id);
+            if (entity == null)
+            {
+                return new AuthenticationResponse
+                {
+                    IsSuccess = false,
+                    Message = "Entry type not found."
+                };
+            }
+
+            if (string.IsNullOrWhiteSpace(entryType.Name))
+            {
+                return new AuthenticationResponse
+                {
+                    IsSuccess = false,
+                    Message = "Entry type name is required."
+                };
+            }
+
+            entity.Name = entryType.Name;
+            entity.NumberOfDancers = entryType.NumberOfDancers;
+
+            await _dbContext.SaveChangesAsync();
+
+            return new AuthenticationResponse
+            {
+                IsSuccess = true,
+                Message = "Entry type updated successfully."
+            };
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Error updating entry type: {EntryTypeId}", entryType.Id);
+            return new AuthenticationResponse
+            {
+                IsSuccess = false,
+                Message = $"Error updating entry type: {ex.Message}"
+            };
+        }
+    }
+
+    public async Task<AuthenticationResponse> DeleteEntryTypeAsync(int entryTypeId)
+    {
+        try
+        {
+            var entity = await _dbContext.EntryTypes.FindAsync(entryTypeId);
+            if (entity == null)
+            {
+                return new AuthenticationResponse
+                {
+                    IsSuccess = false,
+                    Message = "Entry type not found."
+                };
+            }
+
+            _dbContext.EntryTypes.Remove(entity);
+            await _dbContext.SaveChangesAsync();
+
+            return new AuthenticationResponse
+            {
+                IsSuccess = true,
+                Message = "Entry type deleted successfully."
+            };
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Error deleting entry type: {EntryTypeId}", entryTypeId);
+            return new AuthenticationResponse
+            {
+                IsSuccess = false,
+                Message = $"Error deleting entry type: {ex.Message}"
+            };
+        }
+    }
+
+    public async Task<AuthenticationResponse> CreateAgeGroupAsync(AgeGroup ageGroup)
+    {
+        try
+        {
+            if (ageGroup == null || string.IsNullOrWhiteSpace(ageGroup.Name) || string.IsNullOrWhiteSpace(ageGroup.Code))
+            {
+                return new AuthenticationResponse
+                {
+                    IsSuccess = false,
+                    Message = "Age group code and name are required."
+                };
+            }
+
+            if (ageGroup.MinAge < 0 || ageGroup.MaxAge < ageGroup.MinAge)
+            {
+                return new AuthenticationResponse
+                {
+                    IsSuccess = false,
+                    Message = "Age group min and max ages must be valid."
+                };
+            }
+
+            var exists = await _dbContext.AgeGroups.AnyAsync(ag => ag.Code == ageGroup.Code);
+            if (exists)
+            {
+                return new AuthenticationResponse
+                {
+                    IsSuccess = false,
+                    Message = "An age group with this code already exists."
+                };
+            }
+
+            _dbContext.AgeGroups.Add(ageGroup);
+            await _dbContext.SaveChangesAsync();
+
+            return new AuthenticationResponse
+            {
+                IsSuccess = true,
+                Message = "Age group created successfully."
+            };
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Error creating age group: {AgeGroupCode}", ageGroup?.Code);
+            return new AuthenticationResponse
+            {
+                IsSuccess = false,
+                Message = $"Error creating age group: {ex.Message}"
+            };
+        }
+    }
+
+    public async Task<AuthenticationResponse> UpdateAgeGroupAsync(AgeGroup ageGroup)
+    {
+        try
+        {
+            var entity = await _dbContext.AgeGroups.FindAsync(ageGroup.Id);
+            if (entity == null)
+            {
+                return new AuthenticationResponse
+                {
+                    IsSuccess = false,
+                    Message = "Age group not found."
+                };
+            }
+
+            if (string.IsNullOrWhiteSpace(ageGroup.Name) || string.IsNullOrWhiteSpace(ageGroup.Code))
+            {
+                return new AuthenticationResponse
+                {
+                    IsSuccess = false,
+                    Message = "Age group code and name are required."
+                };
+            }
+
+            if (ageGroup.MinAge < 0 || ageGroup.MaxAge < ageGroup.MinAge)
+            {
+                return new AuthenticationResponse
+                {
+                    IsSuccess = false,
+                    Message = "Age group min and max ages must be valid."
+                };
+            }
+
+            entity.Code = ageGroup.Code;
+            entity.Name = ageGroup.Name;
+            entity.MinAge = ageGroup.MinAge;
+            entity.MaxAge = ageGroup.MaxAge;
+
+            await _dbContext.SaveChangesAsync();
+
+            return new AuthenticationResponse
+            {
+                IsSuccess = true,
+                Message = "Age group updated successfully."
+            };
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Error updating age group: {AgeGroupId}", ageGroup.Id);
+            return new AuthenticationResponse
+            {
+                IsSuccess = false,
+                Message = $"Error updating age group: {ex.Message}"
+            };
+        }
+    }
+
+    public async Task<AuthenticationResponse> DeleteAgeGroupAsync(int ageGroupId)
+    {
+        try
+        {
+            var entity = await _dbContext.AgeGroups.FindAsync(ageGroupId);
+            if (entity == null)
+            {
+                return new AuthenticationResponse
+                {
+                    IsSuccess = false,
+                    Message = "Age group not found."
+                };
+            }
+
+            _dbContext.AgeGroups.Remove(entity);
+            await _dbContext.SaveChangesAsync();
+
+            return new AuthenticationResponse
+            {
+                IsSuccess = true,
+                Message = "Age group deleted successfully."
+            };
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Error deleting age group: {AgeGroupId}", ageGroupId);
+            return new AuthenticationResponse
+            {
+                IsSuccess = false,
+                Message = $"Error deleting age group: {ex.Message}"
+            };
+        }
     }
 
     public async Task<List<UserDto>> GetAllUsersAsync()

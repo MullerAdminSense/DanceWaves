@@ -12,7 +12,15 @@
 
 <AuthorizeView>
     <Authorized>
-        @if (IsAdmin)
+        @if (!IsSuperAdmin)
+        {
+            <div class="container-fluid mt-5">
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i> Not Allowed
+                </div>
+            </div>
+        }
+        else
         {
             <div class="container-fluid mt-4">
                 <div class="row mb-4">
@@ -150,14 +158,6 @@
                 <div class="modal-backdrop fade show"></div>
             }
         }
-        else
-        {
-            <div class="container-fluid mt-5">
-                <div class="alert alert-warning">
-                    <i class="bi bi-exclamation-triangle"></i> You do not have permission to access this page.
-                </div>
-            </div>
-        }
     </Authorized>
     <NotAuthorized>
         <div class="container-fluid mt-5">
@@ -174,7 +174,7 @@
     private List<DanceSchool> DanceSchools { get; set; } = new();
     private List<Franchise> Franchises { get; set; } = new();
     private bool IsLoading { get; set; } = true;
-    private bool IsAdmin { get; set; } = false;
+    private bool IsSuperAdmin { get; set; } = false;
     private int? CurrentUserId { get; set; }
     private string? ErrorMessage { get; set; }
     private string? SuccessMessage { get; set; }
@@ -188,21 +188,18 @@
         {
             var authState = await AuthStateProvider.GetAuthenticationStateAsync();
             var userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            
             if (!string.IsNullOrEmpty(userId) && int.TryParse(userId, out var id))
             {
                 CurrentUserId = id;
                 var currentUser = await AuthenticationPort.GetCurrentUserAsync(userId);
                 if (currentUser != null)
                 {
-                    // Verifica se o usuário é SuperAdmin ou FranchiseAdmin
                     var role = await AuthenticationPort.GetAllRolePermissionsAsync();
                     var userRole = role.FirstOrDefault(r => r.Id == currentUser.RolePermissionId);
-                    IsAdmin = userRole != null && (userRole.Name == "SuperAdmin" || userRole.Name == "FranchiseAdmin");
+                    IsSuperAdmin = userRole != null && userRole.Name == "SuperAdmin";
                 }
             }
-
-            if (IsAdmin)
+            if (IsSuperAdmin)
             {
                 await LoadUsers();
                 await LoadReferenceData();
