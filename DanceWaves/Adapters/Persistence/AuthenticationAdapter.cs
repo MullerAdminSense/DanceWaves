@@ -160,6 +160,15 @@ public class AuthenticationAdapter(ApplicationDbContext dbContext) : IAuthentica
                 };
             }
 
+            if (string.IsNullOrWhiteSpace(rolePermission.Name))
+            {
+                return new AuthenticationResponse
+                {
+                    IsSuccess = false,
+                    Message = "Role permission name is required."
+                };
+            }
+
             var nameExists = await _dbContext.UserRolePermissions.AnyAsync(rp => rp.Name == rolePermission.Name && rp.Id != rolePermission.Id);
             if (nameExists)
             {
