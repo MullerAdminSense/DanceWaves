@@ -1,150 +1,231 @@
-
-
 @page "/register-agegroup"
-@using DanceWaves.Models
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Authorization
+@using DanceWaves.Application.Dtos
 @using DanceWaves.Application.Ports
+@using DanceWaves.Models
 @inject IAuthenticationPort AuthenticationPort
-@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
+@inject ILogger<AgeGroupRegister> Logger
 @rendermode InteractiveServer
 
-<div class="container-fluid mt-4">
-    <div class="row mb-4">
-        <div class="col-md-12">
-            <h2 class="d-inline-block ms-2 mb-0"><i class="bi bi-people"></i> Age Group Management</h2>
-            <button class="btn btn-primary float-end" @onclick="HandleAddAgeGroup">
-                <i class="bi bi-plus-circle"></i> Add Age Group
-            </button>
-        </div>
-    </div>
+<CascadingAuthenticationState>
+    <AuthorizeView>
+        <Authorized>
+            @if (IsAdmin)
+            {
+                <div class="container-fluid mt-4">
+                    <div class="row mb-2">
+                        <div class="col-md-12">
+                            <a href="/administration" class="btn btn-outline-secondary btn-sm">
+                                <i class="bi bi-arrow-left"></i> Back to Administration
+                            </a>
+                        </div>
+                    </div>
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <h2 class="mb-0"><i class="bi bi-people"></i> Age Group Management</h2>
+                            <p class="text-muted">Define the age intervals that competitors can participate in</p>
+                        </div>
+                    </div>
 
-    @if (!string.IsNullOrEmpty(ErrorMessage))
-    {
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            @ErrorMessage
-            <button type="button" class="btn-close" @onclick="@(() => ErrorMessage = null)"></button>
-        </div>
-    }
+                    @if (!string.IsNullOrEmpty(ErrorMessage))
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            @ErrorMessage
+                            <button type="button" class="btn-close" @onclick="@(() => ErrorMessage = null)"></button>
+                        </div>
+                    }
 
-    @if (!string.IsNullOrEmpty(SuccessMessage))
-    {
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            @SuccessMessage
-            <button type="button" class="btn-close" @onclick="@(() => SuccessMessage = null)"></button>
-        </div>
-    }
+                    @if (!string.IsNullOrEmpty(SuccessMessage))
+                    {
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            @SuccessMessage
+                            <button type="button" class="btn-close" @onclick="@(() => SuccessMessage = null)"></button>
+                        </div>
+                    }
 
-    @if (IsLoading)
-    {
-        <div class="text-center py-5">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
-            </div>
-        </div>
-    }
-    else if (AgeGroups == null || !AgeGroups.Any())
-    {
-        <div class="alert alert-info">
-            <i class="bi bi-info-circle"></i> Without Entry
-        </div>
-    }
-    else
-    {
-        <div class="card">
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-striped table-hover">
-                        <thead class="table-dark">
-                            <tr>
-                                <th>ID</th>
-                                <th>Code</th>
-                                <th>Name</th>
-                                <th>Min Age</th>
-                                <th>Max Age</th>
-                                <th class="text-center">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var ag in AgeGroups)
-                            {
-                                <tr>
-                                    <td>@ag.Id</td>
-                                    <td>@ag.Code</td>
-                                    <td>@ag.Name</td>
-                                    <td>@ag.MinAge</td>
-                                    <td>@ag.MaxAge</td>
-                                    <td class="text-center">
-                                        <div class="btn-group" role="group">
-                                            <button class="btn btn-sm btn-outline-primary" @onclick="@(() => HandleEditAgeGroup(ag))" title="Edit Age Group">
-                                                <i class="bi bi-pencil"></i>
-                                            </button>
-                                            <button class="btn btn-sm btn-outline-danger" @onclick="@(() => HandleDeleteAgeGroup(ag))" title="Delete Age Group">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <h5 class="card-title mb-3">@FormTitle</h5>
+                            <form class="row gx-3 gy-2 align-items-end">
+                                <div class="col-md-3">
+                                    <label class="form-label">Code</label>
+                                    <input class="form-control" @bind="EditingAgeGroup.Code" />
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Name</label>
+                                    <input class="form-control" @bind="EditingAgeGroup.Name" />
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Min Age</label>
+                                    <input type="number" class="form-control" @bind="EditingAgeGroup.MinAge" min="0" />
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Max Age</label>
+                                    <input type="number" class="form-control" @bind="EditingAgeGroup.MaxAge" min="0" />
+                                </div>
+                                <div class="col-md-1 d-flex gap-2">
+                                    <button type="button" class="btn btn-success" @onclick="HandleSaveAgeGroup" disabled="@IsSavingAgeGroup">
+                                        @(EditingAgeGroup.Id > 0 ? "Update" : "Create")
+                                    </button>
+                                </div>
+                                <div class="col-md-12 mt-1">
+                                    <button type="button" class="btn btn-outline-secondary" @onclick="CancelEditAgeGroup" disabled="@IsSavingAgeGroup">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    @if (IsLoading)
+                    {
+                        <div class="text-center py-5">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                    }
+                    else if (AgeGroups == null || !AgeGroups.Any())
+                    {
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i> No age groups defined yet.
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-striped table-hover">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Code</th>
+                                                <th>Name</th>
+                                                <th>Min Age</th>
+                                                <th>Max Age</th>
+                                                <th class="text-center">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var ag in AgeGroups)
+                                            {
+                                                <tr>
+                                                    <td>@ag.Id</td>
+                                                    <td>@ag.Code</td>
+                                                    <td>@ag.Name</td>
+                                                    <td>@ag.MinAge</td>
+                                                    <td>@ag.MaxAge</td>
+                                                    <td class="text-center">
+                                                        <div class="btn-group" role="group">
+                                                            <button class="btn btn-sm btn-outline-primary" @onclick="@(() => HandleEditAgeGroup(ag))" title="Edit Age Group">
+                                                                <i class="bi bi-pencil"></i>
+                                                            </button>
+                                                            <button class="btn btn-sm btn-outline-danger" @onclick="@(() => HandleDeleteAgeGroup(ag))" title="Delete Age Group">
+                                                                <i class="bi bi-trash"></i>
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+                    @if (ShowDeleteConfirm && AgeGroupToDelete != null)
+                    {
+                        <div class="modal fade show" style="display: block;" tabindex="-1">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">Confirm Deletion</h5>
+                                        <button type="button" class="btn-close" @onclick="@(() => ShowDeleteConfirm = false)"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <p>Delete age group <strong>@AgeGroupToDelete.Code</strong> - @AgeGroupToDelete.Name?</p>
+                                        <p class="text-danger"><small>This action cannot be undone.</small></p>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" @onclick="@(() => ShowDeleteConfirm = false)">Cancel</button>
+                                        <button type="button" class="btn btn-danger" @onclick="ConfirmDeleteAgeGroup" disabled="@IsDeleting">
+                                            @if (IsDeleting)
+                                            {
+                                                <span class="spinner-border spinner-border-sm me-2"></span>
+                                            }
+                                            Delete Age Group
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-backdrop fade show"></div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="container-fluid mt-5">
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i> You do not have permission to access this page.
+                    </div>
+                </div>
+            }
+        </Authorized>
+        <NotAuthorized>
+            <div class="container-fluid mt-5">
+                <div class="alert alert-danger">
+                    <i class="bi bi-lock"></i> Please log in to access this page.
                 </div>
             </div>
-        </div>
-    }
-
-    @if (ShowDeleteConfirm && AgeGroupToDelete != null)
-    {
-        <div class="modal fade show" style="display: block;" tabindex="-1">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Confirm Deletion</h5>
-                        <button type="button" class="btn-close" @onclick="@(() => ShowDeleteConfirm = false)"></button>
-                    </div>
-                    <div class="modal-body">
-                        <p>Are you sure you want to delete age group <strong>@AgeGroupToDelete.Name</strong>?</p>
-                        <p class="text-danger"><small>This action cannot be undone.</small></p>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" @onclick="@(() => ShowDeleteConfirm = false)">Cancel</button>
-                        <button type="button" class="btn btn-danger" @onclick="ConfirmDeleteAgeGroup" disabled="@IsDeleting">
-                            @if (IsDeleting)
-                            {
-                                <span class="spinner-border spinner-border-sm me-2"></span>
-                            }
-                            Delete Age Group
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="modal-backdrop fade show"></div>
-    }
-</div>
+        </NotAuthorized>
+    </AuthorizeView>
+</CascadingAuthenticationState>
 
 @code {
     private List<AgeGroup> AgeGroups { get; set; } = new();
+    private AgeGroup EditingAgeGroup { get; set; } = new();
+    private AgeGroup? AgeGroupToDelete { get; set; }
     private bool IsLoading { get; set; } = true;
+    private bool IsSavingAgeGroup { get; set; } = false;
+    private bool IsAdmin { get; set; } = false;
+    private bool IsDeleting { get; set; } = false;
     private string? ErrorMessage { get; set; }
     private string? SuccessMessage { get; set; }
     private bool ShowDeleteConfirm { get; set; } = false;
-    private AgeGroup? AgeGroupToDelete { get; set; }
-    private bool IsDeleting { get; set; } = false;
+
+    private string FormTitle => EditingAgeGroup.Id > 0 ? "Update Age Group" : "Create Age Group";
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadAgeGroups();
-    }
-
-    private async Task LoadAgeGroups()
-    {
         try
         {
-            // TODO: Implement GetAllAgeGroupsAsync in AuthenticationPort
-            AgeGroups = new List<AgeGroup>();
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!string.IsNullOrEmpty(userId))
+            {
+                var currentUser = await AuthenticationPort.GetCurrentUserAsync(userId);
+                if (currentUser != null)
+                {
+                    var rolePermissions = await AuthenticationPort.GetAllRolePermissionsAsync();
+                    var userRole = rolePermissions.FirstOrDefault(r => r.Id == currentUser.RolePermissionId);
+                    IsAdmin = userRole != null && (userRole.Name == "SuperAdmin" || userRole.Name == "FranchiseAdmin");
+                }
+            }
+
+            if (IsAdmin)
+            {
+                await LoadAgeGroups();
+            }
         }
         catch (Exception ex)
         {
             ErrorMessage = $"Error loading age groups: {ex.Message}";
+            Logger.LogError(ex, "Error loading age groups in AgeGroupRegister");
         }
         finally
         {
@@ -152,18 +233,106 @@
         }
     }
 
-    private void HandleAddAgeGroup()
+    private async Task LoadAgeGroups()
     {
-        // TODO: Navegar para página de cadastro ou abrir modal
+        try
+        {
+            AgeGroups = await AuthenticationPort.GetAllAgeGroupsAsync();
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error loading age groups: {ex.Message}";
+            Logger.LogError(ex, "Error loading age groups");
+        }
     }
 
     private void HandleEditAgeGroup(AgeGroup ag)
     {
-        // TODO: Navegar para página de edição ou abrir modal
+        Logger.LogInformation("Editing age group {AgeGroupId}", ag.Id);
+        EditingAgeGroup = new AgeGroup
+        {
+            Id = ag.Id,
+            Code = ag.Code,
+            Name = ag.Name,
+            MinAge = ag.MinAge,
+            MaxAge = ag.MaxAge
+        };
+        ErrorMessage = null;
+        SuccessMessage = null;
+    }
+
+    private void CancelEditAgeGroup()
+    {
+        Logger.LogInformation("Age group edit canceled");
+        EditingAgeGroup = new AgeGroup();
+        ErrorMessage = null;
+    }
+
+    private async Task HandleSaveAgeGroup()
+    {
+        ErrorMessage = null;
+        SuccessMessage = null;
+
+        if (string.IsNullOrWhiteSpace(EditingAgeGroup.Code) || string.IsNullOrWhiteSpace(EditingAgeGroup.Name))
+        {
+            ErrorMessage = "Code and Name are required.";
+            return;
+        }
+
+        if (EditingAgeGroup.MinAge < 6 || EditingAgeGroup.MinAge > 120)
+        {
+            ErrorMessage = "Min Age must be between 6 and 120.";
+            return;
+        }
+        if (EditingAgeGroup.MaxAge < 6 || EditingAgeGroup.MaxAge > 120)
+        {
+            ErrorMessage = "Max Age must be between 6 and 120.";
+            return;
+        }
+        if (EditingAgeGroup.MaxAge < EditingAgeGroup.MinAge)
+        {
+            ErrorMessage = "Max age must be equal or greater than min age.";
+            return;
+        }
+
+        IsSavingAgeGroup = true;
+        try
+        {
+            AuthenticationResponse response;
+            if (EditingAgeGroup.Id > 0)
+            {
+                response = await AuthenticationPort.UpdateAgeGroupAsync(EditingAgeGroup);
+            }
+            else
+            {
+                response = await AuthenticationPort.CreateAgeGroupAsync(EditingAgeGroup);
+            }
+
+            if (response.IsSuccess)
+            {
+                SuccessMessage = response.Message ?? "Age group saved.";
+                EditingAgeGroup = new AgeGroup();
+                await LoadAgeGroups();
+            }
+            else
+            {
+                ErrorMessage = response.Message ?? "Failed to save age group.";
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error saving age group: {ex.Message}";
+            Logger.LogError(ex, "Error saving age group");
+        }
+        finally
+        {
+            IsSavingAgeGroup = false;
+        }
     }
 
     private void HandleDeleteAgeGroup(AgeGroup ag)
     {
+        Logger.LogInformation("Preparing to delete age group {AgeGroupId}", ag.Id);
         AgeGroupToDelete = ag;
         ShowDeleteConfirm = true;
     }
@@ -171,11 +340,33 @@
     private async Task ConfirmDeleteAgeGroup()
     {
         if (AgeGroupToDelete == null) return;
+
         IsDeleting = true;
         ErrorMessage = null;
         SuccessMessage = null;
-        // TODO: Implement delete logic
-        ErrorMessage = "Age group deletion not implemented.";
-        IsDeleting = false;
+        try
+        {
+            var response = await AuthenticationPort.DeleteAgeGroupAsync(AgeGroupToDelete.Id);
+            if (response.IsSuccess)
+            {
+                SuccessMessage = response.Message ?? "Age group deleted.";
+                ShowDeleteConfirm = false;
+                AgeGroupToDelete = null;
+                await LoadAgeGroups();
+            }
+            else
+            {
+                ErrorMessage = response.Message ?? "Failed to delete age group.";
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error deleting age group: {ex.Message}";
+            Logger.LogError(ex, "Error deleting age group: {AgeGroupId}", AgeGroupToDelete?.Id);
+        }
+        finally
+        {
+            IsDeleting = false;
+        }
     }
 }
