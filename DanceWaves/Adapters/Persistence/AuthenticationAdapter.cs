@@ -160,6 +160,16 @@ public class AuthenticationAdapter(ApplicationDbContext dbContext) : IAuthentica
                 };
             }
 
+            var nameExists = await _dbContext.UserRolePermissions.AnyAsync(rp => rp.Name == rolePermission.Name && rp.Id != rolePermission.Id);
+            if (nameExists)
+            {
+                return new AuthenticationResponse
+                {
+                    IsSuccess = false,
+                    Message = "A role permission with this name already exists."
+                };
+            }
+
             entity.Name = rolePermission.Name;
             entity.Description = rolePermission.Description;
 
@@ -171,13 +181,24 @@ public class AuthenticationAdapter(ApplicationDbContext dbContext) : IAuthentica
                 Message = "Role permission updated successfully."
             };
         }
-        catch (Exception ex)
+        catch (DbUpdateException dbEx)
         {
-            Log.Error(ex, "Error updating role permission: {RoleId}", rolePermission?.Id);
+            var innerMessage = dbEx.InnerException?.Message ?? dbEx.Message;
+            Log.Error(dbEx, "Database error updating role permission: {RoleId}", rolePermission?.Id);
             return new AuthenticationResponse
             {
                 IsSuccess = false,
-                Message = $"An error occurred while updating the role permission: {ex.Message}"
+                Message = $"Error updating role permission: {innerMessage}"
+            };
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Error updating role permission: {RoleId}", rolePermission?.Id);
+            var innerMessage = ex.InnerException?.Message ?? ex.Message;
+            return new AuthenticationResponse
+            {
+                IsSuccess = false,
+                Message = $"Error updating role permission: {innerMessage}"
             };
         }
     }
@@ -196,6 +217,16 @@ public class AuthenticationAdapter(ApplicationDbContext dbContext) : IAuthentica
                 };
             }
 
+            var usersWithRole = await _dbContext.Users.AnyAsync(u => u.RolePermissionId == rolePermissionId);
+            if (usersWithRole)
+            {
+                return new AuthenticationResponse
+                {
+                    IsSuccess = false,
+                    Message = "Cannot delete this role permission because it is assigned to one or more users. Please reassign or remove those users first."
+                };
+            }
+
             _dbContext.UserRolePermissions.Remove(entity);
             await _dbContext.SaveChangesAsync();
 
@@ -205,13 +236,24 @@ public class AuthenticationAdapter(ApplicationDbContext dbContext) : IAuthentica
                 Message = "Role permission deleted successfully."
             };
         }
-        catch (Exception ex)
+        catch (DbUpdateException dbEx)
         {
-            Log.Error(ex, "Error deleting role permission: {RoleId}", rolePermissionId);
+            var innerMessage = dbEx.InnerException?.Message ?? dbEx.Message;
+            Log.Error(dbEx, "Database error deleting role permission: {RoleId}", rolePermissionId);
             return new AuthenticationResponse
             {
                 IsSuccess = false,
-                Message = $"An error occurred while deleting the role permission: {ex.Message}"
+                Message = $"Error deleting role permission: {innerMessage}"
+            };
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Error deleting role permission: {RoleId}", rolePermissionId);
+            var innerMessage = ex.InnerException?.Message ?? ex.Message;
+            return new AuthenticationResponse
+            {
+                IsSuccess = false,
+                Message = $"Error deleting role permission: {innerMessage}"
             };
         }
     }
@@ -298,6 +340,16 @@ public class AuthenticationAdapter(ApplicationDbContext dbContext) : IAuthentica
                 };
             }
 
+            var codeExists = await _dbContext.Styles.AnyAsync(s => s.Code == style.Code && s.Id != style.Id);
+            if (codeExists)
+            {
+                return new AuthenticationResponse
+                {
+                    IsSuccess = false,
+                    Message = "A style with this code already exists."
+                };
+            }
+
             entity.Code = style.Code;
             entity.Name = style.Name;
 
@@ -309,13 +361,24 @@ public class AuthenticationAdapter(ApplicationDbContext dbContext) : IAuthentica
                 Message = "Style updated successfully."
             };
         }
-        catch (Exception ex)
+        catch (DbUpdateException dbEx)
         {
-            Log.Error(ex, "Error updating style: {StyleId}", style.Id);
+            var innerMessage = dbEx.InnerException?.Message ?? dbEx.Message;
+            Log.Error(dbEx, "Database error updating style: {StyleId}", style.Id);
             return new AuthenticationResponse
             {
                 IsSuccess = false,
-                Message = $"Error updating style: {ex.Message}"
+                Message = $"Error updating style: {innerMessage}"
+            };
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Error updating style: {StyleId}", style.Id);
+            var innerMessage = ex.InnerException?.Message ?? ex.Message;
+            return new AuthenticationResponse
+            {
+                IsSuccess = false,
+                Message = $"Error updating style: {innerMessage}"
             };
         }
     }
@@ -334,6 +397,16 @@ public class AuthenticationAdapter(ApplicationDbContext dbContext) : IAuthentica
                 };
             }
 
+            var categoriesUsingStyle = await _dbContext.CompetitionCategories.AnyAsync(cc => cc.StyleId == styleId);
+            if (categoriesUsingStyle)
+            {
+                return new AuthenticationResponse
+                {
+                    IsSuccess = false,
+                    Message = "Cannot delete this style because it is used in one or more competition categories. Please remove or update those categories first."
+                };
+            }
+
             _dbContext.Styles.Remove(entity);
             await _dbContext.SaveChangesAsync();
 
@@ -343,13 +416,24 @@ public class AuthenticationAdapter(ApplicationDbContext dbContext) : IAuthentica
                 Message = "Style deleted successfully."
             };
         }
-        catch (Exception ex)
+        catch (DbUpdateException dbEx)
         {
-            Log.Error(ex, "Error deleting style: {StyleId}", styleId);
+            var innerMessage = dbEx.InnerException?.Message ?? dbEx.Message;
+            Log.Error(dbEx, "Database error deleting style: {StyleId}", styleId);
             return new AuthenticationResponse
             {
                 IsSuccess = false,
-                Message = $"Error deleting style: {ex.Message}"
+                Message = $"Error deleting style: {innerMessage}"
+            };
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Error deleting style: {StyleId}", styleId);
+            var innerMessage = ex.InnerException?.Message ?? ex.Message;
+            return new AuthenticationResponse
+            {
+                IsSuccess = false,
+                Message = $"Error deleting style: {innerMessage}"
             };
         }
     }
@@ -428,6 +512,16 @@ public class AuthenticationAdapter(ApplicationDbContext dbContext) : IAuthentica
                 };
             }
 
+            var nameExists = await _dbContext.EntryTypes.AnyAsync(et => et.Name == entryType.Name && et.Id != entryType.Id);
+            if (nameExists)
+            {
+                return new AuthenticationResponse
+                {
+                    IsSuccess = false,
+                    Message = "An entry type with this name already exists."
+                };
+            }
+
             entity.Name = entryType.Name;
             entity.NumberOfDancers = entryType.NumberOfDancers;
 
@@ -439,13 +533,24 @@ public class AuthenticationAdapter(ApplicationDbContext dbContext) : IAuthentica
                 Message = "Entry type updated successfully."
             };
         }
-        catch (Exception ex)
+        catch (DbUpdateException dbEx)
         {
-            Log.Error(ex, "Error updating entry type: {EntryTypeId}", entryType.Id);
+            var innerMessage = dbEx.InnerException?.Message ?? dbEx.Message;
+            Log.Error(dbEx, "Database error updating entry type: {EntryTypeId}", entryType.Id);
             return new AuthenticationResponse
             {
                 IsSuccess = false,
-                Message = $"Error updating entry type: {ex.Message}"
+                Message = $"Error updating entry type: {innerMessage}"
+            };
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Error updating entry type: {EntryTypeId}", entryType.Id);
+            var innerMessage = ex.InnerException?.Message ?? ex.Message;
+            return new AuthenticationResponse
+            {
+                IsSuccess = false,
+                Message = $"Error updating entry type: {innerMessage}"
             };
         }
     }
@@ -473,13 +578,24 @@ public class AuthenticationAdapter(ApplicationDbContext dbContext) : IAuthentica
                 Message = "Entry type deleted successfully."
             };
         }
-        catch (Exception ex)
+        catch (DbUpdateException dbEx)
         {
-            Log.Error(ex, "Error deleting entry type: {EntryTypeId}", entryTypeId);
+            var innerMessage = dbEx.InnerException?.Message ?? dbEx.Message;
+            Log.Error(dbEx, "Database error deleting entry type: {EntryTypeId}", entryTypeId);
             return new AuthenticationResponse
             {
                 IsSuccess = false,
-                Message = $"Error deleting entry type: {ex.Message}"
+                Message = $"Error deleting entry type: {innerMessage}"
+            };
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Error deleting entry type: {EntryTypeId}", entryTypeId);
+            var innerMessage = ex.InnerException?.Message ?? ex.Message;
+            return new AuthenticationResponse
+            {
+                IsSuccess = false,
+                Message = $"Error deleting entry type: {innerMessage}"
             };
         }
     }
@@ -568,6 +684,16 @@ public class AuthenticationAdapter(ApplicationDbContext dbContext) : IAuthentica
                 };
             }
 
+            var codeExists = await _dbContext.AgeGroups.AnyAsync(ag => ag.Code == ageGroup.Code && ag.Id != ageGroup.Id);
+            if (codeExists)
+            {
+                return new AuthenticationResponse
+                {
+                    IsSuccess = false,
+                    Message = "An age group with this code already exists."
+                };
+            }
+
             entity.Code = ageGroup.Code;
             entity.Name = ageGroup.Name;
             entity.MinAge = ageGroup.MinAge;
@@ -581,13 +707,24 @@ public class AuthenticationAdapter(ApplicationDbContext dbContext) : IAuthentica
                 Message = "Age group updated successfully."
             };
         }
-        catch (Exception ex)
+        catch (DbUpdateException dbEx)
         {
-            Log.Error(ex, "Error updating age group: {AgeGroupId}", ageGroup.Id);
+            var innerMessage = dbEx.InnerException?.Message ?? dbEx.Message;
+            Log.Error(dbEx, "Database error updating age group: {AgeGroupId}", ageGroup.Id);
             return new AuthenticationResponse
             {
                 IsSuccess = false,
-                Message = $"Error updating age group: {ex.Message}"
+                Message = $"Error updating age group: {innerMessage}"
+            };
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Error updating age group: {AgeGroupId}", ageGroup.Id);
+            var innerMessage = ex.InnerException?.Message ?? ex.Message;
+            return new AuthenticationResponse
+            {
+                IsSuccess = false,
+                Message = $"Error updating age group: {innerMessage}"
             };
         }
     }
@@ -606,6 +743,26 @@ public class AuthenticationAdapter(ApplicationDbContext dbContext) : IAuthentica
                 };
             }
 
+            var categoriesUsingAgeGroup = await _dbContext.CompetitionCategories.AnyAsync(cc => cc.AgeGroupId == ageGroupId);
+            if (categoriesUsingAgeGroup)
+            {
+                return new AuthenticationResponse
+                {
+                    IsSuccess = false,
+                    Message = "Cannot delete this age group because it is used in one or more competition categories. Please remove or update those categories first."
+                };
+            }
+
+            var usersUsingAgeGroup = await _dbContext.Users.AnyAsync(u => u.AgeGroupId == ageGroupId);
+            if (usersUsingAgeGroup)
+            {
+                return new AuthenticationResponse
+                {
+                    IsSuccess = false,
+                    Message = "Cannot delete this age group because it is assigned to one or more users. Please reassign or remove those users first."
+                };
+            }
+
             _dbContext.AgeGroups.Remove(entity);
             await _dbContext.SaveChangesAsync();
 
@@ -615,13 +772,24 @@ public class AuthenticationAdapter(ApplicationDbContext dbContext) : IAuthentica
                 Message = "Age group deleted successfully."
             };
         }
-        catch (Exception ex)
+        catch (DbUpdateException dbEx)
         {
-            Log.Error(ex, "Error deleting age group: {AgeGroupId}", ageGroupId);
+            var innerMessage = dbEx.InnerException?.Message ?? dbEx.Message;
+            Log.Error(dbEx, "Database error deleting age group: {AgeGroupId}", ageGroupId);
             return new AuthenticationResponse
             {
                 IsSuccess = false,
-                Message = $"Error deleting age group: {ex.Message}"
+                Message = $"Error deleting age group: {innerMessage}"
+            };
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Error deleting age group: {AgeGroupId}", ageGroupId);
+            var innerMessage = ex.InnerException?.Message ?? ex.Message;
+            return new AuthenticationResponse
+            {
+                IsSuccess = false,
+                Message = $"Error deleting age group: {innerMessage}"
             };
         }
     }

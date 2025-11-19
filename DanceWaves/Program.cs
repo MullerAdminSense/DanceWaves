@@ -16,7 +16,7 @@ using Microsoft.AspNetCore.Identity;
 using DanceWaves.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
- 
+using DanceWaves.Infrastructure.Services;
 
 SerilogConfig.ConfigureLogger();
 var builder = WebApplication.CreateBuilder(args);
@@ -70,6 +70,7 @@ builder.Services.AddScoped<IEntryPersistencePort, EntryPersistenceAdapter>();
 builder.Services.AddScoped<IUserPersistencePort, UserPersistenceAdapter>();
 builder.Services.AddScoped<INavigationPresenterPort, NavigationPresenterAdapter>();
 builder.Services.AddScoped<IAuthenticationPort, AuthenticationAdapter>();
+builder.Services.AddScoped<ILevelService, LevelService>();
 
  
 builder.Services.AddScoped<GetNavigationMenuUseCase>();
