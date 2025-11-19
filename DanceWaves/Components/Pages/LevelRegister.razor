@@ -1,65 +1,337 @@
-@page "/register-level"
+@page "/administration/levels"
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@using DanceWaves.Models
+@using DanceWaves.Application.Ports
+@inject AuthenticationStateProvider AuthStateProvider
+@inject ILogger<LevelRegister> Logger
+@inject ILevelService LevelService
 @rendermode InteractiveServer
 
-@using DanceWaves.Models
-
-<!-- Level Registration Form -->
-<div class="container-fluid mt-4">
-    <div class="row mb-2">
-        <div class="col-md-12">
-            <a href="/administration" class="btn btn-outline-secondary btn-sm">
-                <i class="bi bi-arrow-left"></i> Back to Administration
-            </a>
-        </div>
-    </div>
-    <div class="row mb-4">
-        <div class="col-md-12">
-            <h2 class="mb-0"><i class="bi bi-bar-chart"></i> Level Management</h2>
-            <p class="text-muted">Create, edit and delete Levels</p>
-        </div>
-    </div>
-    <div class="row">
-        <div class="col-md-8 offset-md-2">
-            <div class="card shadow">
-                <div class="card-header bg-primary text-white">
-                    <h3 class="mb-0">Register Level</h3>
+<CascadingAuthenticationState>
+    <AuthorizeView>
+        <Authorized>
+            @if (!HasCheckedPermissions)
+            {
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
                 </div>
-                <div class="card-body p-5">
+            }
+            else if (IsAdmin)
+            {
+                <div class="container-fluid mt-4">
+                    <div class="row mb-2">
+                        <div class="col-md-12">
+                            <a href="/administration" class="btn btn-outline-secondary btn-sm">
+                                <i class="bi bi-arrow-left"></i> Back to Administration
+                            </a>
+                        </div>
+                    </div>
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <h2 class="mb-0"><i class="bi bi-bar-chart"></i> Level Management</h2>
+                            <p class="text-muted">Create, edit, and delete Levels</p>
+                        </div>
+                    </div>
+
                     @if (!string.IsNullOrEmpty(ErrorMessage))
                     {
-                        <div class="alert alert-danger">@ErrorMessage</div>
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            @ErrorMessage
+                            <button type="button" class="btn-close" @onclick="() => ErrorMessage = null"></button>
+                        </div>
                     }
+
                     @if (!string.IsNullOrEmpty(SuccessMessage))
                     {
-                        <div class="alert alert-success">@SuccessMessage</div>
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            @SuccessMessage
+                            <button type="button" class="btn-close" @onclick="() => SuccessMessage = null"></button>
+                        </div>
                     }
-                    <form @onsubmit="HandleRegister">
-                        <div class="mb-3">
-                            <label for="code" class="form-label">Code *</label>
-                            <input type="text" class="form-control" id="code" @bind="Level.Code" required />
+
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <h5 class="card-title mb-3">@FormTitle</h5>
+                            <form class="row gx-3 gy-2 align-items-end">
+                                <div class="col-md-4">
+                                    <label for="levelCode" class="form-label">Code</label>
+                                    <input id="levelCode" class="form-control" @bind="EditingLevel.Code" required />
+                                </div>
+                                <div class="col-md-5">
+                                    <label for="levelName" class="form-label">Name</label>
+                                    <input id="levelName" class="form-control" @bind="EditingLevel.Name" required />
+                                </div>
+                                <div class="col-md-5 d-flex gap-2">
+                                    <button type="button" class="btn btn-success" @onclick="HandleSaveLevel" disabled="@IsSavingLevel">
+                                        @(EditingLevel.Id > 0 ? "Update" : "Create")
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary" @onclick="CancelEditLevel" disabled="@IsSavingLevel">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </form>
                         </div>
-                        <div class="mb-3">
-                            <label for="name" class="form-label">Name *</label>
-                            <input type="text" class="form-control" id="name" @bind="Level.Name" required />
+                    </div>
+
+                    @if (IsLoading)
+                    {
+                        <div class="text-center py-5">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
                         </div>
-                        <button type="submit" class="btn btn-primary btn-lg w-100">Register Level</button>
-                    </form>
+                    }
+                    else if (Levels == null || !Levels.Any())
+                    {
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i> No levels found.
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-striped table-hover">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Code</th>
+                                                <th>Name</th>
+                                                <th class="text-center">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var level in Levels)
+                                            {
+                                                <tr>
+                                                    <td>@level.Id</td>
+                                                    <td>@level.Code</td>
+                                                    <td>@level.Name</td>
+                                                    <td class="text-center">
+                                                        <div class="btn-group" role="group">
+                                                            <button class="btn btn-sm btn-outline-primary" 
+                                                                    @onclick="() => HandleEditLevel(level)" 
+                                                                    title="Edit Level">
+                                                                <i class="bi bi-pencil"></i>
+                                                            </button>
+                                                            <button class="btn btn-sm btn-outline-danger" 
+                                                                    @onclick="() => HandleDeleteLevel(level)" 
+                                                                    title="Delete Level">
+                                                                <i class="bi bi-trash"></i>
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                @if (ShowDeleteConfirm && LevelToDelete != null)
+                {
+                    <div class="modal fade show" style="display: block;" tabindex="-1">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Confirm Deletion</h5>
+                                    <button type="button" class="btn-close" @onclick="() => ShowDeleteConfirm = false"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <p>Are you sure you want to delete level <strong>@LevelToDelete?.Name</strong>?</p>
+                                    <p class="text-danger"><small>This action cannot be undone.</small></p>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" @onclick="() => ShowDeleteConfirm = false">Cancel</button>
+                                    <button type="button" class="btn btn-danger" @onclick="ConfirmDeleteLevel" disabled="@IsDeleting">
+                                        @if (IsDeleting)
+                                        {
+                                            <span class="spinner-border spinner-border-sm me-2"></span>
+                                        }
+                                        Delete Level
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-backdrop fade show"></div>
+                }
+            }
+            else
+            {
+                <div class="container-fluid mt-5">
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i> You do not have permission to access this page.
+                    </div>
+                </div>
+            }
+        </Authorized>
+        <NotAuthorized>
+            <div class="container-fluid mt-5">
+                <div class="alert alert-danger">
+                    <i class="bi bi-lock"></i> Please log in to access this page.
                 </div>
             </div>
-        </div>
-    </div>
-</div>
+        </NotAuthorized>
+    </AuthorizeView>
+</CascadingAuthenticationState>
 
 @code {
-    private Level Level { get; set; } = new Level();
-    private string ErrorMessage { get; set; } = string.Empty;
-    private string SuccessMessage { get; set; } = string.Empty;
+    private List<Level> Levels { get; set; } = new();
+    private Level EditingLevel { get; set; } = new();
+    private bool IsSavingLevel { get; set; } = false;
+    private bool IsLoading { get; set; } = true;
+    private bool IsAdmin { get; set; } = false;
+    private bool HasCheckedPermissions { get; set; } = false;
+    private string? ErrorMessage { get; set; }
+    private string? SuccessMessage { get; set; }
+    private bool ShowDeleteConfirm { get; set; } = false;
+    private Level? LevelToDelete { get; set; }
+    private bool IsDeleting { get; set; } = false;
 
-    private async Task HandleRegister()
+    private string FormTitle => EditingLevel.Id > 0 ? "Update Level" : "Create Level";
+
+    protected override async Task OnInitializedAsync()
     {
-        ErrorMessage = string.Empty;
-        SuccessMessage = string.Empty;
-        // TODO: Adicionar lógica de persistência
-        SuccessMessage = "Level registered successfully.";
+        try
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!string.IsNullOrEmpty(userId))
+            {
+                IsAdmin = true; // Placeholder for actual admin check
+            }
+            if (IsAdmin)
+            {
+                await LoadLevels();
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error loading levels: {ex.Message}";
+            Logger.LogError(ex, "Error loading levels in LevelRegister");
+        }
+        finally
+        {
+            IsLoading = false;
+            HasCheckedPermissions = true;
+        }
+    }
+
+    private async Task LoadLevels()
+    {
+        try
+        {
+            Levels = await LevelService.GetAllLevelsAsync();
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error loading levels: {ex.Message}";
+            Logger.LogError(ex, "Error loading levels");
+        }
+    }
+
+    private void HandleEditLevel(Level level)
+    {
+        Logger.LogInformation("Editing level {LevelId}", level.Id);
+        EditingLevel = new Level
+        {
+            Id = level.Id,
+            Code = level.Code,
+            Name = level.Name
+        };
+        ErrorMessage = null;
+        SuccessMessage = null;
+        StateHasChanged();
+    }
+
+    private void CancelEditLevel()
+    {
+        Logger.LogInformation("Level edit canceled");
+        EditingLevel = new Level();
+        ErrorMessage = null;
+    }
+
+    private async Task HandleSaveLevel()
+    {
+        ErrorMessage = null;
+        SuccessMessage = null;
+
+        if (string.IsNullOrWhiteSpace(EditingLevel.Name))
+        {
+            ErrorMessage = "Level name is required.";
+            return;
+        }
+
+        IsSavingLevel = true;
+        try
+        {
+            Logger.LogInformation("Saving level {LevelId}", EditingLevel.Id);
+            if (EditingLevel.Id > 0)
+            {
+                await LevelService.UpdateLevelAsync(EditingLevel);
+                SuccessMessage = "Level updated successfully.";
+            }
+            else
+            {
+                await LevelService.CreateLevelAsync(EditingLevel);
+                SuccessMessage = "Level created successfully.";
+            }
+
+            EditingLevel = new Level();
+            await LoadLevels();
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error saving level: {ex.Message}";
+            Logger.LogError(ex, "Error saving level");
+        }
+        finally
+        {
+            IsSavingLevel = false;
+        }
+    }
+
+    private void HandleDeleteLevel(Level level)
+    {
+        Logger.LogInformation("Preparing to delete level {LevelId}", level.Id);
+        LevelToDelete = level;
+        ShowDeleteConfirm = true;
+        StateHasChanged();
+    }
+
+    private async Task ConfirmDeleteLevel()
+    {
+        if (LevelToDelete == null) return;
+
+        IsDeleting = true;
+        ErrorMessage = null;
+        SuccessMessage = null;
+
+        try
+        {
+            await LevelService.DeleteLevelAsync(LevelToDelete.Id);
+            SuccessMessage = "Level deleted successfully.";
+            ShowDeleteConfirm = false;
+            LevelToDelete = null;
+            EditingLevel = new Level(); // Clear fields after deletion
+            await LoadLevels();
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error deleting level: {ex.Message}";
+            Logger.LogError(ex, "Error deleting level: {LevelId}", LevelToDelete?.Id);
+        }
+        finally
+        {
+            IsDeleting = false;
+        }
     }
 }
