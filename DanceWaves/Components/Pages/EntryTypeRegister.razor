@@ -166,9 +166,9 @@ else
 }
 
 @code {
-    private List<EntryType> EntryTypes { get; set; } = new();
-    private EntryType EditingEntryType { get; set; } = new();
-    private EntryType? EntryTypeToDelete { get; set; }
+    private List<EntryTypeDto> EntryTypes { get; set; } = new();
+    private EntryTypeDto EditingEntryType { get; set; } = new();
+    private EntryTypeDto? EntryTypeToDelete { get; set; }
     private bool IsLoading { get; set; } = true;
     private bool IsSavingEntryType { get; set; } = false;
     private bool IsAdmin { get; set; } = false;
@@ -228,10 +228,10 @@ else
         }
     }
 
-    private void HandleEditEntryType(EntryType entryType)
+    private void HandleEditEntryType(EntryTypeDto entryType)
     {
         Logger.LogInformation("Editing entry type {EntryTypeId}", entryType.Id);
-        EditingEntryType = new EntryType
+        EditingEntryType = new EntryTypeDto
         {
             Id = entryType.Id,
             Name = entryType.Name,
@@ -244,7 +244,7 @@ else
     private void CancelEditEntryType()
     {
         Logger.LogInformation("Entry type edit canceled");
-        EditingEntryType = new EntryType();
+        EditingEntryType = new EntryTypeDto();
         ErrorMessage = null;
     }
 
@@ -272,7 +272,7 @@ else
                 SuccessMessage = "Entry type created successfully.";
             }
 
-            EditingEntryType = new EntryType();
+            EditingEntryType = new EntryTypeDto();
             await LoadEntryTypes();
         }
         catch (Exception ex)
@@ -286,7 +286,7 @@ else
         }
     }
 
-    private void HandleDeleteEntryType(EntryType entryType)
+    private void HandleDeleteEntryType(EntryTypeDto entryType)
     {
         Logger.LogInformation("Preparing to delete entry type {EntryTypeId}", entryType.Id);
         EntryTypeToDelete = entryType;

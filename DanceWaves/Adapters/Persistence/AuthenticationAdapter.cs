@@ -3,6 +3,7 @@ using DanceWaves.Application.Ports;
 using DanceWaves.Data;
 using DanceWaves.Models;
 using DanceWaves.Infrastructure.Security;
+using DanceWaves.Adapters.Persistence.Mappers;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using System.Linq;
@@ -18,25 +19,27 @@ public class AuthenticationAdapter(ApplicationDbContext dbContext) : IAuthentica
 {
     private readonly ApplicationDbContext _dbContext = dbContext;
 
-    public async Task<List<DanceSchool>> GetAllDanceSchoolsAsync()
+    public async Task<List<DanceSchoolDto>> GetAllDanceSchoolsAsync()
     {
         // Sempre busca dados atualizados do banco sem cache
-        return await _dbContext.DanceSchools
+        var models = await _dbContext.DanceSchools
             .AsNoTracking()
             .OrderBy(ds => ds.LegalName)
             .ToListAsync();
+        return models.Select(ModelToDtoMapper.ToDto).ToList();
     }
 
-    public async Task<List<Franchise>> GetAllFranchisesAsync()
+    public async Task<List<FranchiseDto>> GetAllFranchisesAsync()
     {
         // Sempre busca dados atualizados do banco sem cache
-        return await _dbContext.Franchises
+        var models = await _dbContext.Franchises
             .AsNoTracking()
             .OrderBy(f => f.LegalName)
             .ToListAsync();
+        return models.Select(ModelToDtoMapper.ToDto).ToList();
     }
 
-    public async Task<List<Franchise>> GetFranchisesByDanceSchoolAsync(int danceSchoolId)
+    public async Task<List<FranchiseDto>> GetFranchisesByDanceSchoolAsync(int danceSchoolId)
     {
         // Sempre busca dados atualizados do banco sem cache
         // Busca a DanceSchool primeiro para obter informações relacionadas
@@ -46,7 +49,7 @@ public class AuthenticationAdapter(ApplicationDbContext dbContext) : IAuthentica
 
         if (danceSchool == null)
         {
-            return new List<Franchise>();
+            return new List<FranchiseDto>();
         }
 
         // Se a DanceSchool tem uma Franchise padrão, inclui essa Franchise na lista
@@ -80,15 +83,16 @@ public class AuthenticationAdapter(ApplicationDbContext dbContext) : IAuthentica
             .ThenBy(f => f.LegalName)
             .ToList();
 
-        return result;
+        return result.Select(ModelToDtoMapper.ToDto).ToList();
     }
 
-    public async Task<List<UserRolePermission>> GetAllRolePermissionsAsync()
+    public async Task<List<UserRolePermissionDto>> GetAllRolePermissionsAsync()
     {
-        return await _dbContext.UserRolePermissions.ToListAsync();
+        var models = await _dbContext.UserRolePermissions.ToListAsync();
+        return models.Select(ModelToDtoMapper.ToDto).ToList();
     }
 
-    public async Task<AuthenticationResponse> CreateRolePermissionAsync(UserRolePermission rolePermission)
+    public async Task<AuthenticationResponse> CreateRolePermissionAsync(UserRolePermissionDto rolePermission)
     {
         try
         {
@@ -111,12 +115,7 @@ public class AuthenticationAdapter(ApplicationDbContext dbContext) : IAuthentica
                 };
             }
 
-            var entity = new UserRolePermission
-            {
-                Name = rolePermission.Name,
-                Description = rolePermission.Description
-            };
-
+            var entity = ModelToDtoMapper.ToModel(rolePermission);
             _dbContext.UserRolePermissions.Add(entity);
             await _dbContext.SaveChangesAsync();
 
@@ -137,7 +136,7 @@ public class AuthenticationAdapter(ApplicationDbContext dbContext) : IAuthentica
         }
     }
 
-    public async Task<AuthenticationResponse> UpdateRolePermissionAsync(UserRolePermission rolePermission)
+    public async Task<AuthenticationResponse> UpdateRolePermissionAsync(UserRolePermissionDto rolePermission)
     {
         try
         {
@@ -267,23 +266,25 @@ public class AuthenticationAdapter(ApplicationDbContext dbContext) : IAuthentica
         }
     }
 
-    public async Task<List<AgeGroup>> GetAllAgeGroupsAsync()
+    public async Task<List<AgeGroupDto>> GetAllAgeGroupsAsync()
     {
-        return await _dbContext.AgeGroups
+        var models = await _dbContext.AgeGroups
             .AsNoTracking()
             .OrderBy(ag => ag.Name)
             .ToListAsync();
+        return models.Select(ModelToDtoMapper.ToDto).ToList();
     }
 
-    public async Task<List<Style>> GetAllStylesAsync()
+    public async Task<List<StyleDto>> GetAllStylesAsync()
     {
-        return await _dbContext.Styles
+        var models = await _dbContext.Styles
             .AsNoTracking()
             .OrderBy(s => s.Name)
             .ToListAsync();
+        return models.Select(ModelToDtoMapper.ToDto).ToList();
     }
 
-    public async Task<AuthenticationResponse> CreateStyleAsync(Style style)
+    public async Task<AuthenticationResponse> CreateStyleAsync(StyleDto style)
     {
         try
         {
@@ -306,7 +307,8 @@ public class AuthenticationAdapter(ApplicationDbContext dbContext) : IAuthentica
                 };
             }
 
-            _dbContext.Styles.Add(style);
+            var model = ModelToDtoMapper.ToModel(style);
+            _dbContext.Styles.Add(model);
             await _dbContext.SaveChangesAsync();
 
             return new AuthenticationResponse
@@ -326,7 +328,7 @@ public class AuthenticationAdapter(ApplicationDbContext dbContext) : IAuthentica
         }
     }
 
-    public async Task<AuthenticationResponse> UpdateStyleAsync(Style style)
+    public async Task<AuthenticationResponse> UpdateStyleAsync(StyleDto style)
     {
         try
         {
@@ -359,9 +361,8 @@ public class AuthenticationAdapter(ApplicationDbContext dbContext) : IAuthentica
                 };
             }
 
-            entity.Code = style.Code;
-            entity.Name = style.Name;
-
+            var updatedModel = ModelToDtoMapper.ToModel(style);
+            _dbContext.Entry(entity).CurrentValues.SetValues(updatedModel);
             await _dbContext.SaveChangesAsync();
 
             return new AuthenticationResponse
@@ -447,15 +448,16 @@ public class AuthenticationAdapter(ApplicationDbContext dbContext) : IAuthentica
         }
     }
 
-    public async Task<List<EntryType>> GetAllEntryTypesAsync()
+    public async Task<List<EntryTypeDto>> GetAllEntryTypesAsync()
     {
-        return await _dbContext.EntryTypes
+        var models = await _dbContext.EntryTypes
             .AsNoTracking()
             .OrderBy(et => et.Name)
             .ToListAsync();
+        return models.Select(ModelToDtoMapper.ToDto).ToList();
     }
 
-    public async Task<AuthenticationResponse> CreateEntryTypeAsync(EntryType entryType)
+    public async Task<AuthenticationResponse> CreateEntryTypeAsync(EntryTypeDto entryType)
     {
         try
         {
@@ -478,7 +480,8 @@ public class AuthenticationAdapter(ApplicationDbContext dbContext) : IAuthentica
                 };
             }
 
-            _dbContext.EntryTypes.Add(entryType);
+            var model = ModelToDtoMapper.ToModel(entryType);
+            _dbContext.EntryTypes.Add(model);
             await _dbContext.SaveChangesAsync();
 
             return new AuthenticationResponse
@@ -498,7 +501,7 @@ public class AuthenticationAdapter(ApplicationDbContext dbContext) : IAuthentica
         }
     }
 
-    public async Task<AuthenticationResponse> UpdateEntryTypeAsync(EntryType entryType)
+    public async Task<AuthenticationResponse> UpdateEntryTypeAsync(EntryTypeDto entryType)
     {
         try
         {
@@ -531,9 +534,8 @@ public class AuthenticationAdapter(ApplicationDbContext dbContext) : IAuthentica
                 };
             }
 
-            entity.Name = entryType.Name;
-            entity.NumberOfDancers = entryType.NumberOfDancers;
-
+            var updatedModel = ModelToDtoMapper.ToModel(entryType);
+            _dbContext.Entry(entity).CurrentValues.SetValues(updatedModel);
             await _dbContext.SaveChangesAsync();
 
             return new AuthenticationResponse
@@ -609,7 +611,7 @@ public class AuthenticationAdapter(ApplicationDbContext dbContext) : IAuthentica
         }
     }
 
-    public async Task<AuthenticationResponse> CreateAgeGroupAsync(AgeGroup ageGroup)
+    public async Task<AuthenticationResponse> CreateAgeGroupAsync(AgeGroupDto ageGroup)
     {
         try
         {
@@ -641,7 +643,8 @@ public class AuthenticationAdapter(ApplicationDbContext dbContext) : IAuthentica
                 };
             }
 
-            _dbContext.AgeGroups.Add(ageGroup);
+            var model = ModelToDtoMapper.ToModel(ageGroup);
+            _dbContext.AgeGroups.Add(model);
             await _dbContext.SaveChangesAsync();
 
             return new AuthenticationResponse
@@ -661,7 +664,7 @@ public class AuthenticationAdapter(ApplicationDbContext dbContext) : IAuthentica
         }
     }
 
-    public async Task<AuthenticationResponse> UpdateAgeGroupAsync(AgeGroup ageGroup)
+    public async Task<AuthenticationResponse> UpdateAgeGroupAsync(AgeGroupDto ageGroup)
     {
         try
         {
@@ -703,11 +706,8 @@ public class AuthenticationAdapter(ApplicationDbContext dbContext) : IAuthentica
                 };
             }
 
-            entity.Code = ageGroup.Code;
-            entity.Name = ageGroup.Name;
-            entity.MinAge = ageGroup.MinAge;
-            entity.MaxAge = ageGroup.MaxAge;
-
+            var updatedModel = ModelToDtoMapper.ToModel(ageGroup);
+            _dbContext.Entry(entity).CurrentValues.SetValues(updatedModel);
             await _dbContext.SaveChangesAsync();
 
             return new AuthenticationResponse
@@ -808,9 +808,6 @@ public class AuthenticationAdapter(ApplicationDbContext dbContext) : IAuthentica
         // Sempre busca dados atualizados do banco sem cache
         var users = await _dbContext.Users
             .AsNoTracking()
-            .Include(u => u.RolePermission)
-            .Include(u => u.DanceSchool)
-            .Include(u => u.DefaultFranchise)
             .OrderBy(u => u.LastName)
             .ThenBy(u => u.FirstName)
             .ToListAsync();
@@ -876,7 +873,7 @@ public class AuthenticationAdapter(ApplicationDbContext dbContext) : IAuthentica
     {
         try
         {
-            var user = await _dbContext.Users.Include(u => u.RolePermission).FirstOrDefaultAsync(u => u.Email == request.Email);
+            var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
             if (user == null)
             {
                 return new AuthenticationResponse
@@ -893,7 +890,10 @@ public class AuthenticationAdapter(ApplicationDbContext dbContext) : IAuthentica
                     Message = "Invalid email or password"
                 };
             }
-            var role = user.RolePermission?.Name ?? "User";
+            
+            // Buscar o RolePermission separadamente
+            var rolePermission = await _dbContext.UserRolePermissions.FindAsync(user.RolePermissionId);
+            var role = rolePermission?.Name ?? "User";
             var token = GenerateJwtToken(user, role);
             Log.Information("User logged in: {Email} (ID: {UserId})", user.Email, user.Id);
             return new AuthenticationResponse

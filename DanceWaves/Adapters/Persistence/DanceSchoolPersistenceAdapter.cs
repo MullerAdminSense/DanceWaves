@@ -1,8 +1,12 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using DanceWaves.Application.Ports;
+using DanceWaves.Application.Dtos;
 using DanceWaves.Models;
 using DanceWaves.Data;
+using DanceWaves.Adapters.Persistence.Mappers;
 
 namespace DanceWaves.Adapters.Persistence;
 
@@ -14,36 +18,40 @@ public class DanceSchoolPersistenceAdapter(ApplicationDbContext dbContext) : IDa
 {
     private readonly ApplicationDbContext _dbContext = dbContext;
 
-    public async Task<DanceSchool?> GetByIdAsync(int id)
+    public async Task<DanceSchoolDto?> GetByIdAsync(int id)
     {
-        return await _dbContext.DanceSchools.FindAsync(id);
+        var model = await _dbContext.DanceSchools.FindAsync(id);
+        return model != null ? ModelToDtoMapper.ToDto(model) : null;
     }
 
-    public async Task<IEnumerable<DanceSchool>> GetAllAsync()
+    public async Task<IEnumerable<DanceSchoolDto>> GetAllAsync()
     {
-        return _dbContext.DanceSchools;
+        var models = await _dbContext.DanceSchools.ToListAsync();
+        return models.Select(ModelToDtoMapper.ToDto);
     }
 
-    public async Task<DanceSchool> CreateAsync(DanceSchool school)
+    public async Task<DanceSchoolDto> CreateAsync(DanceSchoolDto dto)
     {
-        _dbContext.DanceSchools.Add(school);
+        var model = ModelToDtoMapper.ToModel(dto);
+        _dbContext.DanceSchools.Add(model);
         await _dbContext.SaveChangesAsync();
-        return school;
+        return ModelToDtoMapper.ToDto(model);
     }
 
-    public async Task<DanceSchool> UpdateAsync(DanceSchool school)
+    public async Task<DanceSchoolDto> UpdateAsync(DanceSchoolDto dto)
     {
-        _dbContext.DanceSchools.Update(school);
+        var model = ModelToDtoMapper.ToModel(dto);
+        _dbContext.DanceSchools.Update(model);
         await _dbContext.SaveChangesAsync();
-        return school;
+        return ModelToDtoMapper.ToDto(model);
     }
 
     public async Task DeleteAsync(int id)
     {
-        var school = await GetByIdAsync(id);
-        if (school != null)
+        var model = await _dbContext.DanceSchools.FindAsync(id);
+        if (model != null)
         {
-            _dbContext.DanceSchools.Remove(school);
+            _dbContext.DanceSchools.Remove(model);
             await _dbContext.SaveChangesAsync();
         }
     }

@@ -42,10 +42,10 @@
                             <td>@entry.CompetitionCategoryId</td>
                             <td>@entry.StartNumber</td>
                             <td>
-                                <span class="badge bg-primary">@entry.Status</span>
+                                <span class="badge bg-primary">@entry.Status.GetDescription()</span>
                             </td>
                             <td>
-                                <span class="badge bg-success">@entry.PaymentStatus</span>
+                                <span class="badge bg-success">@entry.PaymentStatus.GetDescription()</span>
                             </td>
                             <td>
                                 <button class="btn btn-sm btn-primary">Edit</button>
@@ -60,7 +60,7 @@
 </div>
 
 @code {
-    private IEnumerable<Entry>? entries;
+    private IEnumerable<EntrySimpleDto>? entries;
 
     protected override async Task OnInitializedAsync()
     {
@@ -68,5 +68,6 @@
     }
 }
 
-@using DanceWaves.Models
+@using DanceWaves.Application.Dtos
 @using DanceWaves.Application.Ports
+@using DanceWaves.Extensions

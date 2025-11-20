@@ -174,9 +174,9 @@ else
 
 @code {
     private List<UserDto> Users { get; set; } = new();
-    private List<UserRolePermission> RolePermissions { get; set; } = new();
-    private List<DanceSchool> DanceSchools { get; set; } = new();
-    private List<Franchise> Franchises { get; set; } = new();
+    private List<UserRolePermissionDto> RolePermissions { get; set; } = new();
+    private List<DanceSchoolDto> DanceSchools { get; set; } = new();
+    private List<FranchiseDto> Franchises { get; set; } = new();
     private bool IsLoading { get; set; } = true;
     private bool IsSuperAdmin { get; set; } = false;
     private bool HasCheckedPermissions { get; set; } = false;

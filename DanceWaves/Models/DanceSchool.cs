@@ -34,13 +34,8 @@ namespace DanceWaves.Models
         public string? Email { get; set; }
 
         public int? DefaultFranchiseId { get; set; }
-        public Franchise? DefaultFranchise { get; set; }
 
         [Required]
         public int CountryId { get; set; }
-
-        // Navigation
-        public ICollection<User> Users { get; set; } = new List<User>();
-        public ICollection<Entry> Entries { get; set; } = new List<Entry>();
     }
 }

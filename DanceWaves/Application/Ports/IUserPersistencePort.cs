@@ -1,16 +1,16 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using DanceWaves.Models;
+using DanceWaves.Application.Dtos;
 
 namespace DanceWaves.Application.Ports
 {
     public interface IUserPersistencePort
     {
-    Task<User?> GetByIdAsync(int id);
-    Task<User?> GetByEmailAsync(string email);
-        Task<IEnumerable<User>> GetAllAsync();
-        Task<User> CreateAsync(User user);
-        Task<User> UpdateAsync(User user);
+        Task<UserSimpleDto?> GetByIdAsync(int id);
+        Task<UserSimpleDto?> GetByEmailAsync(string email);
+        Task<IEnumerable<UserSimpleDto>> GetAllAsync();
+        Task<UserSimpleDto> CreateAsync(UserSimpleDto user);
+        Task<UserSimpleDto> UpdateAsync(UserSimpleDto user);
         Task DeleteAsync(int id);
     }
 }

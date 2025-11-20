@@ -1,8 +1,12 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using DanceWaves.Application.Ports;
+using DanceWaves.Application.Dtos;
 using DanceWaves.Models;
 using DanceWaves.Data;
+using DanceWaves.Adapters.Persistence.Mappers;
 
 namespace DanceWaves.Adapters.Persistence;
 
@@ -14,36 +18,40 @@ public class ScorePersistenceAdapter(ApplicationDbContext dbContext) : IScorePer
 {
     private readonly ApplicationDbContext _dbContext = dbContext;
 
-    public async Task<Score?> GetByIdAsync(int id)
+    public async Task<ScoreDto?> GetByIdAsync(int id)
     {
-        return await _dbContext.Scores.FindAsync(id);
+        var model = await _dbContext.Scores.FindAsync(id);
+        return model != null ? ModelToDtoMapper.ToDto(model) : null;
     }
 
-    public async Task<IEnumerable<Score>> GetAllAsync()
+    public async Task<IEnumerable<ScoreDto>> GetAllAsync()
     {
-        return _dbContext.Scores;
+        var models = await _dbContext.Scores.ToListAsync();
+        return models.Select(ModelToDtoMapper.ToDto);
     }
 
-    public async Task<Score> CreateAsync(Score score)
+    public async Task<ScoreDto> CreateAsync(ScoreDto dto)
     {
-        _dbContext.Scores.Add(score);
+        var model = ModelToDtoMapper.ToModel(dto);
+        _dbContext.Scores.Add(model);
         await _dbContext.SaveChangesAsync();
-        return score;
+        return ModelToDtoMapper.ToDto(model);
     }
 
-    public async Task<Score> UpdateAsync(Score score)
+    public async Task<ScoreDto> UpdateAsync(ScoreDto dto)
     {
-        _dbContext.Scores.Update(score);
+        var model = ModelToDtoMapper.ToModel(dto);
+        _dbContext.Scores.Update(model);
         await _dbContext.SaveChangesAsync();
-        return score;
+        return ModelToDtoMapper.ToDto(model);
     }
 
     public async Task DeleteAsync(int id)
     {
-        var score = await GetByIdAsync(id);
-        if (score != null)
+        var model = await _dbContext.Scores.FindAsync(id);
+        if (model != null)
         {
-            _dbContext.Scores.Remove(score);
+            _dbContext.Scores.Remove(model);
             await _dbContext.SaveChangesAsync();
         }
     }

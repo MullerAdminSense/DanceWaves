@@ -44,45 +44,45 @@ public interface IAuthenticationPort
     
     Task<AuthenticationResponse> RefreshTokenAsync(string refreshToken);
     
-    Task<List<DanceSchool>> GetAllDanceSchoolsAsync();
+    Task<List<DanceSchoolDto>> GetAllDanceSchoolsAsync();
 
     
-    Task<List<Franchise>> GetFranchisesByDanceSchoolAsync(int danceSchoolId);
+    Task<List<FranchiseDto>> GetFranchisesByDanceSchoolAsync(int danceSchoolId);
 
     
-    Task<List<Franchise>> GetAllFranchisesAsync();
+    Task<List<FranchiseDto>> GetAllFranchisesAsync();
 
     
-    Task<List<UserRolePermission>> GetAllRolePermissionsAsync();
+    Task<List<UserRolePermissionDto>> GetAllRolePermissionsAsync();
 
-    Task<AuthenticationResponse> CreateRolePermissionAsync(UserRolePermission rolePermission);
+    Task<AuthenticationResponse> CreateRolePermissionAsync(UserRolePermissionDto rolePermission);
 
-    Task<AuthenticationResponse> UpdateRolePermissionAsync(UserRolePermission rolePermission);
+    Task<AuthenticationResponse> UpdateRolePermissionAsync(UserRolePermissionDto rolePermission);
 
     Task<AuthenticationResponse> DeleteRolePermissionAsync(int rolePermissionId);
 
     
-    Task<List<AgeGroup>> GetAllAgeGroupsAsync();
+    Task<List<AgeGroupDto>> GetAllAgeGroupsAsync();
 
-    Task<List<Style>> GetAllStylesAsync();
+    Task<List<StyleDto>> GetAllStylesAsync();
 
-    Task<AuthenticationResponse> CreateStyleAsync(Style style);
+    Task<AuthenticationResponse> CreateStyleAsync(StyleDto style);
 
-    Task<AuthenticationResponse> UpdateStyleAsync(Style style);
+    Task<AuthenticationResponse> UpdateStyleAsync(StyleDto style);
 
     Task<AuthenticationResponse> DeleteStyleAsync(int styleId);
 
-    Task<List<EntryType>> GetAllEntryTypesAsync();
+    Task<List<EntryTypeDto>> GetAllEntryTypesAsync();
 
-    Task<AuthenticationResponse> CreateEntryTypeAsync(EntryType entryType);
+    Task<AuthenticationResponse> CreateEntryTypeAsync(EntryTypeDto entryType);
 
-    Task<AuthenticationResponse> UpdateEntryTypeAsync(EntryType entryType);
+    Task<AuthenticationResponse> UpdateEntryTypeAsync(EntryTypeDto entryType);
 
     Task<AuthenticationResponse> DeleteEntryTypeAsync(int entryTypeId);
 
-    Task<AuthenticationResponse> CreateAgeGroupAsync(AgeGroup ageGroup);
+    Task<AuthenticationResponse> CreateAgeGroupAsync(AgeGroupDto ageGroup);
 
-    Task<AuthenticationResponse> UpdateAgeGroupAsync(AgeGroup ageGroup);
+    Task<AuthenticationResponse> UpdateAgeGroupAsync(AgeGroupDto ageGroup);
 
     Task<AuthenticationResponse> DeleteAgeGroupAsync(int ageGroupId);
 

@@ -1,9 +1,12 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using DanceWaves.Application.Ports;
+using DanceWaves.Application.Dtos;
 using DanceWaves.Models;
 using DanceWaves.Data;
+using DanceWaves.Adapters.Persistence.Mappers;
 
 namespace DanceWaves.Adapters.Persistence;
 
@@ -11,46 +14,51 @@ public class StylePersistenceAdapter(ApplicationDbContext dbContext) : IStylePer
 {
     private readonly ApplicationDbContext _dbContext = dbContext;
 
-    public async Task<Style?> GetByIdAsync(int id)
+    public async Task<StyleDto?> GetByIdAsync(int id)
     {
-        return await _dbContext.Styles.AsNoTracking().FirstOrDefaultAsync(s => s.Id == id);
+        var model = await _dbContext.Styles.AsNoTracking().FirstOrDefaultAsync(s => s.Id == id);
+        return model != null ? ModelToDtoMapper.ToDto(model) : null;
     }
 
-    public async Task<IEnumerable<Style>> GetAllAsync()
+    public async Task<IEnumerable<StyleDto>> GetAllAsync()
     {
-        return await _dbContext.Styles.AsNoTracking().ToListAsync();
+        var models = await _dbContext.Styles.AsNoTracking().ToListAsync();
+        return models.Select(ModelToDtoMapper.ToDto);
     }
 
-    public async Task<Style> CreateAsync(Style style)
+    public async Task<StyleDto> CreateAsync(StyleDto dto)
     {
-        _dbContext.Styles.Add(style);
+        var model = ModelToDtoMapper.ToModel(dto);
+        _dbContext.Styles.Add(model);
         await _dbContext.SaveChangesAsync();
-        return style;
+        return ModelToDtoMapper.ToDto(model);
     }
 
-    public async Task<Style> UpdateAsync(Style style)
+    public async Task<StyleDto> UpdateAsync(StyleDto dto)
     {
-        var existingStyle = await _dbContext.Styles.FindAsync(style.Id);
-        if (existingStyle != null)
+        var existingModel = await _dbContext.Styles.FindAsync(dto.Id);
+        if (existingModel != null)
         {
-            _dbContext.Entry(existingStyle).CurrentValues.SetValues(style);
+            var updatedModel = ModelToDtoMapper.ToModel(dto);
+            _dbContext.Entry(existingModel).CurrentValues.SetValues(updatedModel);
             await _dbContext.SaveChangesAsync();
-            return existingStyle;
+            return ModelToDtoMapper.ToDto(existingModel);
         }
         else
         {
-            _dbContext.Styles.Update(style);
+            var model = ModelToDtoMapper.ToModel(dto);
+            _dbContext.Styles.Update(model);
             await _dbContext.SaveChangesAsync();
-            return style;
+            return ModelToDtoMapper.ToDto(model);
         }
     }
 
     public async Task DeleteAsync(int id)
     {
-        var style = await _dbContext.Styles.FindAsync(id);
-        if (style != null)
+        var model = await _dbContext.Styles.FindAsync(id);
+        if (model != null)
         {
-            _dbContext.Styles.Remove(style);
+            _dbContext.Styles.Remove(model);
             await _dbContext.SaveChangesAsync();
         }
     }

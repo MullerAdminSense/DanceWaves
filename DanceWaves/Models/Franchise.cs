@@ -39,9 +39,5 @@ namespace DanceWaves.Models
 
         [Required]
         public int CountryId { get; set; }
-
-        // Navigation
-        public ICollection<User> Users { get; set; } = new List<User>();
-        public ICollection<DanceSchool> DanceSchools { get; set; } = new List<DanceSchool>();
     }
 }

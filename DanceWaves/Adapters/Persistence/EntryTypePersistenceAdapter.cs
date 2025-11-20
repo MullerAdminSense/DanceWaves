@@ -1,9 +1,12 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using DanceWaves.Application.Ports;
+using DanceWaves.Application.Dtos;
 using DanceWaves.Models;
 using DanceWaves.Data;
+using DanceWaves.Adapters.Persistence.Mappers;
 
 namespace DanceWaves.Adapters.Persistence;
 
@@ -15,46 +18,51 @@ public class EntryTypePersistenceAdapter(ApplicationDbContext dbContext) : IEntr
 {
     private readonly ApplicationDbContext _dbContext = dbContext;
 
-    public async Task<EntryType?> GetByIdAsync(int id)
+    public async Task<EntryTypeDto?> GetByIdAsync(int id)
     {
-        return await _dbContext.EntryTypes.AsNoTracking().FirstOrDefaultAsync(et => et.Id == id);
+        var model = await _dbContext.EntryTypes.AsNoTracking().FirstOrDefaultAsync(et => et.Id == id);
+        return model != null ? ModelToDtoMapper.ToDto(model) : null;
     }
 
-    public async Task<IEnumerable<EntryType>> GetAllAsync()
+    public async Task<IEnumerable<EntryTypeDto>> GetAllAsync()
     {
-        return await _dbContext.EntryTypes.AsNoTracking().ToListAsync();
+        var models = await _dbContext.EntryTypes.AsNoTracking().ToListAsync();
+        return models.Select(ModelToDtoMapper.ToDto);
     }
 
-    public async Task<EntryType> CreateAsync(EntryType entryType)
+    public async Task<EntryTypeDto> CreateAsync(EntryTypeDto dto)
     {
-        _dbContext.EntryTypes.Add(entryType);
+        var model = ModelToDtoMapper.ToModel(dto);
+        _dbContext.EntryTypes.Add(model);
         await _dbContext.SaveChangesAsync();
-        return entryType;
+        return ModelToDtoMapper.ToDto(model);
     }
 
-    public async Task<EntryType> UpdateAsync(EntryType entryType)
+    public async Task<EntryTypeDto> UpdateAsync(EntryTypeDto dto)
     {
-        var existingEntryType = await _dbContext.EntryTypes.FindAsync(entryType.Id);
-        if (existingEntryType != null)
+        var existingModel = await _dbContext.EntryTypes.FindAsync(dto.Id);
+        if (existingModel != null)
         {
-            _dbContext.Entry(existingEntryType).CurrentValues.SetValues(entryType);
+            var updatedModel = ModelToDtoMapper.ToModel(dto);
+            _dbContext.Entry(existingModel).CurrentValues.SetValues(updatedModel);
             await _dbContext.SaveChangesAsync();
-            return existingEntryType;
+            return ModelToDtoMapper.ToDto(existingModel);
         }
         else
         {
-            _dbContext.EntryTypes.Update(entryType);
+            var model = ModelToDtoMapper.ToModel(dto);
+            _dbContext.EntryTypes.Update(model);
             await _dbContext.SaveChangesAsync();
-            return entryType;
+            return ModelToDtoMapper.ToDto(model);
         }
     }
 
     public async Task DeleteAsync(int id)
     {
-        var entryType = await _dbContext.EntryTypes.FindAsync(id);
-        if (entryType != null)
+        var model = await _dbContext.EntryTypes.FindAsync(id);
+        if (model != null)
         {
-            _dbContext.EntryTypes.Remove(entryType);
+            _dbContext.EntryTypes.Remove(model);
             await _dbContext.SaveChangesAsync();
         }
     }

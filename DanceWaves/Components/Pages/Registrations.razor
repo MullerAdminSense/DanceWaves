@@ -245,7 +245,7 @@ else if (IsSuperAdmin)
             <div class="card text-center">
                 <div class="card-body">
                                         <h5 class="card-title">Admins</h5>
-                                        <h3 class="text-warning">@(Users.Count(u => RolePermissions?.FirstOrDefault(r => r.Id == u.RolePermissionId)?.Name == "SuperAdmin" || RolePermissions?.FirstOrDefault(r => r.Id == u.RolePermissionId)?.Name == "FranchiseAdmin"))</h3>
+                                        <h3 class="text-warning">@(Users.Count(u => u.RolePermissionId == 1 || u.RolePermissionId == 2))</h3>
                 </div>
             </div>
         </div>
@@ -253,7 +253,7 @@ else if (IsSuperAdmin)
             <div class="card text-center">
                 <div class="card-body">
                                         <h5 class="card-title">Regular Users</h5>
-                                        <h3 class="text-info">@(Users.Count(u => RolePermissions?.FirstOrDefault(r => r.Id == u.RolePermissionId)?.Name == "User"))</h3>
+                                        <h3 class="text-info">@(Users.Count(u => u.RolePermissionId == 3))</h3>
                 </div>
             </div>
         </div>
@@ -362,11 +362,11 @@ else
 
 @code {
     private List<UserDto> Users { get; set; } = new();
-    private List<UserRolePermission> RolePermissions { get; set; } = new();
-    private List<DanceSchool> DanceSchools { get; set; } = new();
-    private List<Franchise> FilteredFranchises { get; set; } = new List<Franchise>();
-    private List<Franchise> Franchises { get; set; } = new();
-    private List<AgeGroup> AgeGroups { get; set; } = new();
+    private List<UserRolePermissionDto> RolePermissions { get; set; } = new();
+    private List<DanceSchoolDto> DanceSchools { get; set; } = new();
+    private List<FranchiseDto> FilteredFranchises { get; set; } = new List<FranchiseDto>();
+    private List<FranchiseDto> Franchises { get; set; } = new();
+    private List<AgeGroupDto> AgeGroups { get; set; } = new();
     private UserDto EditingUser { get; set; } = new();
     private bool IsLoading { get; set; } = true;
     private bool IsSuperAdmin { get; set; } = false;
@@ -426,7 +426,7 @@ else
                 {
                     var role = await AuthenticationPort.GetAllRolePermissionsAsync();
                     var userRole = role.FirstOrDefault(r => r.Id == currentUser.RolePermissionId);
-                    IsSuperAdmin = userRole != null && userRole.Name == "SuperAdmin";
+                    IsSuperAdmin = userRole != null && userRole.Id == 1; // ID 1 = SuperAdmin
                 }
             }
 
@@ -440,7 +440,7 @@ else
 
             await LoadReferenceData();
             
-            FilteredFranchises = new List<Franchise>();
+            FilteredFranchises = new List<FranchiseDto>();
 
             if (IsSuperAdmin)
             {
@@ -495,9 +495,9 @@ else
             Users = users.Select(u => new UserDto
             {
                 Id = u.Id,
-                FirstName = u.FirstName,
-                LastName = u.LastName,
-                Email = u.Email,
+                FirstName = u.FirstName ?? string.Empty,
+                LastName = u.LastName ?? string.Empty,
+                Email = u.Email ?? string.Empty,
                 Phone = u.Phone,
                 Address = u.Address,
                 City = u.City,
@@ -524,13 +524,15 @@ else
             var user = await UserPort.GetByIdAsync(userId);
             if (user != null)
             {
+                // UserPort já retorna UserSimpleDto, então apenas convertemos para UserDto
                 EditingUser = new UserDto
                 {
                     Id = user.Id,
-                    FirstName = user.FirstName,
-                    LastName = user.LastName,
-                    Email = user.Email,
+                    FirstName = user.FirstName ?? string.Empty,
+                    LastName = user.LastName ?? string.Empty,
+                    Email = user.Email ?? string.Empty,
                     Phone = user.Phone,
+                    PhoneNumber = user.Phone,
                     Address = user.Address,
                     City = user.City,
                     Zip = user.Zip,
@@ -546,7 +548,7 @@ else
             else
             {
                 EditingUser = new UserDto();
-                EditingUser.RolePermissionId = RolePermissions?.FirstOrDefault(r => r.Name == "User")?.Id ?? 3;
+                EditingUser.RolePermissionId = 3; // ID 3 = User
             }
         }
         catch (Exception ex)
@@ -575,7 +577,7 @@ else
             }
             else
             {
-                FilteredFranchises = new List<Franchise>();
+                FilteredFranchises = new List<FranchiseDto>();
             }
         }
         catch (Exception ex)
@@ -592,17 +594,17 @@ else
             int? schoolId = SelectedDanceSchoolId ?? EditingUser?.DanceSchoolId;
             if (schoolId != null)
             {
-                FilteredFranchises = await AuthenticationPort.GetFranchisesByDanceSchoolAsync(schoolId.Value) ?? new List<Franchise>();
+                FilteredFranchises = await AuthenticationPort.GetFranchisesByDanceSchoolAsync(schoolId.Value) ?? new List<FranchiseDto>();
             }
             else
             {
-                FilteredFranchises = new List<Franchise>();
+                FilteredFranchises = new List<FranchiseDto>();
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading franchises");
-            FilteredFranchises = new List<Franchise>();
+            FilteredFranchises = new List<FranchiseDto>();
             ErrorMessage = $"Error loading franchises: {ex.Message}";
         }
         finally
@@ -630,7 +632,7 @@ else
             
             Logger.LogInformation($"EditingUser created with RolePermissionId: {EditingUser.RolePermissionId}");
             
-            FilteredFranchises = new List<Franchise>();
+            FilteredFranchises = new List<FranchiseDto>();
             ShowForm = true;
             
             Logger.LogInformation("Calling InitializeFormFields");
@@ -672,6 +674,7 @@ else
                 LastName = user.LastName,
                 Email = user.Email,
                 Phone = user.Phone,
+                PhoneNumber = user.Phone,
                 Address = user.Address,
                 City = user.City,
                 Zip = user.Zip,
@@ -709,7 +712,7 @@ else
             EditingUser = new UserDto();
             ErrorMessage = null;
             SuccessMessage = null;
-            FilteredFranchises = new List<Franchise>();
+            FilteredFranchises = new List<FranchiseDto>();
             StateHasChanged();
         }
         catch (Exception ex)
@@ -767,7 +770,8 @@ else
         catch (Exception ex)
         {
             ErrorMessage = $"Error deleting user: {ex.Message}";
-            Logger.LogError(ex, "Error deleting user: {UserToDeleteId}", UserToDelete.Id);
+            var userId = UserToDelete?.Id ?? 0;
+            Logger.LogError(ex, "Error deleting user: {UserToDeleteId}", userId);
         }
         finally
         {
@@ -785,7 +789,7 @@ else
 
         try
         {
-            var user = new User
+            var user = new UserSimpleDto
             {
                 Id = EditingUser.Id,
                 FirstName = EditingUser.FirstName,

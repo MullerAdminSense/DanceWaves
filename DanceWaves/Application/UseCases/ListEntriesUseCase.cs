@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using DanceWaves.Application.Ports;
-using DanceWaves.Models;
+using DanceWaves.Application.Dtos;
 
 namespace DanceWaves.Application.UseCases
 {
@@ -9,7 +9,7 @@ namespace DanceWaves.Application.UseCases
     {
         private readonly IEntryPersistencePort _entryPersistencePort = entryPersistencePort;
 
-        public async Task<IEnumerable<Entry>> ExecuteAsync()
+        public async Task<IEnumerable<EntrySimpleDto>> ExecuteAsync()
         {
             return await _entryPersistencePort.GetAllAsync();
         }

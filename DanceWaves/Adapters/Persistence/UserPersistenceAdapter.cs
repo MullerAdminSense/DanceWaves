@@ -1,8 +1,11 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using DanceWaves.Application.Ports;
+using DanceWaves.Application.Dtos;
 using DanceWaves.Models;
+using DanceWaves.Adapters.Persistence.Mappers;
 
 namespace DanceWaves.Adapters.Persistence;
 
@@ -10,51 +13,57 @@ public class UserPersistenceAdapter(Data.ApplicationDbContext dbContext) : IUser
 {
     private readonly Data.ApplicationDbContext _dbContext = dbContext;
 
-    public async Task<User?> GetByIdAsync(int id)
+    public async Task<UserSimpleDto?> GetByIdAsync(int id)
     {
-        return await _dbContext.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id);
+        var model = await _dbContext.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id);
+        return model != null ? ModelToDtoMapper.ToDto(model) : null;
     }
 
-    public async Task<User?> GetByEmailAsync(string email)
+    public async Task<UserSimpleDto?> GetByEmailAsync(string email)
     {
-        return await _dbContext.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == email);
+        var model = await _dbContext.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == email);
+        return model != null ? ModelToDtoMapper.ToDto(model) : null;
     }
 
-    public async Task<IEnumerable<User>> GetAllAsync()
+    public async Task<IEnumerable<UserSimpleDto>> GetAllAsync()
     {
-        return await _dbContext.Users.AsNoTracking().ToListAsync();
+        var models = await _dbContext.Users.AsNoTracking().ToListAsync();
+        return models.Select(ModelToDtoMapper.ToDto);
     }
 
-    public async Task<User> CreateAsync(User user)
+    public async Task<UserSimpleDto> CreateAsync(UserSimpleDto dto)
     {
-        _dbContext.Users.Add(user);
+        var model = ModelToDtoMapper.ToModel(dto);
+        _dbContext.Users.Add(model);
         await _dbContext.SaveChangesAsync();
-        return user;
+        return ModelToDtoMapper.ToDto(model);
     }
 
-    public async Task<User> UpdateAsync(User user)
+    public async Task<UserSimpleDto> UpdateAsync(UserSimpleDto dto)
     {
-        var existingUser = await _dbContext.Users.FindAsync(user.Id);
-        if (existingUser != null)
+        var existingModel = await _dbContext.Users.FindAsync(dto.Id);
+        if (existingModel != null)
         {
-            _dbContext.Entry(existingUser).CurrentValues.SetValues(user);
+            var updatedModel = ModelToDtoMapper.ToModel(dto);
+            _dbContext.Entry(existingModel).CurrentValues.SetValues(updatedModel);
             await _dbContext.SaveChangesAsync();
-            return existingUser;
+            return ModelToDtoMapper.ToDto(existingModel);
         }
         else
         {
-            _dbContext.Users.Update(user);
+            var model = ModelToDtoMapper.ToModel(dto);
+            _dbContext.Users.Update(model);
             await _dbContext.SaveChangesAsync();
-            return user;
+            return ModelToDtoMapper.ToDto(model);
         }
     }
 
     public async Task DeleteAsync(int id)
     {
-        var user = await _dbContext.Users.FindAsync(id);
-        if (user != null)
+        var model = await _dbContext.Users.FindAsync(id);
+        if (model != null)
         {
-            _dbContext.Users.Remove(user);
+            _dbContext.Users.Remove(model);
             await _dbContext.SaveChangesAsync();
         }
     }

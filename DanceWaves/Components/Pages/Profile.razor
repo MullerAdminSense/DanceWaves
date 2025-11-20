@@ -249,8 +249,8 @@
     private bool IsChangingPassword { get; set; }
     private bool ShowDeleteConfirm { get; set; }
 
-    private List<DanceSchool> DanceSchools { get; set; } = new();
-    private List<Franchise> FilteredFranchises { get; set; } = new();
+    private List<DanceSchoolDto> DanceSchools { get; set; } = new();
+    private List<FranchiseDto> FilteredFranchises { get; set; } = new();
     private bool _isLoadingFranchises = false;
     private bool _isLoadingDanceSchools = false;
 
@@ -366,7 +366,7 @@
             }
             else
             {
-                FilteredFranchises = new List<Franchise>();
+                FilteredFranchises = new List<FranchiseDto>();
             }
         }
         finally

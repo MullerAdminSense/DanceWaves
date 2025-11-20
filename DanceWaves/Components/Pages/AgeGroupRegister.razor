@@ -183,9 +183,9 @@ else
 }
 
 @code {
-    private List<AgeGroup> AgeGroups { get; set; } = new();
-    private AgeGroup EditingAgeGroup { get; set; } = new();
-    private AgeGroup? AgeGroupToDelete { get; set; }
+    private List<AgeGroupDto> AgeGroups { get; set; } = new();
+    private AgeGroupDto EditingAgeGroup { get; set; } = new();
+    private AgeGroupDto? AgeGroupToDelete { get; set; }
     private bool IsLoading { get; set; } = true;
     private bool IsSavingAgeGroup { get; set; } = false;
     private bool IsAdmin { get; set; } = false;
@@ -245,10 +245,10 @@ else
         }
     }
 
-    private void HandleEditAgeGroup(AgeGroup ag)
+    private void HandleEditAgeGroup(AgeGroupDto ag)
     {
         Logger.LogInformation("Editing age group {AgeGroupId}", ag.Id);
-        EditingAgeGroup = new AgeGroup
+        EditingAgeGroup = new AgeGroupDto
         {
             Id = ag.Id,
             Code = ag.Code,
@@ -263,7 +263,7 @@ else
     private void CancelEditAgeGroup()
     {
         Logger.LogInformation("Age group edit canceled");
-        EditingAgeGroup = new AgeGroup();
+        EditingAgeGroup = new AgeGroupDto();
         ErrorMessage = null;
     }
 
@@ -308,7 +308,7 @@ else
                 SuccessMessage = "Age group created successfully.";
             }
 
-            EditingAgeGroup = new AgeGroup();
+            EditingAgeGroup = new AgeGroupDto();
             await LoadAgeGroups();
         }
         catch (Exception ex)
@@ -322,7 +322,7 @@ else
         }
     }
 
-    private void HandleDeleteAgeGroup(AgeGroup ag)
+    private void HandleDeleteAgeGroup(AgeGroupDto ag)
     {
         Logger.LogInformation("Preparing to delete age group {AgeGroupId}", ag.Id);
         AgeGroupToDelete = ag;
@@ -342,7 +342,7 @@ else
             SuccessMessage = "Age group deleted successfully.";
             ShowDeleteConfirm = false;
             AgeGroupToDelete = null;
-            EditingAgeGroup = new AgeGroup();
+            EditingAgeGroup = new AgeGroupDto();
             await LoadAgeGroups();
         }
         catch (Exception ex)

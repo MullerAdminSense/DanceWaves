@@ -3,6 +3,9 @@
 @rendermode InteractiveServer
 
 @using DanceWaves.Models
+@using DanceWaves.Application.Dtos
+@using DanceWaves.Application.Ports
+@inject IEntryPersistencePort EntryPersistencePort
 
 <!-- Entry Registration Form -->
 <div class="container-fluid mt-5">
@@ -41,17 +44,19 @@
                         <div class="mb-3">
                             <label for="status" class="form-label">Status</label>
                             <select class="form-select" id="status" @bind="Entry.Status">
-                                <option value="0">Pending</option>
-                                <option value="1">Accepted</option>
-                                <option value="2">NotAccepted</option>
+                                <option value="">Selecione...</option>
+                                <option value="@EntryStatus.Pending">Pendente</option>
+                                <option value="@EntryStatus.Accepted">Aceito</option>
+                                <option value="@EntryStatus.NotAccepted">Não Aceito</option>
                             </select>
                         </div>
                         <div class="mb-3">
                             <label for="paymentStatus" class="form-label">Payment Status</label>
                             <select class="form-select" id="paymentStatus" @bind="Entry.PaymentStatus">
-                                <option value="0">Pending</option>
-                                <option value="1">Paid</option>
-                                <option value="2">Failed</option>
+                                <option value="">Selecione...</option>
+                                <option value="@PaymentStatus.Pending">Pendente</option>
+                                <option value="@PaymentStatus.Paid">Pago</option>
+                                <option value="@PaymentStatus.Failed">Falhou</option>
                             </select>
                         </div>
                         <div class="mb-3">
@@ -71,7 +76,7 @@
 </div>
 
 @code {
-    private Entry Entry { get; set; } = new Entry();
+    private EntrySimpleDto Entry { get; set; } = new EntrySimpleDto();
     private string ErrorMessage { get; set; } = string.Empty;
     private string SuccessMessage { get; set; } = string.Empty;
 
@@ -79,7 +84,15 @@
     {
         ErrorMessage = string.Empty;
         SuccessMessage = string.Empty;
-        // TODO: Adicionar lógica de persistência
-        SuccessMessage = "Entry registered successfully.";
+        try
+        {
+            await EntryPersistencePort.CreateAsync(Entry);
+            SuccessMessage = "Entry registered successfully.";
+            Entry = new EntrySimpleDto(); // Reset form
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error registering entry: {ex.Message}";
+        }
     }
 }

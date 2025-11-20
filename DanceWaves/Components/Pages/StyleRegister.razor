@@ -166,9 +166,9 @@ else
 }
 
 @code {
-    private List<Style> Styles { get; set; } = new();
-    private Style EditingStyle { get; set; } = new();
-    private Style? StyleToDelete { get; set; }
+    private List<StyleDto> Styles { get; set; } = new();
+    private StyleDto EditingStyle { get; set; } = new();
+    private StyleDto? StyleToDelete { get; set; }
     private bool IsLoading { get; set; } = true;
     private bool IsSavingStyle { get; set; } = false;
     private bool IsAdmin { get; set; } = false;
@@ -228,10 +228,10 @@ else
         }
     }
 
-    private void HandleEditStyle(Style style)
+    private void HandleEditStyle(StyleDto style)
     {
         Logger.LogInformation("Editing style {StyleId}", style.Id);
-        EditingStyle = new Style
+        EditingStyle = new StyleDto
         {
             Id = style.Id,
             Code = style.Code,
@@ -244,7 +244,7 @@ else
     private void CancelEditStyle()
     {
         Logger.LogInformation("Style edit canceled");
-        EditingStyle = new Style();
+        EditingStyle = new StyleDto();
         ErrorMessage = null;
     }
 
@@ -272,7 +272,7 @@ else
                 SuccessMessage = "Style created successfully.";
             }
 
-            EditingStyle = new Style();
+            EditingStyle = new StyleDto();
             await LoadStyles();
         }
         catch (Exception ex)
@@ -286,7 +286,7 @@ else
         }
     }
 
-    private void HandleDeleteStyle(Style style)
+    private void HandleDeleteStyle(StyleDto style)
     {
         Logger.LogInformation("Preparing to delete style {StyleId}", style.Id);
         StyleToDelete = style;
@@ -306,7 +306,7 @@ else
             SuccessMessage = "Style deleted successfully.";
             StyleToDelete = null;
             ShowDeleteConfirm = false;
-            EditingStyle = new Style();
+            EditingStyle = new StyleDto();
             await LoadStyles();
         }
         catch (Exception ex)

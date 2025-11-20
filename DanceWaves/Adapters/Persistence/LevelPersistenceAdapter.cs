@@ -1,9 +1,12 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using DanceWaves.Application.Ports;
+using DanceWaves.Application.Dtos;
 using DanceWaves.Models;
 using DanceWaves.Data;
+using DanceWaves.Adapters.Persistence.Mappers;
 
 namespace DanceWaves.Adapters.Persistence;
 
@@ -15,46 +18,51 @@ public class LevelPersistenceAdapter(ApplicationDbContext dbContext) : ILevelPer
 {
     private readonly ApplicationDbContext _dbContext = dbContext;
 
-    public async Task<Level?> GetByIdAsync(int id)
+    public async Task<LevelDto?> GetByIdAsync(int id)
     {
-        return await _dbContext.Levels.AsNoTracking().FirstOrDefaultAsync(l => l.Id == id);
+        var model = await _dbContext.Levels.AsNoTracking().FirstOrDefaultAsync(l => l.Id == id);
+        return model != null ? ModelToDtoMapper.ToDto(model) : null;
     }
 
-    public async Task<IEnumerable<Level>> GetAllAsync()
+    public async Task<IEnumerable<LevelDto>> GetAllAsync()
     {
-        return await _dbContext.Levels.AsNoTracking().ToListAsync();
+        var models = await _dbContext.Levels.AsNoTracking().ToListAsync();
+        return models.Select(ModelToDtoMapper.ToDto);
     }
 
-    public async Task<Level> CreateAsync(Level level)
+    public async Task<LevelDto> CreateAsync(LevelDto dto)
     {
-        _dbContext.Levels.Add(level);
+        var model = ModelToDtoMapper.ToModel(dto);
+        _dbContext.Levels.Add(model);
         await _dbContext.SaveChangesAsync();
-        return level;
+        return ModelToDtoMapper.ToDto(model);
     }
 
-    public async Task<Level> UpdateAsync(Level level)
+    public async Task<LevelDto> UpdateAsync(LevelDto dto)
     {
-        var existingLevel = await _dbContext.Levels.FindAsync(level.Id);
-        if (existingLevel != null)
+        var existingModel = await _dbContext.Levels.FindAsync(dto.Id);
+        if (existingModel != null)
         {
-            _dbContext.Entry(existingLevel).CurrentValues.SetValues(level);
+            var updatedModel = ModelToDtoMapper.ToModel(dto);
+            _dbContext.Entry(existingModel).CurrentValues.SetValues(updatedModel);
             await _dbContext.SaveChangesAsync();
-            return existingLevel;
+            return ModelToDtoMapper.ToDto(existingModel);
         }
         else
         {
-            _dbContext.Levels.Update(level);
+            var model = ModelToDtoMapper.ToModel(dto);
+            _dbContext.Levels.Update(model);
             await _dbContext.SaveChangesAsync();
-            return level;
+            return ModelToDtoMapper.ToDto(model);
         }
     }
 
     public async Task DeleteAsync(int id)
     {
-        var level = await _dbContext.Levels.FindAsync(id);
-        if (level != null)
+        var model = await _dbContext.Levels.FindAsync(id);
+        if (model != null)
         {
-            _dbContext.Levels.Remove(level);
+            _dbContext.Levels.Remove(model);
             await _dbContext.SaveChangesAsync();
         }
     }

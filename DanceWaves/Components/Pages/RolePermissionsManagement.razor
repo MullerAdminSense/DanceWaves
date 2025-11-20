@@ -175,8 +175,8 @@ else
 }
 
 @code {
-    private List<UserRolePermission> RolePermissions { get; set; } = new();
-    private UserRolePermission EditingRole { get; set; } = new();
+    private List<UserRolePermissionDto> RolePermissions { get; set; } = new();
+    private UserRolePermissionDto EditingRole { get; set; } = new();
     private bool IsSavingRolePermission { get; set; } = false;
     private bool IsLoading { get; set; } = true;
     private bool IsAdmin { get; set; } = false;
@@ -184,7 +184,7 @@ else
     private string? ErrorMessage { get; set; }
     private string? SuccessMessage { get; set; }
     private bool ShowDeleteConfirm { get; set; } = false;
-    private UserRolePermission? RolePermissionToDelete { get; set; }
+    private UserRolePermissionDto? RolePermissionToDelete { get; set; }
     private bool IsDeleting { get; set; } = false;
 
     private string FormTitle => EditingRole.Id > 0 ? "Update Role Permission" : "Create Role Permission";
@@ -235,10 +235,10 @@ else
         }
     }
 
-    private void HandleEditRolePermission(UserRolePermission rp)
+    private void HandleEditRolePermission(UserRolePermissionDto rp)
     {
         Logger.LogInformation("Editing role {RoleId}", rp.Id);
-        EditingRole = new UserRolePermission
+        EditingRole = new UserRolePermissionDto
         {
             Id = rp.Id,
             Name = rp.Name,
@@ -252,7 +252,7 @@ else
     private void CancelEditRolePermission()
     {
         Logger.LogInformation("Role edit canceled");
-        EditingRole = new UserRolePermission();
+        EditingRole = new UserRolePermissionDto();
         ErrorMessage = null;
     }
 
@@ -271,7 +271,7 @@ else
         try
         {
             Logger.LogInformation("Saving role permission {RoleId}", EditingRole.Id);
-            var payload = new UserRolePermission
+            var payload = new UserRolePermissionDto
             {
                 Id = EditingRole.Id,
                 Name = EditingRole.Name?.Trim() ?? string.Empty,
@@ -291,7 +291,7 @@ else
             if (response.IsSuccess)
             {
                 SuccessMessage = response.Message ?? "Role permission saved successfully.";
-                EditingRole = new UserRolePermission();
+                EditingRole = new UserRolePermissionDto();
                 await LoadRolePermissions();
             }
             else
@@ -310,7 +310,7 @@ else
         }
     }
 
-    private void HandleDeleteRolePermission(UserRolePermission rp)
+    private void HandleDeleteRolePermission(UserRolePermissionDto rp)
     {
         Logger.LogInformation("Preparing to delete role {RoleId}", rp.Id);
         RolePermissionToDelete = rp;
@@ -334,7 +334,7 @@ else
                 SuccessMessage = response.Message ?? "Role permission deleted successfully.";
                 ShowDeleteConfirm = false;
                 RolePermissionToDelete = null;
-                EditingRole = new UserRolePermission(); // Clear fields after deletion
+                EditingRole = new UserRolePermissionDto(); // Clear fields after deletion
                 await LoadRolePermissions();
             }
             else

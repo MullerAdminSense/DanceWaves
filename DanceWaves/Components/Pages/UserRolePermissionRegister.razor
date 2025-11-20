@@ -1,5 +1,6 @@
 @page "/register-userrolepermission"
 @using DanceWaves.Models
+@using DanceWaves.Application.Dtos
 @using DanceWaves.Application.Ports
 @inject IAuthenticationPort AuthenticationPort
 @inject NavigationManager Navigation
@@ -93,8 +94,8 @@
 </div>
 
 @code {
-    private List<UserRolePermission> RolePermissions { get; set; } = new();
-    private UserRolePermission RolePermission { get; set; } = new();
+    private List<UserRolePermissionDto> RolePermissions { get; set; } = new();
+    private UserRolePermissionDto RolePermission { get; set; } = new();
     private string? ErrorMessage { get; set; }
     private string? SuccessMessage { get; set; }
 
@@ -123,9 +124,9 @@
         ErrorMessage = "Role permission creation not implemented.";
     }
 
-    private void EditRolePermission(UserRolePermission rp)
+    private void EditRolePermission(UserRolePermissionDto rp)
     {
-        RolePermission = new UserRolePermission
+        RolePermission = new UserRolePermissionDto
         {
             Id = rp.Id,
             Name = rp.Name,
@@ -133,7 +134,7 @@
         };
     }
 
-    private async Task DeleteRolePermission(UserRolePermission rp)
+    private async Task DeleteRolePermission(UserRolePermissionDto rp)
     {
         ErrorMessage = null;
         SuccessMessage = null;

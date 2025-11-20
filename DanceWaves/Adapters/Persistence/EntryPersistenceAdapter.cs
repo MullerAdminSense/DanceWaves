@@ -1,7 +1,11 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using DanceWaves.Application.Ports;
+using DanceWaves.Application.Dtos;
 using DanceWaves.Models;
+using DanceWaves.Adapters.Persistence.Mappers;
 
 namespace DanceWaves.Adapters.Persistence;
 
@@ -13,36 +17,40 @@ public class EntryPersistenceAdapter(Data.ApplicationDbContext dbContext) : IEnt
 {
     private readonly Data.ApplicationDbContext _dbContext = dbContext;
 
-    public async Task<Entry?> GetByIdAsync(int id)
+    public async Task<EntrySimpleDto?> GetByIdAsync(int id)
     {
-        return await _dbContext.Entries.FindAsync(id);
+        var model = await _dbContext.Entries.FindAsync(id);
+        return model != null ? ModelToDtoMapper.ToDto(model) : null;
     }
 
-    public async Task<IEnumerable<Entry>> GetAllAsync()
+    public async Task<IEnumerable<EntrySimpleDto>> GetAllAsync()
     {
-        return _dbContext.Entries;
+        var models = await _dbContext.Entries.ToListAsync();
+        return models.Select(ModelToDtoMapper.ToDto);
     }
 
-    public async Task<Entry> CreateAsync(Entry entry)
+    public async Task<EntrySimpleDto> CreateAsync(EntrySimpleDto dto)
     {
-        _dbContext.Entries.Add(entry);
+        var model = ModelToDtoMapper.ToModel(dto);
+        _dbContext.Entries.Add(model);
         await _dbContext.SaveChangesAsync();
-        return entry;
+        return ModelToDtoMapper.ToDto(model);
     }
 
-    public async Task<Entry> UpdateAsync(Entry entry)
+    public async Task<EntrySimpleDto> UpdateAsync(EntrySimpleDto dto)
     {
-        _dbContext.Entries.Update(entry);
+        var model = ModelToDtoMapper.ToModel(dto);
+        _dbContext.Entries.Update(model);
         await _dbContext.SaveChangesAsync();
-        return entry;
+        return ModelToDtoMapper.ToDto(model);
     }
 
     public async Task DeleteAsync(int id)
     {
-        var entry = await GetByIdAsync(id);
-        if (entry != null)
+        var model = await _dbContext.Entries.FindAsync(id);
+        if (model != null)
         {
-            _dbContext.Entries.Remove(entry);
+            _dbContext.Entries.Remove(model);
             await _dbContext.SaveChangesAsync();
         }
     }

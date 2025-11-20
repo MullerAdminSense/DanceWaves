@@ -1,9 +1,12 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using DanceWaves.Application.Ports;
+using DanceWaves.Application.Dtos;
 using DanceWaves.Models;
 using DanceWaves.Data;
+using DanceWaves.Adapters.Persistence.Mappers;
 
 namespace DanceWaves.Adapters.Persistence;
 
@@ -11,46 +14,51 @@ public class AgeGroupPersistenceAdapter(ApplicationDbContext dbContext) : IAgeGr
 {
     private readonly ApplicationDbContext _dbContext = dbContext;
 
-    public async Task<AgeGroup?> GetByIdAsync(int id)
+    public async Task<AgeGroupDto?> GetByIdAsync(int id)
     {
-        return await _dbContext.AgeGroups.AsNoTracking().FirstOrDefaultAsync(ag => ag.Id == id);
+        var model = await _dbContext.AgeGroups.AsNoTracking().FirstOrDefaultAsync(ag => ag.Id == id);
+        return model != null ? ModelToDtoMapper.ToDto(model) : null;
     }
 
-    public async Task<IEnumerable<AgeGroup>> GetAllAsync()
+    public async Task<IEnumerable<AgeGroupDto>> GetAllAsync()
     {
-        return await _dbContext.AgeGroups.AsNoTracking().ToListAsync();
+        var models = await _dbContext.AgeGroups.AsNoTracking().ToListAsync();
+        return models.Select(ModelToDtoMapper.ToDto);
     }
 
-    public async Task<AgeGroup> CreateAsync(AgeGroup ageGroup)
+    public async Task<AgeGroupDto> CreateAsync(AgeGroupDto dto)
     {
-        _dbContext.AgeGroups.Add(ageGroup);
+        var model = ModelToDtoMapper.ToModel(dto);
+        _dbContext.AgeGroups.Add(model);
         await _dbContext.SaveChangesAsync();
-        return ageGroup;
+        return ModelToDtoMapper.ToDto(model);
     }
 
-    public async Task<AgeGroup> UpdateAsync(AgeGroup ageGroup)
+    public async Task<AgeGroupDto> UpdateAsync(AgeGroupDto dto)
     {
-        var existingAgeGroup = await _dbContext.AgeGroups.FindAsync(ageGroup.Id);
-        if (existingAgeGroup != null)
+        var existingModel = await _dbContext.AgeGroups.FindAsync(dto.Id);
+        if (existingModel != null)
         {
-            _dbContext.Entry(existingAgeGroup).CurrentValues.SetValues(ageGroup);
+            var updatedModel = ModelToDtoMapper.ToModel(dto);
+            _dbContext.Entry(existingModel).CurrentValues.SetValues(updatedModel);
             await _dbContext.SaveChangesAsync();
-            return existingAgeGroup;
+            return ModelToDtoMapper.ToDto(existingModel);
         }
         else
         {
-            _dbContext.AgeGroups.Update(ageGroup);
+            var model = ModelToDtoMapper.ToModel(dto);
+            _dbContext.AgeGroups.Update(model);
             await _dbContext.SaveChangesAsync();
-            return ageGroup;
+            return ModelToDtoMapper.ToDto(model);
         }
     }
 
     public async Task DeleteAsync(int id)
     {
-        var ageGroup = await _dbContext.AgeGroups.FindAsync(id);
-        if (ageGroup != null)
+        var model = await _dbContext.AgeGroups.FindAsync(id);
+        if (model != null)
         {
-            _dbContext.AgeGroups.Remove(ageGroup);
+            _dbContext.AgeGroups.Remove(model);
             await _dbContext.SaveChangesAsync();
         }
     }

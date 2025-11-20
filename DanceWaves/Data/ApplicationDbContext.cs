@@ -47,18 +47,23 @@ namespace DanceWaves.Data
                 b.HasKey(u => u.Id);
                 b.Property(u => u.Id).ValueGeneratedOnAdd();
                 b.Property(u => u.Email).HasMaxLength(200).IsRequired();
-                b.HasOne(u => u.DanceSchool)
-                    .WithMany(s => s.Users)
+                // Configuração de relacionamentos usando apenas FKs (sem navigation properties)
+                b.HasOne<DanceSchool>()
+                    .WithMany()
                     .HasForeignKey(u => u.DanceSchoolId)
                     .OnDelete(DeleteBehavior.SetNull);
-                b.HasOne(u => u.DefaultFranchise)
-                    .WithMany(f => f.Users)
+                b.HasOne<Franchise>()
+                    .WithMany()
                     .HasForeignKey(u => u.DefaultFranchiseId)
                     .OnDelete(DeleteBehavior.SetNull);
-                b.HasOne(u => u.RolePermission)
+                b.HasOne<UserRolePermission>()
                     .WithMany()
                     .HasForeignKey(u => u.RolePermissionId)
                     .OnDelete(DeleteBehavior.Restrict);
+                b.HasOne<AgeGroup>()
+                    .WithMany()
+                    .HasForeignKey(u => u.AgeGroupId)
+                    .OnDelete(DeleteBehavior.SetNull);
             });
 
             modelBuilder.Entity<DanceSchool>(b =>
@@ -66,7 +71,11 @@ namespace DanceWaves.Data
                 b.HasKey(s => s.Id);
                 b.Property(s => s.Id).ValueGeneratedOnAdd();
                 b.Property(s => s.LegalName).HasMaxLength(200).IsRequired();
-                
+                // Configuração de relacionamento usando apenas FK
+                b.HasOne<Franchise>()
+                    .WithMany()
+                    .HasForeignKey(s => s.DefaultFranchiseId)
+                    .OnDelete(DeleteBehavior.SetNull);
             });
 
             modelBuilder.Entity<Competition>(b =>
@@ -74,48 +83,96 @@ namespace DanceWaves.Data
                 b.HasKey(c => c.Id);
                 b.Property(c => c.Id).ValueGeneratedOnAdd();
                 b.Property(c => c.Name).HasMaxLength(200).IsRequired();
+                b.Property(c => c.Status)
+                    .HasConversion<int>()
+                    .IsRequired();
             });
 
             modelBuilder.Entity<CompetitionCategory>(b =>
             {
                 b.HasKey(cc => cc.Id);
                 b.Property(cc => cc.Id).ValueGeneratedOnAdd();
-                b.HasOne(cc => cc.Competition).WithMany(c => c.Categories).HasForeignKey(cc => cc.CompetitionId);
-                b.HasOne(cc => cc.Style).WithMany().HasForeignKey(cc => cc.StyleId);
-                b.HasOne(cc => cc.AgeGroup).WithMany().HasForeignKey(cc => cc.AgeGroupId);
-                b.HasOne(cc => cc.Level).WithMany().HasForeignKey(cc => cc.LevelId);
+                // Configuração de relacionamentos usando apenas FKs
+                b.HasOne<Competition>()
+                    .WithMany()
+                    .HasForeignKey(cc => cc.CompetitionId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                b.HasOne<Style>()
+                    .WithMany()
+                    .HasForeignKey(cc => cc.StyleId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                b.HasOne<AgeGroup>()
+                    .WithMany()
+                    .HasForeignKey(cc => cc.AgeGroupId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                b.HasOne<Level>()
+                    .WithMany()
+                    .HasForeignKey(cc => cc.LevelId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             modelBuilder.Entity<JudgePanel>(b =>
             {
                 b.HasKey(j => j.Id);
                 b.Property(j => j.Id).ValueGeneratedOnAdd();
-                b.HasOne(j => j.User).WithMany().HasForeignKey(j => j.UserId);
-                b.HasOne(j => j.CompetitionCategory).WithMany(cc => cc.JudgePanels).HasForeignKey(j => j.CompetitionCategoryId);
+                // Configuração de relacionamentos usando apenas FKs
+                b.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey(j => j.UserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                b.HasOne<CompetitionCategory>()
+                    .WithMany()
+                    .HasForeignKey(j => j.CompetitionCategoryId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             modelBuilder.Entity<Entry>(b =>
             {
                 b.HasKey(e => e.Id);
                 b.Property(e => e.Id).ValueGeneratedOnAdd();
-                b.HasOne(e => e.CompetitionCategory).WithMany(cc => cc.Entries).HasForeignKey(e => e.CompetitionCategoryId);
-                b.HasOne(e => e.School).WithMany(s => s.Entries).HasForeignKey(e => e.SchoolId).OnDelete(DeleteBehavior.SetNull);
+                // Configuração de relacionamentos usando apenas FKs
+                b.HasOne<CompetitionCategory>()
+                    .WithMany()
+                    .HasForeignKey(e => e.CompetitionCategoryId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                b.HasOne<DanceSchool>()
+                    .WithMany()
+                    .HasForeignKey(e => e.SchoolId)
+                    .OnDelete(DeleteBehavior.SetNull);
+                b.Property(e => e.Status)
+                    .HasConversion<int>();
+                b.Property(e => e.PaymentStatus)
+                    .HasConversion<int>();
             });
 
             modelBuilder.Entity<EntryMember>(b =>
             {
                 b.HasKey(em => em.Id);
                 b.Property(em => em.Id).ValueGeneratedOnAdd();
-                b.HasOne(em => em.Entry).WithMany(e => e.Members).HasForeignKey(em => em.EntryId);
-                b.HasOne(em => em.User).WithMany().HasForeignKey(em => em.UserId);
+                // Configuração de relacionamentos usando apenas FKs
+                b.HasOne<Entry>()
+                    .WithMany()
+                    .HasForeignKey(em => em.EntryId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                b.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey(em => em.UserId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             modelBuilder.Entity<Score>(b =>
             {
                 b.HasKey(s => s.Id);
                 b.Property(s => s.Id).ValueGeneratedOnAdd();
-                b.HasOne(s => s.Judge).WithMany().HasForeignKey(s => s.JudgeUserId);
-                b.HasOne(s => s.Entry).WithMany(e => e.Scores).HasForeignKey(s => s.EntryId);
+                // Configuração de relacionamentos usando apenas FKs
+                b.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey(s => s.JudgeUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                b.HasOne<Entry>()
+                    .WithMany()
+                    .HasForeignKey(s => s.EntryId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             modelBuilder.Entity<UserRolePermission>(b =>

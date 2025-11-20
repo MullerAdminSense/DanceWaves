@@ -1,15 +1,15 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using DanceWaves.Models;
+using DanceWaves.Application.Dtos;
 
 namespace DanceWaves.Application.Ports
 {
     public interface ILevelPersistencePort
     {
-        Task<Level?> GetByIdAsync(int id);
-        Task<IEnumerable<Level>> GetAllAsync();
-        Task<Level> CreateAsync(Level level);
-        Task<Level> UpdateAsync(Level level);
+        Task<LevelDto?> GetByIdAsync(int id);
+        Task<IEnumerable<LevelDto>> GetAllAsync();
+        Task<LevelDto> CreateAsync(LevelDto level);
+        Task<LevelDto> UpdateAsync(LevelDto level);
         Task DeleteAsync(int id);
     }
 }

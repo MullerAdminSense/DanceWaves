@@ -2,6 +2,7 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
 @using DanceWaves.Models
+@using DanceWaves.Application.Dtos
 @using DanceWaves.Application.Ports
 @inject AuthenticationStateProvider AuthStateProvider
 @inject ILogger<LevelRegister> Logger
@@ -171,8 +172,8 @@ else
 }
 
 @code {
-    private List<Level> Levels { get; set; } = new();
-    private Level EditingLevel { get; set; } = new();
+    private List<LevelDto> Levels { get; set; } = new();
+    private LevelDto EditingLevel { get; set; } = new();
     private bool IsSavingLevel { get; set; } = false;
     private bool IsLoading { get; set; } = true;
     private bool IsAdmin { get; set; } = false;
@@ -180,7 +181,7 @@ else
     private string? ErrorMessage { get; set; }
     private string? SuccessMessage { get; set; }
     private bool ShowDeleteConfirm { get; set; } = false;
-    private Level? LevelToDelete { get; set; }
+    private LevelDto? LevelToDelete { get; set; }
     private bool IsDeleting { get; set; } = false;
 
     private string FormTitle => EditingLevel.Id > 0 ? "Update Level" : "Create Level";
@@ -225,10 +226,10 @@ else
         }
     }
 
-    private void HandleEditLevel(Level level)
+    private void HandleEditLevel(LevelDto level)
     {
         Logger.LogInformation("Editing level {LevelId}", level.Id);
-        EditingLevel = new Level
+        EditingLevel = new LevelDto
         {
             Id = level.Id,
             Code = level.Code,
@@ -242,7 +243,7 @@ else
     private void CancelEditLevel()
     {
         Logger.LogInformation("Level edit canceled");
-        EditingLevel = new Level();
+        EditingLevel = new LevelDto();
         ErrorMessage = null;
     }
 
@@ -272,7 +273,7 @@ else
                 SuccessMessage = "Level created successfully.";
             }
 
-            EditingLevel = new Level();
+            EditingLevel = new LevelDto();
             await LoadLevels();
         }
         catch (Exception ex)
@@ -286,7 +287,7 @@ else
         }
     }
 
-    private void HandleDeleteLevel(Level level)
+    private void HandleDeleteLevel(LevelDto level)
     {
         Logger.LogInformation("Preparing to delete level {LevelId}", level.Id);
         LevelToDelete = level;
@@ -308,7 +309,7 @@ else
             SuccessMessage = "Level deleted successfully.";
             ShowDeleteConfirm = false;
             LevelToDelete = null;
-            EditingLevel = new Level(); // Clear fields after deletion
+            EditingLevel = new LevelDto(); // Clear fields after deletion
             await LoadLevels();
         }
         catch (Exception ex)

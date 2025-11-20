@@ -1,15 +1,15 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using DanceWaves.Models;
+using DanceWaves.Application.Dtos;
 
 namespace DanceWaves.Application.Ports
 {
     public interface IDanceSchoolPersistencePort
     {
-        Task<DanceSchool?> GetByIdAsync(int id);
-        Task<IEnumerable<DanceSchool>> GetAllAsync();
-        Task<DanceSchool> CreateAsync(DanceSchool school);
-        Task<DanceSchool> UpdateAsync(DanceSchool school);
+        Task<DanceSchoolDto?> GetByIdAsync(int id);
+        Task<IEnumerable<DanceSchoolDto>> GetAllAsync();
+        Task<DanceSchoolDto> CreateAsync(DanceSchoolDto school);
+        Task<DanceSchoolDto> UpdateAsync(DanceSchoolDto school);
         Task DeleteAsync(int id);
     }
 }

@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using DanceWaves.Models;
+using DanceWaves.Application.Dtos;
 
 namespace DanceWaves.Application.Ports
 {
@@ -10,10 +10,10 @@ namespace DanceWaves.Application.Ports
     /// </summary>
     public interface IEntryPersistencePort
     {
-    Task<Entry?> GetByIdAsync(int id);
-        Task<IEnumerable<Entry>> GetAllAsync();
-        Task<Entry> CreateAsync(Entry entry);
-        Task<Entry> UpdateAsync(Entry entry);
+        Task<EntrySimpleDto?> GetByIdAsync(int id);
+        Task<IEnumerable<EntrySimpleDto>> GetAllAsync();
+        Task<EntrySimpleDto> CreateAsync(EntrySimpleDto entry);
+        Task<EntrySimpleDto> UpdateAsync(EntrySimpleDto entry);
         Task DeleteAsync(int id);
     }
 }
