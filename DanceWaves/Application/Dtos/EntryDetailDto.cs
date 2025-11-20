@@ -3,7 +3,7 @@ using DanceWaves.Models;
 namespace DanceWaves.Application.Dtos;
 
 /// <summary>
-/// DTO para Entry com navegação opcional
+/// Entry DTO with optional navigation properties
 /// </summary>
 public class EntryDetailDto
 {
@@ -17,7 +17,7 @@ public class EntryDetailDto
     public string? Song { get; set; }
     public int? DurationSeconds { get; set; }
     
-    // Navigation properties (apenas quando necessário via Include)
+    // Navigation properties (only when needed via Include)
     public CompetitionCategoryDto? CompetitionCategory { get; set; }
     public DanceSchoolDto? School { get; set; }
     public ICollection<EntryMemberDto>? Members { get; set; }

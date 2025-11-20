@@ -66,11 +66,13 @@ builder.Services.AddHttpClient("SecureApiClient")
 builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
  
 builder.Services.AddScoped<IEntryPersistencePort, EntryPersistenceAdapter>();
+builder.Services.AddScoped<IEntryMemberPersistencePort, EntryMemberPersistenceAdapter>();
 builder.Services.AddScoped<IUserPersistencePort, UserPersistenceAdapter>();
 builder.Services.AddScoped<IDanceSchoolPersistencePort, DanceSchoolPersistenceAdapter>();
 builder.Services.AddScoped<IAgeGroupPersistencePort, AgeGroupPersistenceAdapter>();
 builder.Services.AddScoped<IStylePersistencePort, StylePersistenceAdapter>();
 builder.Services.AddScoped<IEntryTypePersistencePort, EntryTypePersistenceAdapter>();
+builder.Services.AddScoped<ICompetitionCategoryPersistencePort, CompetitionCategoryPersistenceAdapter>();
 builder.Services.AddScoped<INavigationPresenterPort, NavigationPresenterAdapter>();
 builder.Services.AddScoped<IAuthenticationPort, AuthenticationAdapter>();
 builder.Services.AddScoped<ILevelPersistencePort, LevelPersistenceAdapter>();

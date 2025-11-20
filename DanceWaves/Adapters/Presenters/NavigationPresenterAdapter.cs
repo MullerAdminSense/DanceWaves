@@ -6,7 +6,7 @@ using DanceWaves.Application.Ports;
 namespace DanceWaves.Adapters.Presenters;
 
 /// <summary>
-/// Adaptador de apresentação para navegação
+/// Presentation adapter for navigation
 /// Implementa a porta INavigationPresenterPort
 /// </summary>
 public class NavigationPresenterAdapter : INavigationPresenterPort

@@ -10,7 +10,7 @@ using DanceWaves.Adapters.Persistence.Mappers;
 namespace DanceWaves.Adapters.Persistence;
 
 /// <summary>
-/// Adaptador de persistência para Entries
+/// Persistence adapter for Entries
 /// Implementa a porta IEntryPersistencePort usando Entity Framework
 /// </summary>
 public class EntryPersistenceAdapter(Data.ApplicationDbContext dbContext) : IEntryPersistencePort

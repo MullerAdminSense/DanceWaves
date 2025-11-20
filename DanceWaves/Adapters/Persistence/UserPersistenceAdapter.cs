@@ -49,7 +49,7 @@ public class UserPersistenceAdapter(Data.ApplicationDbContext dbContext) : IUser
         var existingModel = await _dbContext.Users.FindAsync(dto.Id);
         if (existingModel != null)
         {
-            // Atualizar apenas campos que não são senha
+            // Update only non-password fields
             existingModel.FirstName = dto.FirstName;
             existingModel.LastName = dto.LastName;
             existingModel.Email = dto.Email;

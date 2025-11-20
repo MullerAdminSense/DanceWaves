@@ -12,8 +12,7 @@ using System.Security.Cryptography;
 namespace DanceWaves.Adapters.Persistence;
 
 /// <summary>
-/// Adaptador de autenticação
-/// Implementa a porta IAuthenticationPort
+/// Authentication adapter implementing IAuthenticationPort
 /// </summary>
 public class AuthenticationAdapter(ApplicationDbContext dbContext) : IAuthenticationPort
 {
@@ -43,7 +42,7 @@ public class AuthenticationAdapter(ApplicationDbContext dbContext) : IAuthentica
 
     public async Task<List<FranchiseDto>> GetAllFranchisesAsync()
     {
-        // Sempre busca dados atualizados do banco sem cache
+        // Always pull fresh data from the database (no cache)
         var models = await _dbContext.Franchises
             .AsNoTracking()
             .OrderBy(f => f.LegalName)
@@ -53,8 +52,8 @@ public class AuthenticationAdapter(ApplicationDbContext dbContext) : IAuthentica
 
     public async Task<List<FranchiseDto>> GetFranchisesByDanceSchoolAsync(int danceSchoolId)
     {
-        // Sempre busca dados atualizados do banco sem cache
-        // Busca a DanceSchool primeiro para obter informações relacionadas
+        // Always pull fresh data from the database (no cache)
+        // Load the DanceSchool first to gather related information
         var danceSchool = await _dbContext.DanceSchools
             .AsNoTracking()
             .FirstOrDefaultAsync(ds => ds.Id == danceSchoolId);
@@ -64,7 +63,7 @@ public class AuthenticationAdapter(ApplicationDbContext dbContext) : IAuthentica
             return new List<FranchiseDto>();
         }
 
-        // Se a DanceSchool tem uma Franchise padrão, inclui essa Franchise na lista
+        // If the DanceSchool has a default Franchise, include it first
         var franchises = new List<Franchise>();
         
         if (danceSchool.DefaultFranchiseId.HasValue)
@@ -79,15 +78,14 @@ public class AuthenticationAdapter(ApplicationDbContext dbContext) : IAuthentica
             }
         }
 
-        // Também busca todas as outras Franchises do mesmo país
-        // para dar mais opções ao usuário
+        // Also fetch all franchises from the same country to offer alternatives
         var countryFranchises = await _dbContext.Franchises
             .AsNoTracking()
             .Where(f => f.CountryId == danceSchool.CountryId)
             .OrderBy(f => f.LegalName)
             .ToListAsync();
 
-        // Remove duplicatas mantendo a ordem (DefaultFranchise primeiro, se houver)
+        // Remove duplicates while keeping the intended order (default first)
         var result = franchises.Union(countryFranchises)
             .GroupBy(f => f.Id)
             .Select(g => g.First())
@@ -1093,7 +1091,7 @@ public class AuthenticationAdapter(ApplicationDbContext dbContext) : IAuthentica
                 return;
             }
 
-            // Usa AsNoTracking para evitar problemas de concorrência e não precisa salvar mudanças
+            // Use AsNoTracking to avoid concurrency issues; no changes to persist
             var user = await _dbContext.Users
                 .AsNoTracking()
                 .FirstOrDefaultAsync(u => u.Id == id);
@@ -1112,7 +1110,7 @@ public class AuthenticationAdapter(ApplicationDbContext dbContext) : IAuthentica
         catch (Exception ex)
         {
             Log.Error(ex, "Error in LogoutAsync for user {UserId}: {Error}", userId, ex.Message);
-            // Não relança a exceção para não interromper o processo de logout
+            // Do not rethrow to avoid interrupting the logout flow
         }
     }
 
