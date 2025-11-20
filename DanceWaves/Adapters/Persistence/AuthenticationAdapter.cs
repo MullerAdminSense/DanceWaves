@@ -21,12 +21,24 @@ public class AuthenticationAdapter(ApplicationDbContext dbContext) : IAuthentica
 
     public async Task<List<DanceSchoolDto>> GetAllDanceSchoolsAsync()
     {
-        // Sempre busca dados atualizados do banco sem cache
-        var models = await _dbContext.DanceSchools
-            .AsNoTracking()
-            .OrderBy(ds => ds.LegalName)
-            .ToListAsync();
-        return models.Select(ModelToDtoMapper.ToDto).ToList();
+        try
+        {
+            var models = await _dbContext.DanceSchools
+                .AsNoTracking()
+                .OrderBy(ds => ds.LegalName)
+                .ToListAsync();
+            return models.Select(ModelToDtoMapper.ToDto).ToList();
+        }
+        catch (InvalidOperationException ex)
+        {
+            Log.Error(ex, "DbContext concurrency error in GetAllDanceSchoolsAsync");
+            return new List<DanceSchoolDto>();
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Unexpected error in GetAllDanceSchoolsAsync");
+            return new List<DanceSchoolDto>();
+        }
     }
 
     public async Task<List<FranchiseDto>> GetAllFranchisesAsync()
@@ -996,32 +1008,46 @@ public class AuthenticationAdapter(ApplicationDbContext dbContext) : IAuthentica
             return null;
         if (!int.TryParse(userId, out var id))
             return null;
-        var user = await _dbContext.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id);
-        if (user == null)
+
+        try
         {
-            Log.Warning("GetCurrentUserAsync: User not found for ID {UserId}", userId);
+            var user = await _dbContext.Users.AsNoTracking().SingleOrDefaultAsync(u => u.Id == id);
+            if (user == null)
+            {
+                Log.Warning("GetCurrentUserAsync: User not found for ID {UserId}", userId);
+                return null;
+            }
+            Log.Information("GetCurrentUserAsync: User found {Email} (ID: {UserId})", user.Email, user.Id);
+            return new UserDto
+            {
+                Id = user.Id,
+                Email = user.Email,
+                FirstName = user.FirstName ?? string.Empty,
+                LastName = user.LastName ?? string.Empty,
+                PhoneNumber = user.Phone,
+                Provider = "local",
+                Address = user.Address,
+                City = user.City,
+                Zip = user.Zip,
+                Province = user.Province,
+                CountryId = user.CountryId,
+                DanceSchoolId = user.DanceSchoolId,
+                Phone = user.Phone,
+                DefaultFranchiseId = user.DefaultFranchiseId,
+                AgeGroupId = user.AgeGroupId,
+                RolePermissionId = user.RolePermissionId
+            };
+        }
+        catch (InvalidOperationException ex)
+        {
+            Log.Error(ex, "DbContext concurrency error in GetCurrentUserAsync for ID {UserId}", userId);
             return null;
         }
-        Log.Information("GetCurrentUserAsync: User found {Email} (ID: {UserId})", user.Email, user.Id);
-        return new UserDto
+        catch (Exception ex)
         {
-            Id = user.Id,
-            Email = user.Email,
-            FirstName = user.FirstName ?? string.Empty,
-            LastName = user.LastName ?? string.Empty,
-            PhoneNumber = user.Phone,
-            Provider = "local",
-            Address = user.Address,
-            City = user.City,
-            Zip = user.Zip,
-            Province = user.Province,
-            CountryId = user.CountryId,
-            DanceSchoolId = user.DanceSchoolId,
-            Phone = user.Phone,
-            DefaultFranchiseId = user.DefaultFranchiseId,
-            AgeGroupId = user.AgeGroupId,
-            RolePermissionId = user.RolePermissionId
-        };
+            Log.Error(ex, "Unexpected error in GetCurrentUserAsync for ID {UserId}", userId);
+            return null;
+        }
     }
 
     public async Task<AuthenticationResponse> UpdateProfileAsync(string userId, UserDto updatedProfile)

@@ -6,6 +6,7 @@ using DanceWaves.Application.Ports;
 using DanceWaves.Application.Dtos;
 using DanceWaves.Models;
 using DanceWaves.Adapters.Persistence.Mappers;
+using DanceWaves.Infrastructure.Security;
 
 namespace DanceWaves.Adapters.Persistence;
 
@@ -34,6 +35,10 @@ public class UserPersistenceAdapter(Data.ApplicationDbContext dbContext) : IUser
     public async Task<UserSimpleDto> CreateAsync(UserSimpleDto dto)
     {
         var model = ModelToDtoMapper.ToModel(dto);
+        if (!string.IsNullOrWhiteSpace(model.Password))
+        {
+            model.Password = PasswordHasher.HashPassword(model.Password);
+        }
         _dbContext.Users.Add(model);
         await _dbContext.SaveChangesAsync();
         return ModelToDtoMapper.ToDto(model);
@@ -44,14 +49,36 @@ public class UserPersistenceAdapter(Data.ApplicationDbContext dbContext) : IUser
         var existingModel = await _dbContext.Users.FindAsync(dto.Id);
         if (existingModel != null)
         {
-            var updatedModel = ModelToDtoMapper.ToModel(dto);
-            _dbContext.Entry(existingModel).CurrentValues.SetValues(updatedModel);
+            // Atualizar apenas campos que não são senha
+            existingModel.FirstName = dto.FirstName;
+            existingModel.LastName = dto.LastName;
+            existingModel.Email = dto.Email;
+            existingModel.Phone = dto.Phone;
+            existingModel.Address = dto.Address;
+            existingModel.City = dto.City;
+            existingModel.Zip = dto.Zip;
+            existingModel.Province = dto.Province;
+            existingModel.CountryId = dto.CountryId;
+            existingModel.DanceSchoolId = dto.DanceSchoolId;
+            existingModel.DefaultFranchiseId = dto.DefaultFranchiseId;
+            existingModel.AgeGroupId = dto.AgeGroupId;
+            existingModel.RolePermissionId = dto.RolePermissionId;
+            
+            if (!string.IsNullOrWhiteSpace(dto.Password))
+            {
+                existingModel.Password = PasswordHasher.HashPassword(dto.Password);
+            }
+            
             await _dbContext.SaveChangesAsync();
             return ModelToDtoMapper.ToDto(existingModel);
         }
         else
         {
             var model = ModelToDtoMapper.ToModel(dto);
+            if (!string.IsNullOrWhiteSpace(model.Password))
+            {
+                model.Password = PasswordHasher.HashPassword(model.Password);
+            }
             _dbContext.Users.Update(model);
             await _dbContext.SaveChangesAsync();
             return ModelToDtoMapper.ToDto(model);

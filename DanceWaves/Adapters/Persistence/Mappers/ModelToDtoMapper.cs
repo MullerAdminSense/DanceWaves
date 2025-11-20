@@ -106,7 +106,8 @@ public static class ModelToDtoMapper
             Phone = model.Phone,
             DefaultFranchiseId = model.DefaultFranchiseId,
             AgeGroupId = model.AgeGroupId,
-            RolePermissionId = model.RolePermissionId
+            RolePermissionId = model.RolePermissionId,
+            Password = null // Nunca expor senha armazenada
         };
     }
 
@@ -129,7 +130,8 @@ public static class ModelToDtoMapper
             Phone = dto.Phone,
             DefaultFranchiseId = dto.DefaultFranchiseId,
             AgeGroupId = dto.AgeGroupId,
-            RolePermissionId = dto.RolePermissionId
+            RolePermissionId = dto.RolePermissionId,
+            Password = dto.Password // Incluir senha ao converter para Model quando fornecida
         };
     }
 
@@ -399,6 +401,47 @@ public static class ModelToDtoMapper
             Id = dto.Id,
             Name = dto.Name,
             Description = dto.Description
+        };
+    }
+
+    // CompetitionCategory
+    public static CompetitionCategoryDto ToDto(CompetitionCategory model)
+    {
+        if (model == null) return null!;
+        
+        return new CompetitionCategoryDto
+        {
+            Id = model.Id,
+            CompetitionId = model.CompetitionId,
+            StyleId = model.StyleId,
+            AgeGroupId = model.AgeGroupId,
+            LevelId = model.LevelId,
+            MinTeamSize = model.MinTeamSize,
+            MaxTeamSize = model.MaxTeamSize,
+            GenderMix = model.GenderMix,
+            MaxMusicLengthSeconds = model.MaxMusicLengthSeconds,
+            FeeAmount = model.FeeAmount,
+            Capacity = model.Capacity
+        };
+    }
+
+    public static CompetitionCategory ToModel(CompetitionCategoryDto dto)
+    {
+        if (dto == null) return null!;
+        
+        return new CompetitionCategory
+        {
+            Id = dto.Id,
+            CompetitionId = dto.CompetitionId,
+            StyleId = dto.StyleId,
+            AgeGroupId = dto.AgeGroupId,
+            LevelId = dto.LevelId,
+            MinTeamSize = dto.MinTeamSize,
+            MaxTeamSize = dto.MaxTeamSize,
+            GenderMix = dto.GenderMix,
+            MaxMusicLengthSeconds = dto.MaxMusicLengthSeconds,
+            FeeAmount = dto.FeeAmount,
+            Capacity = dto.Capacity
         };
     }
 }
