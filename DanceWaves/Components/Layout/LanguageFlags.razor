@@ -3,7 +3,7 @@
 @inject ILogger<LanguageFlags> Logger
 
 <div class="d-flex align-items-center gap-2">
-    <!-- Bandeiras para seleção de idioma -->
+    <!-- Flags for language selection -->
     <button class="btn btn-link p-0" @onclick="@(() => ChangeCulture("en"))" type="button" title="English">
         <img src="/images/flags/gb.svg" alt="English" style="width:32px;height:32px;" />
     </button>
@@ -11,7 +11,7 @@
         <img src="/images/flags/nl.svg" alt="Nederlands" style="width:32px;height:32px;" />
     </button>
     <button class="btn btn-link p-0" @onclick="@(() => ChangeCulture("fr"))" type="button">
-        <img src="/images/flags/fr.svg" alt="Français" style="width:32px;height:32px;" />
+        <img src="/images/flags/fr.svg" alt="French" style="width:32px;height:32px;" />
     </button>
     <button class="btn btn-link p-0" @onclick="@(() => ChangeCulture("de"))" type="button">
         <img src="/images/flags/de.svg" alt="Deutsch" style="width:32px;height:32px;" />

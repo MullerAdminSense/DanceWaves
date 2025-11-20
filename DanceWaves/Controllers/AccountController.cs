@@ -10,10 +10,10 @@ namespace DanceWaves.Controllers
         [HttpGet("logout")]
         public async Task<IActionResult> Logout()
         {
-            // Remove cookies de autenticação
+            // Remove authentication cookies
             await HttpContext.SignOutAsync("Cookies");
 
-            // Exclua tokens do usuário aqui, se estiver usando um sistema de tokens
+            // Remove user tokens here if using a token system
             // Exemplo: await _tokenService.RemoveUserTokens(User.Identity.Name);
 
             // Redireciona para a tela de login

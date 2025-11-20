@@ -6,9 +6,8 @@ namespace DanceWaves.Models
 {
     public enum EntryStatus
     {
-        Pending = 1,
-        Accepted = 2,
-        NotAccepted = 3
+        Accepted = 1,
+        NotAccepted = 2
     }
 
     public enum PaymentStatus

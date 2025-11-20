@@ -21,7 +21,7 @@
 else if (IsAdmin)
 {
             <div class="container-fluid mt-4">
-                @* Botão Back to Administration no topo *@
+                @* Back to Administration button *@
                 <div class="row mb-2">
                     <div class="col-md-12">
                         <a href="/administration" class="btn btn-outline-secondary btn-sm">
@@ -135,7 +135,7 @@ else if (IsAdmin)
                 }
             </div>
 
-            @* Modal de confirmação de exclusão *@
+            @* Delete confirmation modal *@
             @if (ShowDeleteConfirm && RolePermissionToDelete != null)
             {
                 <div class="modal fade show" style="display: block;" tabindex="-1">

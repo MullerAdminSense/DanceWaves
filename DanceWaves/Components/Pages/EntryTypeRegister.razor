@@ -316,7 +316,7 @@ else
             SuccessMessage = "Entry type deleted successfully.";
             ShowDeleteConfirm = false;
             EntryTypeToDelete = null;
-            EditingEntryType = new EntryTypeDto(); // Limpa os campos de edição
+            EditingEntryType = new EntryTypeDto(); // Reset editing fields
             await LoadEntryTypes();
         }
         catch (Exception ex)

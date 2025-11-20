@@ -1,7 +1,7 @@
 namespace DanceWaves.Application.Dtos;
 
 /// <summary>
-/// DTO simplificado para User (sem navegação)
+/// Simplified DTO for User (no navigation props)
 /// </summary>
 public class UserSimpleDto
 {
@@ -19,4 +19,5 @@ public class UserSimpleDto
     public int? DefaultFranchiseId { get; set; }
     public int? AgeGroupId { get; set; }
     public int RolePermissionId { get; set; }
+    public string? Password { get; set; }
 }

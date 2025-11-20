@@ -1,7 +1,7 @@
 namespace DanceWaves.Application.Dtos;
 
 /// <summary>
-/// DTO para User com navegação opcional
+/// User DTO with optional navigation properties
 /// </summary>
 public class UserDetailDto
 {
@@ -20,7 +20,7 @@ public class UserDetailDto
     public int? AgeGroupId { get; set; }
     public int RolePermissionId { get; set; }
     
-    // Navigation properties (apenas quando necessário via Include)
+    // Navigation properties (only when needed via Include)
     public DanceSchoolDto? DanceSchool { get; set; }
     public FranchiseDto? DefaultFranchise { get; set; }
     public AgeGroupDto? AgeGroup { get; set; }

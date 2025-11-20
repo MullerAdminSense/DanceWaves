@@ -14,9 +14,9 @@ public static class EnumExtensions
     {
         return status switch
         {
-            CompetitionStatus.OpenForRegistration => "Aberto para Registro",
-            CompetitionStatus.Closed => "Fechado",
-            CompetitionStatus.Completed => "Concluído",
+            CompetitionStatus.OpenForRegistration => "Open for Registration",
+            CompetitionStatus.Closed => "Closed",
+            CompetitionStatus.Completed => "Completed",
             _ => status.ToString()
         };
     }
@@ -28,9 +28,8 @@ public static class EnumExtensions
     {
         return status switch
         {
-            EntryStatus.Pending => "Pendente",
-            EntryStatus.Accepted => "Aceito",
-            EntryStatus.NotAccepted => "Não Aceito",
+            EntryStatus.Accepted => "Accepted",
+            EntryStatus.NotAccepted => "Not Accepted",
             _ => status.ToString()
         };
     }
@@ -53,9 +52,9 @@ public static class EnumExtensions
     {
         return status switch
         {
-            PaymentStatus.Pending => "Pendente",
-            PaymentStatus.Paid => "Pago",
-            PaymentStatus.Failed => "Falhou",
+            PaymentStatus.Pending => "Pending",
+            PaymentStatus.Paid => "Paid",
+            PaymentStatus.Failed => "Failed",
             _ => status.ToString()
         };
     }

@@ -5,8 +5,8 @@ using DanceWaves.Application.Dtos;
 namespace DanceWaves.Application.Ports
 {
     /// <summary>
-    /// Porta para persistência de Entries
-    /// Interface que define as operações de entrada do domínio
+/// Port for Entry persistence
+/// Defines domain entry operations
     /// </summary>
     public interface IEntryPersistencePort
     {

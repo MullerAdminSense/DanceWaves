@@ -169,19 +169,15 @@
     private string? SuccessMessage { get; set; }
     private bool IsLoading { get; set; }
     private Dictionary<string, string> ValidationErrors { get; set; } = new();
-    private bool IsAuthenticated { get; set; }
 
     private bool ShowPassword { get; set; } = false;
     private bool ShowConfirmPassword { get; set; } = false;
 
     protected override async Task OnInitializedAsync()
     {
-        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-        IsAuthenticated = authState.User.Identity?.IsAuthenticated ?? false;
-        if (IsAuthenticated)
-        {
-            Navigation.NavigateTo("/profile", true);
-        }
+        // Registration page must stay public/accessible
+        // Allows the first system user to register without logging in
+        await Task.CompletedTask;
     }
 
     private void TogglePasswordVisibility() => ShowPassword = !ShowPassword;

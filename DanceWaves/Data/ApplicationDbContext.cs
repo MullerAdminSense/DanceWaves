@@ -47,7 +47,7 @@ namespace DanceWaves.Data
                 b.HasKey(u => u.Id);
                 b.Property(u => u.Id).ValueGeneratedOnAdd();
                 b.Property(u => u.Email).HasMaxLength(200).IsRequired();
-                // Configuração de relacionamentos usando apenas FKs (sem navigation properties)
+                // Relationship configuration using only FKs (no navigation props)
                 b.HasOne<DanceSchool>()
                     .WithMany()
                     .HasForeignKey(u => u.DanceSchoolId)
@@ -71,7 +71,7 @@ namespace DanceWaves.Data
                 b.HasKey(s => s.Id);
                 b.Property(s => s.Id).ValueGeneratedOnAdd();
                 b.Property(s => s.LegalName).HasMaxLength(200).IsRequired();
-                // Configuração de relacionamento usando apenas FK
+                // Relationship configuration using only the FK
                 b.HasOne<Franchise>()
                     .WithMany()
                     .HasForeignKey(s => s.DefaultFranchiseId)
@@ -92,7 +92,7 @@ namespace DanceWaves.Data
             {
                 b.HasKey(cc => cc.Id);
                 b.Property(cc => cc.Id).ValueGeneratedOnAdd();
-                // Configuração de relacionamentos usando apenas FKs
+                // Relationship configuration using only FKs
                 b.HasOne<Competition>()
                     .WithMany()
                     .HasForeignKey(cc => cc.CompetitionId)
@@ -115,7 +115,7 @@ namespace DanceWaves.Data
             {
                 b.HasKey(j => j.Id);
                 b.Property(j => j.Id).ValueGeneratedOnAdd();
-                // Configuração de relacionamentos usando apenas FKs
+                // Relationship configuration using only FKs
                 b.HasOne<User>()
                     .WithMany()
                     .HasForeignKey(j => j.UserId)
@@ -130,7 +130,7 @@ namespace DanceWaves.Data
             {
                 b.HasKey(e => e.Id);
                 b.Property(e => e.Id).ValueGeneratedOnAdd();
-                // Configuração de relacionamentos usando apenas FKs
+                // Relationship configuration using only FKs
                 b.HasOne<CompetitionCategory>()
                     .WithMany()
                     .HasForeignKey(e => e.CompetitionCategoryId)
@@ -149,7 +149,7 @@ namespace DanceWaves.Data
             {
                 b.HasKey(em => em.Id);
                 b.Property(em => em.Id).ValueGeneratedOnAdd();
-                // Configuração de relacionamentos usando apenas FKs
+                // Relationship configuration using only FKs
                 b.HasOne<Entry>()
                     .WithMany()
                     .HasForeignKey(em => em.EntryId)
@@ -164,7 +164,7 @@ namespace DanceWaves.Data
             {
                 b.HasKey(s => s.Id);
                 b.Property(s => s.Id).ValueGeneratedOnAdd();
-                // Configuração de relacionamentos usando apenas FKs
+                // Relationship configuration using only FKs
                 b.HasOne<User>()
                     .WithMany()
                     .HasForeignKey(s => s.JudgeUserId)

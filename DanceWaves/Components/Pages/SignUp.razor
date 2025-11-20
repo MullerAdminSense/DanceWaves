@@ -4,6 +4,7 @@
 @using DanceWaves.Application.Dtos
 @using DanceWaves.Application.Ports
 @using DanceWaves.Models
+@using DanceWaves.Infrastructure.Security
 @using CountryEnum = DanceWaves.Models.CountryId
 @inject IUserPersistencePort UserPort
 @inject IAuthenticationPort AuthenticationPort
@@ -126,19 +127,25 @@
                                         <i class="bi bi-eye@(ShowPassword ? "-slash" : "")"></i>
                                     </button>
                                 </div>
+                                <small class="text-muted">Password can only be updated and cannot be left blank.</small>
                             </div>
                         }
                         else
                         {
                             <div class="mb-3">
-                                <label for="password" class="form-label">Password (leave blank to keep current)</label>
+                                <label for="password" class="form-label">Password</label>
                                 <div class="input-group">
-                                    <input type="@(ShowPassword ? "text" : "password")" class="form-control" id="password" @bind="Password" />
-                                    <button class="btn btn-outline-secondary" type="button" @onclick="@(() => ShowPassword = !ShowPassword)">
-                                        <i class="bi bi-eye@(ShowPassword ? "-slash" : "")"></i>
+                                    <input type="@(ShowPassword ? "text" : "password")"
+                                           class="form-control"
+                                           id="password"
+                                           @bind="Password"
+                                           placeholder="Enter password"
+                                           required>
+                                    <button type="button" class="btn btn-outline-secondary" @onclick="TogglePasswordVisibility" tabindex="-1">
+                                        <span class="@(ShowPassword ? "bi bi-eye-slash" : "bi bi-eye")"></span>
                                     </button>
                                 </div>
-                                <small class="text-muted">Leave blank to keep your current password</small>
+                                <small class="text-muted">Password can only be updated and cannot be left blank.</small>
                             </div>
                         }
                         
@@ -177,7 +184,7 @@
     private string? Zip { get; set; }
     private string? Province { get; set; }
     private int SelectedCountryId { get; set; }
-    private string? Password { get; set; }
+    private string Password { get; set; } = string.Empty;
     
     private string DanceSchoolName { get; set; } = "-";
     private string FranchiseName { get; set; } = "-";
@@ -241,8 +248,10 @@
                 Zip = user.Zip;
                 Province = user.Province;
                 SelectedCountryId = user.CountryId;
+                Password = string.Empty;
+                ShowPassword = false;
                 
-                // Carregar dados relacionados para exibição (readonly)
+                // Load related data for display (readonly)
                 await LoadRelatedData(user);
             }
         }
@@ -324,14 +333,30 @@
     {
         try
         {
-            var user = await UserPort.GetByIdAsync(CurrentUserId!.Value);
+            if (CurrentUserId == null)
+            {
+                ErrorMessage = "User not authenticated.";
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(Password))
+            {
+                ErrorMessage = "Password is required.";
+                return;
+            }
+            if (Password.Length < 8)
+            {
+                ErrorMessage = "Password must be at least 8 characters.";
+                return;
+            }
+
+            var user = await UserPort.GetByIdAsync(CurrentUserId.Value);
             if (user == null)
             {
                 ErrorMessage = "User not found.";
                 return;
             }
 
-            // Atualizar usando UserSimpleDto
             user.FirstName = FirstName;
             user.LastName = LastName;
             user.Email = Email ?? string.Empty;
@@ -341,23 +366,12 @@
             user.Zip = Zip;
             user.Province = Province;
             user.CountryId = SelectedCountryId;
-
-            await UserPort.UpdateAsync(user);
+            user.Password = Password;
             
-            // Se houver senha, atualizar separadamente usando AuthenticationPort
-            if (!string.IsNullOrWhiteSpace(Password))
-            {
-                var changePasswordRequest = new ChangePasswordRequest
-                {
-                    CurrentPassword = "", // Não temos senha atual no contexto
-                    NewPassword = Password,
-                    ConfirmPassword = Password
-                };
-                // Para atualizar a senha, precisaríamos de um método específico
-                // Por enquanto, apenas atualizamos o perfil sem senha
-            }
+            var updatedUser = await UserPort.UpdateAsync(user);
             SuccessMessage = "Profile updated successfully!";
-            Password = null;
+            Password = string.Empty;
+            ShowPassword = false;
         }
         catch (Exception ex)
         {
@@ -370,9 +384,17 @@
     {
         try
         {
+            // Validations (same rules as Register.razor)
             if (string.IsNullOrWhiteSpace(Email) || string.IsNullOrWhiteSpace(Password))
             {
                 ErrorMessage = "Email and Password are required.";
+                return;
+            }
+            
+            // Password must be at least 8 characters
+            if (Password.Length < 8)
+            {
+                ErrorMessage = "Password must be at least 8 characters.";
                 return;
             }
 
@@ -406,6 +428,8 @@
             if (response.IsSuccess)
             {
                 SuccessMessage = "Account created successfully! Redirecting to login...";
+                Password = string.Empty;
+                ShowPassword = false;
                 await Task.Delay(2000);
                 Navigation.NavigateTo("/login");
             }
@@ -420,4 +444,6 @@
             Logger.LogError(ex, "Error creating account");
         }
     }
+
+    private void TogglePasswordVisibility() => ShowPassword = !ShowPassword;
 }

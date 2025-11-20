@@ -227,7 +227,7 @@ else
         var value = e.Value?.ToString();
         if (!string.IsNullOrWhiteSpace(value))
         {
-            // O valor do input datetime-local está sempre no formato yyyy-MM-ddTHH:mm
+            // The datetime-local input value is always formatted as yyyy-MM-ddTHH:mm
             if (DateTime.TryParse(value, out var dt))
                 EditingEntry.StartTime = dt;
             else

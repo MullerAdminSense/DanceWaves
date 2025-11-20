@@ -3,7 +3,7 @@ using DanceWaves.Models;
 namespace DanceWaves.Application.Dtos;
 
 /// <summary>
-/// DTO simplificado para Entry (sem navegação)
+/// Simplified DTO for Entry (no navigation props)
 /// </summary>
 public class EntrySimpleDto
 {

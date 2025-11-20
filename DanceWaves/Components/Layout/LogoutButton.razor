@@ -33,7 +33,7 @@
         
         try
         {
-            // Primeiro, obtém o userId ANTES de limpar o estado de autenticação
+            // Fetch the userId BEFORE clearing auth state
             string? userId = null;
             try
             {
@@ -45,7 +45,7 @@
                 Logger.LogWarning(ex, "Could not get userId during logout, continuing anyway");
             }
 
-            // Limpa o estado de autenticação - CRÍTICO para o logout funcionar
+            // Clear auth state — critical for logout to work
             if (AuthStateProvider is DanceWaves.Infrastructure.Security.CustomAuthenticationStateProvider customProvider)
             {
                 try
@@ -59,7 +59,7 @@
                 }
             }
 
-            // Chama o método de logout do adapter (para logging no banco)
+            // Invoke adapter logout (for DB logging, etc.)
             if (!string.IsNullOrWhiteSpace(userId))
             {
                 try
@@ -93,16 +93,16 @@
         {
             IsLoggingOut = false;
             
-            // SEMPRE redireciona para a página de login
+            // ALWAYS redirect to the login page
             try
             {
-                // Primeiro tenta usar a navegação do Blazor
+                // Try Blazor navigation first
                 Navigation.NavigateTo("/login", forceLoad: true);
             }
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Error navigating to login page with Blazor: {Error}", ex.Message);
-                // Se a navegação do Blazor falhar, usa JavaScript para redirecionar
+                // Fallback to JS redirect if Blazor navigation fails
                 try
                 {
                     await JSRuntime.InvokeVoidAsync("logoutRedirect", "/login");

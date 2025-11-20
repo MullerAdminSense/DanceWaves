@@ -276,8 +276,8 @@
         try
         {
             _isLoadingDanceSchools = true;
-            // Recarrega DanceSchools do banco quando o combo é focado (clicado)
-            // Isso garante que mudanças feitas por outros usuários sejam refletidas
+            // Reload dance schools when the combo gains focus
+            // Ensures updates made by other users are reflected
             await LoadDanceSchoolsFromDatabase();
             StateHasChanged();
         }
@@ -308,7 +308,7 @@
             // Recarrega as franchises do banco quando a dance school muda
             await LoadFranchisesForSelectedSchool();
             
-            // Força atualização da UI
+            // Force UI refresh
             StateHasChanged();
         }
     }
@@ -335,8 +335,8 @@
         // Evita chamadas concorrentes
         if (_isLoadingFranchises) return;
         
-        // Recarrega as franchises do banco quando o combo é focado (clicado)
-        // Isso garante que mudanças feitas por outros usuários sejam refletidas
+        // Reload franchises when the combo gains focus
+        // Ensures updates made by other users are reflected
         if (CurrentUser?.DanceSchoolId != null)
         {
             await LoadFranchisesForSelectedSchool();

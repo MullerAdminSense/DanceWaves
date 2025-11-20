@@ -1,6 +1,6 @@
 window.setCulture = function (culture) {
     if (!culture) {
-        console.warn("setCulture: cultura inválida");
+        console.warn("setCulture: invalid culture");
         return;
     }
 

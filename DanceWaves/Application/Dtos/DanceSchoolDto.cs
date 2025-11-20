@@ -1,7 +1,7 @@
 namespace DanceWaves.Application.Dtos;
 
 /// <summary>
-/// DTO para DanceSchool com navegação opcional
+/// DanceSchool DTO with optional navigation properties
 /// </summary>
 public class DanceSchoolDto
 {
@@ -17,6 +17,6 @@ public class DanceSchoolDto
     public int? DefaultFranchiseId { get; set; }
     public int CountryId { get; set; }
     
-    // Navigation properties (apenas quando necessário)
+    // Navigation properties (only when necessary)
     public FranchiseDto? DefaultFranchise { get; set; }
 }
