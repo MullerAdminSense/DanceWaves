@@ -22,36 +22,52 @@ public static class EnumExtensions
     }
 
     /// <summary>
-    /// Gets the display description for EntryStatus enum
+    /// Gets the display description for EntryStatus enum (non-nullable)
+    /// </summary>
+    public static string GetDescription(this EntryStatus status)
+    {
+        return status switch
+        {
+            EntryStatus.Pending => "Pendente",
+            EntryStatus.Accepted => "Aceito",
+            EntryStatus.NotAccepted => "Não Aceito",
+            _ => status.ToString()
+        };
+    }
+
+    /// <summary>
+    /// Gets the display description for EntryStatus enum (nullable)
     /// </summary>
     public static string GetDescription(this EntryStatus? status)
     {
         if (!status.HasValue)
             return string.Empty;
 
-        return status.Value switch
+        return status.Value.GetDescription();
+    }
+
+    /// <summary>
+    /// Gets the display description for PaymentStatus enum (non-nullable)
+    /// </summary>
+    public static string GetDescription(this PaymentStatus status)
+    {
+        return status switch
         {
-            EntryStatus.Pending => "Pendente",
-            EntryStatus.Accepted => "Aceito",
-            EntryStatus.NotAccepted => "Não Aceito",
-            _ => status.Value.ToString()
+            PaymentStatus.Pending => "Pendente",
+            PaymentStatus.Paid => "Pago",
+            PaymentStatus.Failed => "Falhou",
+            _ => status.ToString()
         };
     }
 
     /// <summary>
-    /// Gets the display description for PaymentStatus enum
+    /// Gets the display description for PaymentStatus enum (nullable)
     /// </summary>
     public static string GetDescription(this PaymentStatus? status)
     {
         if (!status.HasValue)
             return string.Empty;
 
-        return status.Value switch
-        {
-            PaymentStatus.Pending => "Pendente",
-            PaymentStatus.Paid => "Pago",
-            PaymentStatus.Failed => "Falhou",
-            _ => status.Value.ToString()
-        };
+        return status.Value.GetDescription();
     }
 }

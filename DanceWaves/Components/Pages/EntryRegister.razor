@@ -5,7 +5,10 @@
 @using DanceWaves.Models
 @using DanceWaves.Application.Dtos
 @using DanceWaves.Application.Ports
+@using DanceWaves.Extensions
 @inject IEntryPersistencePort EntryPersistencePort
+@inject ICompetitionCategoryPersistencePort CompetitionCategoryPersistencePort
+@inject IDanceSchoolPersistencePort DanceSchoolPersistencePort
 
 <!-- Entry Registration Form -->
 <div class="container-fluid mt-5">
@@ -26,8 +29,14 @@
                     }
                     <form @onsubmit="HandleRegister">
                         <div class="mb-3">
-                            <label for="competitionCategoryId" class="form-label">Competition Category ID *</label>
-                            <input type="number" class="form-control" id="competitionCategoryId" @bind="Entry.CompetitionCategoryId" required />
+                            <label for="competitionCategoryId" class="form-label">Competition Category *</label>
+                            <select class="form-select" id="competitionCategoryId" @bind="Entry.CompetitionCategoryId" @bind:after="StateHasChanged" required>
+                                <option value="0">Select a category...</option>
+                                @foreach (var category in CompetitionCategories)
+                                {
+                                    <option value="@category.Id">Category #@category.Id - Competition @category.CompetitionId</option>
+                                }
+                            </select>
                         </div>
                         <div class="mb-3">
                             <label for="startNumber" class="form-label">Start Number *</label>
@@ -38,25 +47,33 @@
                             <input type="datetime-local" class="form-control" id="startTime" @bind="Entry.StartTime" />
                         </div>
                         <div class="mb-3">
-                            <label for="schoolId" class="form-label">School ID</label>
-                            <input type="number" class="form-control" id="schoolId" @bind="Entry.SchoolId" />
+                            <label for="schoolId" class="form-label">Dance School</label>
+                            <select class="form-select" id="schoolId" @bind="SelectedSchoolId" @bind:after="StateHasChanged">
+                                <option value="">Select a school (optional)...</option>
+                                @foreach (var school in DanceSchools)
+                                {
+                                    <option value="@school.Id">@school.LegalName</option>
+                                }
+                            </select>
                         </div>
                         <div class="mb-3">
                             <label for="status" class="form-label">Status</label>
                             <select class="form-select" id="status" @bind="Entry.Status">
-                                <option value="">Selecione...</option>
-                                <option value="@EntryStatus.Pending">Pendente</option>
-                                <option value="@EntryStatus.Accepted">Aceito</option>
-                                <option value="@EntryStatus.NotAccepted">Não Aceito</option>
+                                <option value="">Select status...</option>
+                                @foreach (var status in Enum.GetValues<EntryStatus>())
+                                {
+                                    <option value="@status">@status.GetDescription()</option>
+                                }
                             </select>
                         </div>
                         <div class="mb-3">
                             <label for="paymentStatus" class="form-label">Payment Status</label>
                             <select class="form-select" id="paymentStatus" @bind="Entry.PaymentStatus">
-                                <option value="">Selecione...</option>
-                                <option value="@PaymentStatus.Pending">Pendente</option>
-                                <option value="@PaymentStatus.Paid">Pago</option>
-                                <option value="@PaymentStatus.Failed">Falhou</option>
+                                <option value="">Select payment status...</option>
+                                @foreach (var status in Enum.GetValues<PaymentStatus>())
+                                {
+                                    <option value="@status">@status.GetDescription()</option>
+                                }
                             </select>
                         </div>
                         <div class="mb-3">
@@ -77,18 +94,67 @@
 
 @code {
     private EntrySimpleDto Entry { get; set; } = new EntrySimpleDto();
+    private List<CompetitionCategoryDto> CompetitionCategories { get; set; } = new();
+    private List<DanceSchoolDto> DanceSchools { get; set; } = new();
     private string ErrorMessage { get; set; } = string.Empty;
     private string SuccessMessage { get; set; } = string.Empty;
+    private bool IsLoading { get; set; } = true;
+
+    private string? SelectedSchoolId
+    {
+        get => Entry.SchoolId?.ToString() ?? string.Empty;
+        set => Entry.SchoolId = string.IsNullOrEmpty(value) ? null : int.TryParse(value, out var id) ? id : null;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await LoadReferenceData();
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error loading reference data: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private async Task LoadReferenceData()
+    {
+        try
+        {
+            var categories = await CompetitionCategoryPersistencePort.GetAllAsync();
+            CompetitionCategories = categories.ToList();
+
+            var schools = await DanceSchoolPersistencePort.GetAllAsync();
+            DanceSchools = schools.ToList();
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error loading reference data: {ex.Message}";
+        }
+    }
 
     private async Task HandleRegister()
     {
         ErrorMessage = string.Empty;
         SuccessMessage = string.Empty;
+        
+        if (Entry.CompetitionCategoryId <= 0)
+        {
+            ErrorMessage = "Please select a competition category.";
+            return;
+        }
+
         try
         {
             await EntryPersistencePort.CreateAsync(Entry);
             SuccessMessage = "Entry registered successfully.";
             Entry = new EntrySimpleDto(); // Reset form
+            await LoadReferenceData(); // Reload in case new data was added
         }
         catch (Exception ex)
         {

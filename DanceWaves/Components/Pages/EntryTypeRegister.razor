@@ -257,6 +257,16 @@ else
             ErrorMessage = "Entry type name is required.";
             return;
         }
+        if (EditingEntryType.NumberOfDancers < 0)
+        {
+            ErrorMessage = "Number of dancers cannot be negative.";
+            return;
+        }
+        if (EditingEntryType.NumberOfDancers > 999)
+        {
+            ErrorMessage = "Number of dancers cannot exceed 999.";
+            return;
+        }
 
         IsSavingEntryType = true;
         try
@@ -306,6 +316,7 @@ else
             SuccessMessage = "Entry type deleted successfully.";
             ShowDeleteConfirm = false;
             EntryTypeToDelete = null;
+            EditingEntryType = new EntryTypeDto(); // Limpa os campos de edição
             await LoadEntryTypes();
         }
         catch (Exception ex)

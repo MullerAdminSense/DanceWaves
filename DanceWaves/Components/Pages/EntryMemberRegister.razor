@@ -1,61 +1,377 @@
 
+
 @page "/register-entrymember"
+@using DanceWaves.Application.Dtos
+@using DanceWaves.Application.Ports
+@using DanceWaves.Extensions
+@using DanceWaves.Models
+@inject IEntryMemberPersistencePort EntryMemberPort
+@inject IEntryPersistencePort EntryPort
+@inject IUserPersistencePort UserPort
+@inject IAuthenticationPort AuthenticationPort
+@inject AuthenticationStateProvider AuthStateProvider
+@inject ILogger<EntryMemberRegister> Logger
 @rendermode InteractiveServer
 
-@using DanceWaves.Models
-
-<!-- Entry Member Registration Form -->
-<div class="container-fluid mt-5">
-    <div class="row">
-        <div class="col-md-8 offset-md-2">
-            <div class="card shadow">
-                <div class="card-header bg-primary text-white">
-                    <h3 class="mb-0">Register Entry Member</h3>
-                </div>
-                <div class="card-body p-5">
-                    @if (!string.IsNullOrEmpty(ErrorMessage))
-                    {
-                        <div class="alert alert-danger">@ErrorMessage</div>
-                    }
-                    @if (!string.IsNullOrEmpty(SuccessMessage))
-                    {
-                        <div class="alert alert-success">@SuccessMessage</div>
-                    }
-                    <form @onsubmit="HandleRegister">
-                        <div class="mb-3">
-                            <label for="entryId" class="form-label">Entry ID *</label>
-                            <input type="number" class="form-control" id="entryId" @bind="Member.EntryId" required />
-                        </div>
-                        <div class="mb-3">
-                            <label for="userId" class="form-label">User ID *</label>
-                            <input type="number" class="form-control" id="userId" @bind="Member.UserId" required />
-                        </div>
-                        <div class="mb-3">
-                            <label for="paymentStatus" class="form-label">Payment Status</label>
-                            <select class="form-select" id="paymentStatus" @bind="Member.PaymentStatus">
-                                <option value="0">Pending</option>
-                                <option value="1">Paid</option>
-                                <option value="2">Failed</option>
-                            </select>
-                        </div>
-                        <button type="submit" class="btn btn-primary btn-lg w-100">Register Entry Member</button>
-                    </form>
-                </div>
-            </div>
+@if (!HasCheckedPermissions)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
         </div>
     </div>
-</div>
+}
+else if (IsAdmin)
+{
+    <div class="container-fluid mt-4">
+        <div class="row mb-2">
+            <div class="col-md-12">
+                <a href="/administration" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left"></i> Back to Administration
+                </a>
+            </div>
+        </div>
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <h2 class="mb-0"><i class="bi bi-person-plus"></i> Entry Member Management</h2>
+                <p class="text-muted">Manage entry members for each entry</p>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(ErrorMessage))
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                @ErrorMessage
+                <button type="button" class="btn-close" @onclick="@(() => ErrorMessage = null)"></button>
+            </div>
+        }
+        @if (!string.IsNullOrEmpty(SuccessMessage))
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                @SuccessMessage
+                <button type="button" class="btn-close" @onclick="@(() => SuccessMessage = null)"></button>
+            </div>
+        }
+
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title mb-3">@FormTitle</h5>
+                <form class="row gx-3 gy-2 align-items-end">
+                    <div class="col-md-4">
+                        <label class="form-label">Entry</label>
+                        <select class="form-select" @bind="EditingEntryMember.EntryId" @bind:after="StateHasChanged">
+                            <option value="0">Select an entry...</option>
+                            @foreach (var entry in Entries)
+                            {
+                                <option value="@entry.Id">Entry #@entry.Id - @(entry.Status?.GetDescription() ?? "N/A")</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">User</label>
+                        <select class="form-select" @bind="EditingEntryMember.UserId" @bind:after="StateHasChanged">
+                            <option value="0">Select a user...</option>
+                            @foreach (var user in Users)
+                            {
+                                <option value="@user.Id">@(user.FirstName ?? "") @(user.LastName ?? "") (@user.Email)</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Payment Status</label>
+                        <select class="form-select" @bind="EditingEntryMember.PaymentStatus">
+                            <option value="">Select payment status...</option>
+                            @foreach (var status in Enum.GetValues<PaymentStatus>())
+                            {
+                                <option value="@status">@status.GetDescription()</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-12 d-flex gap-2 mt-3">
+                        <button type="button" class="btn btn-success" @onclick="HandleSaveEntryMember" disabled="@IsSavingEntryMember">
+                            @(EditingEntryMember.Id > 0 ? "Update" : "Create")
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" @onclick="CancelEditEntryMember" disabled="@IsSavingEntryMember">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        @if (IsLoading)
+        {
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        }
+        else if (EntryMembers == null || !EntryMembers.Any())
+        {
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> No entry members defined yet.
+            </div>
+        }
+        else
+        {
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Entry ID</th>
+                                    <th>User ID</th>
+                                    <th>Payment Status</th>
+                                    <th class="text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var member in EntryMembers)
+                                {
+                                    <tr>
+                                        <td>@member.Id</td>
+                                        <td>@member.EntryId</td>
+                                        <td>@member.UserId</td>
+                                        <td>@member.PaymentStatus</td>
+                                        <td class="text-center">
+                                            <div class="btn-group" role="group">
+                                                <button class="btn btn-sm btn-outline-primary" @onclick="@(() => HandleEditEntryMember(member))" title="Edit Entry Member">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-danger" @onclick="@(() => HandleDeleteEntryMember(member))" title="Delete Entry Member">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (ShowDeleteConfirm && EntryMemberToDelete != null)
+        {
+            <div class="modal fade show" style="display: block;" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Confirm Deletion</h5>
+                            <button type="button" class="btn-close" @onclick="@(() => ShowDeleteConfirm = false)"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p>Delete entry member <strong>ID @EntryMemberToDelete.Id</strong>?</p>
+                            <p class="text-danger"><small>This action cannot be undone.</small></p>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" @onclick="@(() => ShowDeleteConfirm = false)">Cancel</button>
+                            <button type="button" class="btn btn-danger" @onclick="ConfirmDeleteEntryMember" disabled="@IsDeleting">
+                                @if (IsDeleting)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2"></span>
+                                }
+                                Delete Entry Member
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-backdrop fade show"></div>
+        }
+    </div>
+}
+else
+{
+    <div class="container-fluid mt-5">
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle"></i> You do not have permission to access this page.
+        </div>
+    </div>
+}
 
 @code {
-    private EntryMember Member { get; set; } = new EntryMember();
-    private string ErrorMessage { get; set; } = string.Empty;
-    private string SuccessMessage { get; set; } = string.Empty;
+    private List<EntryMemberDto> EntryMembers { get; set; } = new();
+    private List<EntrySimpleDto> Entries { get; set; } = new();
+    private List<UserSimpleDto> Users { get; set; } = new();
+    private EntryMemberDto EditingEntryMember { get; set; } = new();
+    private EntryMemberDto? EntryMemberToDelete { get; set; }
+    private bool IsLoading { get; set; } = true;
+    private bool IsSavingEntryMember { get; set; } = false;
+    private bool IsAdmin { get; set; } = false;
+    private bool HasCheckedPermissions { get; set; } = false;
+    private bool IsDeleting { get; set; } = false;
+    private string? ErrorMessage { get; set; }
+    private string? SuccessMessage { get; set; }
+    private bool ShowDeleteConfirm { get; set; } = false;
 
-    private async Task HandleRegister()
+    private string FormTitle => EditingEntryMember.Id > 0 ? "Update Entry Member" : "Create Entry Member";
+
+    protected override async Task OnInitializedAsync()
     {
-        ErrorMessage = string.Empty;
-        SuccessMessage = string.Empty;
-        // TODO: Adicionar lógica de persistência
-        SuccessMessage = "Entry Member registered successfully.";
+        try
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var userId = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (!string.IsNullOrEmpty(userId))
+            {
+                var currentUser = await AuthenticationPort.GetCurrentUserAsync(userId);
+                if (currentUser != null)
+                {
+                    var rolePermissions = await AuthenticationPort.GetAllRolePermissionsAsync();
+                    var userRole = rolePermissions.FirstOrDefault(r => r.Id == currentUser.RolePermissionId);
+                    IsAdmin = userRole != null && (userRole.Id == 1 || userRole.Id == 2);
+                }
+            }
+
+            if (IsAdmin)
+            {
+                await LoadReferenceData();
+                await LoadEntryMembers();
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error loading entry members: {ex.Message}";
+            Logger.LogError(ex, "Error loading entry members in EntryMemberRegister");
+        }
+        finally
+        {
+            IsLoading = false;
+            HasCheckedPermissions = true;
+        }
+    }
+
+    private async Task LoadReferenceData()
+    {
+        try
+        {
+            var entries = await EntryPort.GetAllAsync();
+            Entries = entries.ToList();
+            
+            var users = await UserPort.GetAllAsync();
+            Users = users.ToList();
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error loading reference data: {ex.Message}";
+            Logger.LogError(ex, "Error loading reference data");
+        }
+    }
+
+    private async Task LoadEntryMembers()
+    {
+        try
+        {
+            var members = await EntryMemberPort.GetAllAsync();
+            EntryMembers = members.ToList();
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error loading entry members: {ex.Message}";
+            Logger.LogError(ex, "Error loading entry members");
+        }
+    }
+
+    private void HandleEditEntryMember(EntryMemberDto member)
+    {
+        Logger.LogInformation("Editing entry member {EntryMemberId}", member.Id);
+        EditingEntryMember = new EntryMemberDto
+        {
+            Id = member.Id,
+            EntryId = member.EntryId,
+            UserId = member.UserId,
+            PaymentStatus = member.PaymentStatus
+        };
+        ErrorMessage = null;
+        SuccessMessage = null;
+    }
+
+    private void CancelEditEntryMember()
+    {
+        Logger.LogInformation("Entry member edit canceled");
+        EditingEntryMember = new EntryMemberDto();
+        ErrorMessage = null;
+    }
+
+    private async Task HandleSaveEntryMember()
+    {
+        ErrorMessage = null;
+        SuccessMessage = null;
+        if (EditingEntryMember.EntryId <= 0)
+        {
+            ErrorMessage = "Please select an entry.";
+            return;
+        }
+        if (EditingEntryMember.UserId <= 0)
+        {
+            ErrorMessage = "Please select a user.";
+            return;
+        }
+
+        IsSavingEntryMember = true;
+        try
+        {
+            if (EditingEntryMember.Id > 0)
+            {
+                await EntryMemberPort.UpdateAsync(EditingEntryMember);
+                SuccessMessage = "Entry member updated successfully.";
+            }
+            else
+            {
+                await EntryMemberPort.CreateAsync(EditingEntryMember);
+                SuccessMessage = "Entry member created successfully.";
+            }
+
+            EditingEntryMember = new EntryMemberDto();
+            await LoadReferenceData();
+            await LoadEntryMembers();
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error saving entry member: {ex.Message}";
+            Logger.LogError(ex, "Error saving entry member");
+        }
+        finally
+        {
+            IsSavingEntryMember = false;
+        }
+    }
+
+    private void HandleDeleteEntryMember(EntryMemberDto member)
+    {
+        Logger.LogInformation("Preparing to delete entry member {EntryMemberId}", member.Id);
+        EntryMemberToDelete = member;
+        ShowDeleteConfirm = true;
+    }
+
+    private async Task ConfirmDeleteEntryMember()
+    {
+        if (EntryMemberToDelete == null) return;
+
+        IsDeleting = true;
+        ErrorMessage = null;
+        SuccessMessage = null;
+        try
+        {
+            await EntryMemberPort.DeleteAsync(EntryMemberToDelete.Id);
+            SuccessMessage = "Entry member deleted successfully.";
+            ShowDeleteConfirm = false;
+            EntryMemberToDelete = null;
+            EditingEntryMember = new EntryMemberDto();
+            await LoadReferenceData();
+            await LoadEntryMembers();
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error deleting entry member: {ex.Message}";
+            Logger.LogError(ex, "Error deleting entry member: {EntryMemberId}", EntryMemberToDelete?.Id);
+        }
+        finally
+        {
+            IsDeleting = false;
+        }
     }
 }

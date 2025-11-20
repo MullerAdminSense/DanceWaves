@@ -1,73 +1,392 @@
-@page "/entries"
-@rendermode InteractiveServer
-@inject IEntryPersistencePort EntryPersistencePort
 
-<div class="container-fluid mt-5">
-    <div class="row mb-4">
-        <div class="col-md-12">
-            <h1>📝 Entries</h1>
-            <p class="text-muted">Manage dance competition entries</p>
+@page "/entries"
+@using DanceWaves.Application.Dtos
+@using DanceWaves.Application.Ports
+@inject IEntryPersistencePort EntryPort
+@inject IAuthenticationPort AuthenticationPort
+@inject AuthenticationStateProvider AuthStateProvider
+@inject ILogger<Entries> Logger
+@rendermode InteractiveServer
+
+@if (!HasCheckedPermissions)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
         </div>
     </div>
+}
+else if (IsAdmin)
+{
+    <div class="container-fluid mt-4">
+        <div class="row mb-2">
+            <div class="col-md-12">
+                <a href="/administration" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left"></i> Back to Administration
+                </a>
+            </div>
+        </div>
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <h2 class="mb-0"><i class="bi bi-journal"></i> Entry Management</h2>
+                <p class="text-muted">Manage dance competition entries</p>
+            </div>
+        </div>
 
-    @if (entries == null)
-    {
-        <p><em>Loading...</em></p>
-    }
-    else if (entries.Count() == 0)
-    {
-        <div class="alert alert-info">
-            <p>No entries found. <a href="/entries/new">Create a new entry</a></p>
+        @if (!string.IsNullOrEmpty(ErrorMessage))
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                @ErrorMessage
+                <button type="button" class="btn-close" @onclick="@(() => ErrorMessage = null)"></button>
+            </div>
+        }
+        @if (!string.IsNullOrEmpty(SuccessMessage))
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                @SuccessMessage
+                <button type="button" class="btn-close" @onclick="@(() => SuccessMessage = null)"></button>
+            </div>
+        }
+
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title mb-3">@FormTitle</h5>
+                <form class="row gx-3 gy-2 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label">Competition Category ID</label>
+                        <input type="number" class="form-control" @bind="EditingEntry.CompetitionCategoryId" min="1" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Start Number</label>
+                        <input type="number" class="form-control" @bind="EditingEntry.StartNumber" min="1" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Start Time</label>
+                        <input type="datetime-local" class="form-control" value="@(EditingEntry.StartTime.HasValue ? EditingEntry.StartTime.Value.ToString("yyyy-MM-dd'T'HH:mm") : "")" @onchange="OnStartTimeChanged" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">School ID</label>
+                        <input type="number" class="form-control" @bind="EditingEntry.SchoolId" min="1" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Status</label>
+                        <select class="form-select" @bind="EditingEntry.Status">
+                            <option value="1">Pending</option>
+                            <option value="2">Accepted</option>
+                            <option value="3">NotAccepted</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Payment Status</label>
+                        <select class="form-select" @bind="EditingEntry.PaymentStatus">
+                            <option value="1">Pending</option>
+                            <option value="2">Paid</option>
+                            <option value="3">Failed</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Song</label>
+                        <input type="text" class="form-control" @bind="EditingEntry.Song" maxlength="500" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Duration (seconds)</label>
+                        <input type="number" class="form-control" @bind="EditingEntry.DurationSeconds" min="0" />
+                    </div>
+                    <div class="col-md-12 d-flex gap-2 mt-3">
+                        <button type="button" class="btn btn-success" @onclick="HandleSaveEntry" disabled="@IsSavingEntry">
+                            @(EditingEntry.Id > 0 ? "Update" : "Create")
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" @onclick="CancelEditEntry" disabled="@IsSavingEntry">Cancel</button>
+                    </div>
+                </form>
+            </div>
         </div>
-    }
-    else
-    {
-        <div class="table-responsive">
-            <table class="table table-hover">
-                <thead class="table-dark">
-                    <tr>
-                        <th>ID</th>
-                        <th>Category</th>
-                        <th>Start Number</th>
-                        <th>Status</th>
-                        <th>Payment Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var entry in entries)
-                    {
-                        <tr>
-                            <td>@entry.Id</td>
-                            <td>@entry.CompetitionCategoryId</td>
-                            <td>@entry.StartNumber</td>
-                            <td>
-                                <span class="badge bg-primary">@entry.Status.GetDescription()</span>
-                            </td>
-                            <td>
-                                <span class="badge bg-success">@entry.PaymentStatus.GetDescription()</span>
-                            </td>
-                            <td>
-                                <button class="btn btn-sm btn-primary">Edit</button>
-                                <button class="btn btn-sm btn-danger">Delete</button>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+
+        @if (IsLoading)
+        {
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        }
+        else if (EntryList == null || !EntryList.Any())
+        {
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> No entries defined yet.
+            </div>
+        }
+        else
+        {
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Category</th>
+                                    <th>Start Number</th>
+                                    <th>Start Time</th>
+                                    <th>School ID</th>
+                                    <th>Status</th>
+                                    <th>Payment Status</th>
+                                    <th>Song</th>
+                                    <th>Duration</th>
+                                    <th class="text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var entry in EntryList)
+                                {
+                                    <tr>
+                                        <td>@entry.Id</td>
+                                        <td>@entry.CompetitionCategoryId</td>
+                                        <td>@entry.StartNumber</td>
+                                        <td>@(entry.StartTime.HasValue ? entry.StartTime.Value.ToString("yyyy-MM-dd HH:mm") : "-")</td>
+                                        <td>@(entry.SchoolId.HasValue ? entry.SchoolId.Value.ToString() : "-")</td>
+                                        <td>@(entry.Status?.ToString() ?? "-")</td>
+                                        <td>@(entry.PaymentStatus?.ToString() ?? "-")</td>
+                                        <td>@entry.Song</td>
+                                        <td>@(entry.DurationSeconds.HasValue ? entry.DurationSeconds.Value.ToString() : "-")</td>
+                                        <td class="text-center">
+                                            <div class="btn-group" role="group">
+                                                <button class="btn btn-sm btn-outline-primary" @onclick="@(() => HandleEditEntry(entry))" title="Edit Entry">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-danger" @onclick="@(() => HandleDeleteEntry(entry))" title="Delete Entry">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (ShowDeleteConfirm && EntryToDelete != null)
+        {
+            <div class="modal fade show" style="display: block;" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Confirm Deletion</h5>
+                            <button type="button" class="btn-close" @onclick="@(() => ShowDeleteConfirm = false)"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p>Delete entry <strong>ID @EntryToDelete.Id</strong>?</p>
+                            <p class="text-danger"><small>This action cannot be undone.</small></p>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" @onclick="@(() => ShowDeleteConfirm = false)">Cancel</button>
+                            <button type="button" class="btn btn-danger" @onclick="ConfirmDeleteEntry" disabled="@IsDeleting">
+                                @if (IsDeleting)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2"></span>
+                                }
+                                Delete Entry
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-backdrop fade show"></div>
+        }
+    </div>
+}
+else
+{
+    <div class="container-fluid mt-5">
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle"></i> You do not have permission to access this page.
         </div>
-    }
-</div>
+    </div>
+}
 
 @code {
-    private IEnumerable<EntrySimpleDto>? entries;
+    private List<EntrySimpleDto> EntryList { get; set; } = new();
+    private EntrySimpleDto EditingEntry { get; set; } = new();
+    private EntrySimpleDto? EntryToDelete { get; set; }
+    private bool IsLoading { get; set; } = true;
+    private bool IsSavingEntry { get; set; } = false;
+    private bool IsAdmin { get; set; } = false;
+    private bool HasCheckedPermissions { get; set; } = false;
+    private bool IsDeleting { get; set; } = false;
+    private string? ErrorMessage { get; set; }
+    private string? SuccessMessage { get; set; }
+    private bool ShowDeleteConfirm { get; set; } = false;
+
+    private string FormTitle => EditingEntry.Id > 0 ? "Update Entry" : "Create Entry";
+
+    private void OnStartTimeChanged(ChangeEventArgs e)
+    {
+        var value = e.Value?.ToString();
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            // O valor do input datetime-local está sempre no formato yyyy-MM-ddTHH:mm
+            if (DateTime.TryParse(value, out var dt))
+                EditingEntry.StartTime = dt;
+            else
+                EditingEntry.StartTime = null;
+        }
+        else
+        {
+            EditingEntry.StartTime = null;
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
-        entries = await EntryPersistencePort.GetAllAsync();
+        try
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var userId = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (!string.IsNullOrEmpty(userId))
+            {
+                var currentUser = await AuthenticationPort.GetCurrentUserAsync(userId);
+                if (currentUser != null)
+                {
+                    var rolePermissions = await AuthenticationPort.GetAllRolePermissionsAsync();
+                    var userRole = rolePermissions.FirstOrDefault(r => r.Id == currentUser.RolePermissionId);
+                    IsAdmin = userRole != null && (userRole.Id == 1 || userRole.Id == 2);
+                }
+            }
+
+            if (IsAdmin)
+            {
+                await LoadEntries();
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error loading entries: {ex.Message}";
+            Logger.LogError(ex, "Error loading entries in Entries");
+        }
+        finally
+        {
+            IsLoading = false;
+            HasCheckedPermissions = true;
+        }
+    }
+
+    private async Task LoadEntries()
+    {
+        try
+        {
+            var entries = await EntryPort.GetAllAsync();
+            EntryList = entries.ToList();
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error loading entries: {ex.Message}";
+            Logger.LogError(ex, "Error loading entries");
+        }
+    }
+
+    private void HandleEditEntry(EntrySimpleDto entry)
+    {
+        Logger.LogInformation("Editing entry {EntryId}", entry.Id);
+        EditingEntry = new EntrySimpleDto
+        {
+            Id = entry.Id,
+            CompetitionCategoryId = entry.CompetitionCategoryId,
+            StartNumber = entry.StartNumber,
+            StartTime = entry.StartTime,
+            SchoolId = entry.SchoolId,
+            Status = entry.Status,
+            PaymentStatus = entry.PaymentStatus,
+            Song = entry.Song,
+            DurationSeconds = entry.DurationSeconds
+        };
+        ErrorMessage = null;
+        SuccessMessage = null;
+    }
+
+    private void CancelEditEntry()
+    {
+        Logger.LogInformation("Entry edit canceled");
+        EditingEntry = new EntrySimpleDto();
+        ErrorMessage = null;
+    }
+
+    private async Task HandleSaveEntry()
+    {
+        ErrorMessage = null;
+        SuccessMessage = null;
+        if (EditingEntry.CompetitionCategoryId < 1)
+        {
+            ErrorMessage = "Competition Category ID is required and must be positive.";
+            return;
+        }
+        if (EditingEntry.StartNumber < 1)
+        {
+            ErrorMessage = "Start Number is required and must be positive.";
+            return;
+        }
+
+        IsSavingEntry = true;
+        try
+        {
+            if (EditingEntry.Id > 0)
+            {
+                await EntryPort.UpdateAsync(EditingEntry);
+                SuccessMessage = "Entry updated successfully.";
+            }
+            else
+            {
+                await EntryPort.CreateAsync(EditingEntry);
+                SuccessMessage = "Entry created successfully.";
+            }
+
+            EditingEntry = new EntrySimpleDto();
+            await LoadEntries();
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error saving entry: {ex.Message}";
+            Logger.LogError(ex, "Error saving entry");
+        }
+        finally
+        {
+            IsSavingEntry = false;
+        }
+    }
+
+    private void HandleDeleteEntry(EntrySimpleDto entry)
+    {
+        Logger.LogInformation("Preparing to delete entry {EntryId}", entry.Id);
+        EntryToDelete = entry;
+        ShowDeleteConfirm = true;
+    }
+
+    private async Task ConfirmDeleteEntry()
+    {
+        if (EntryToDelete == null) return;
+
+        IsDeleting = true;
+        ErrorMessage = null;
+        SuccessMessage = null;
+        try
+        {
+            await EntryPort.DeleteAsync(EntryToDelete.Id);
+            SuccessMessage = "Entry deleted successfully.";
+            ShowDeleteConfirm = false;
+            EntryToDelete = null;
+            EditingEntry = new EntrySimpleDto();
+            await LoadEntries();
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error deleting entry: {ex.Message}";
+            Logger.LogError(ex, "Error deleting entry: {EntryId}", EntryToDelete?.Id);
+        }
+        finally
+        {
+            IsDeleting = false;
+        }
     }
 }
-
-@using DanceWaves.Application.Dtos
-@using DanceWaves.Application.Ports
-@using DanceWaves.Extensions
