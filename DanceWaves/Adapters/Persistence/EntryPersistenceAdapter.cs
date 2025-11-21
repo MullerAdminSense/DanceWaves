@@ -19,39 +19,102 @@ public class EntryPersistenceAdapter(Data.ApplicationDbContext dbContext) : IEnt
 
     public async Task<EntrySimpleDto?> GetByIdAsync(int id)
     {
-        var model = await _dbContext.Entries.FindAsync(id);
-        return model != null ? ModelToDtoMapper.ToDto(model) : null;
+        try
+        {
+            var model = await _dbContext.Entries.FindAsync(id);
+            return model != null ? ModelToDtoMapper.ToDto(model) : null;
+        }
+        catch (InvalidOperationException ex)
+        {
+            Console.Error.WriteLine($"DbContext concurrency error in GetByIdAsync: {ex.Message}");
+            return null;
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Unexpected error in GetByIdAsync: {ex.Message}");
+            return null;
+        }
     }
 
     public async Task<IEnumerable<EntrySimpleDto>> GetAllAsync()
     {
-        var models = await _dbContext.Entries.ToListAsync();
-        return models.Select(ModelToDtoMapper.ToDto);
+        try
+        {
+            var models = await _dbContext.Entries.ToListAsync();
+            return models.Select(ModelToDtoMapper.ToDto);
+        }
+        catch (InvalidOperationException ex)
+        {
+            Console.Error.WriteLine($"DbContext concurrency error in GetAllAsync: {ex.Message}");
+            return Enumerable.Empty<EntrySimpleDto>();
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Unexpected error in GetAllAsync: {ex.Message}");
+            return Enumerable.Empty<EntrySimpleDto>();
+        }
     }
 
     public async Task<EntrySimpleDto> CreateAsync(EntrySimpleDto dto)
     {
-        var model = ModelToDtoMapper.ToModel(dto);
-        _dbContext.Entries.Add(model);
-        await _dbContext.SaveChangesAsync();
-        return ModelToDtoMapper.ToDto(model);
+        try
+        {
+            var model = ModelToDtoMapper.ToModel(dto);
+            _dbContext.Entries.Add(model);
+            await _dbContext.SaveChangesAsync();
+            return ModelToDtoMapper.ToDto(model);
+        }
+        catch (InvalidOperationException ex)
+        {
+            Console.Error.WriteLine($"DbContext concurrency error in CreateAsync: {ex.Message}");
+            return null;
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Unexpected error in CreateAsync: {ex.Message}");
+            return null;
+        }
     }
 
     public async Task<EntrySimpleDto> UpdateAsync(EntrySimpleDto dto)
     {
-        var model = ModelToDtoMapper.ToModel(dto);
-        _dbContext.Entries.Update(model);
-        await _dbContext.SaveChangesAsync();
-        return ModelToDtoMapper.ToDto(model);
+        try
+        {
+            var model = ModelToDtoMapper.ToModel(dto);
+            _dbContext.Entries.Update(model);
+            await _dbContext.SaveChangesAsync();
+            return ModelToDtoMapper.ToDto(model);
+        }
+        catch (InvalidOperationException ex)
+        {
+            Console.Error.WriteLine($"DbContext concurrency error in UpdateAsync: {ex.Message}");
+            return null;
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Unexpected error in UpdateAsync: {ex.Message}");
+            return null;
+        }
     }
 
     public async Task DeleteAsync(int id)
     {
-        var model = await _dbContext.Entries.FindAsync(id);
-        if (model != null)
+        try
         {
-            _dbContext.Entries.Remove(model);
-            await _dbContext.SaveChangesAsync();
+            var model = await _dbContext.Entries.FindAsync(id);
+            if (model != null)
+            {
+                _dbContext.Entries.Remove(model);
+                await _dbContext.SaveChangesAsync();
+            }
+        }
+        catch (InvalidOperationException ex)
+        {
+            Console.Error.WriteLine($"DbContext concurrency error in DeleteAsync: {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Unexpected error in DeleteAsync: {ex.Message}");
         }
     }
 }

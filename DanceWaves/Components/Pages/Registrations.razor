@@ -369,7 +369,7 @@ else if (IsSuperAdmin)
     }
 
 }
-else
+else if (HasCheckedPermissions && !IsSuperAdmin)
 {
     <div class="container-fluid mt-5">
         <div class="alert alert-warning">

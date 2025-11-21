@@ -16,49 +16,126 @@ public class UserPersistenceAdapter(Data.ApplicationDbContext dbContext) : IUser
 
     public async Task<UserSimpleDto?> GetByIdAsync(int id)
     {
-        var model = await _dbContext.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id);
-        return model != null ? ModelToDtoMapper.ToDto(model) : null;
+        try
+        {
+            var model = await _dbContext.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id);
+            return model != null ? ModelToDtoMapper.ToDto(model) : null;
+        }
+        catch (InvalidOperationException ex)
+        {
+            Console.Error.WriteLine($"DbContext concurrency error in GetByIdAsync: {ex.Message}");
+            return null;
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Unexpected error in GetByIdAsync: {ex.Message}");
+            return null;
+        }
     }
 
     public async Task<UserSimpleDto?> GetByEmailAsync(string email)
     {
-        var model = await _dbContext.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == email);
-        return model != null ? ModelToDtoMapper.ToDto(model) : null;
+        try
+        {
+            var model = await _dbContext.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == email);
+            return model != null ? ModelToDtoMapper.ToDto(model) : null;
+        }
+        catch (InvalidOperationException ex)
+        {
+            Console.Error.WriteLine($"DbContext concurrency error in GetByEmailAsync: {ex.Message}");
+            return null;
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Unexpected error in GetByEmailAsync: {ex.Message}");
+            return null;
+        }
     }
 
     public async Task<IEnumerable<UserSimpleDto>> GetAllAsync()
     {
-        var models = await _dbContext.Users.AsNoTracking().ToListAsync();
-        return models.Select(ModelToDtoMapper.ToDto);
+        try
+        {
+            var models = await _dbContext.Users.AsNoTracking().ToListAsync();
+            return models.Select(ModelToDtoMapper.ToDto);
+        }
+        catch (InvalidOperationException ex)
+        {
+            Console.Error.WriteLine($"DbContext concurrency error in GetAllAsync: {ex.Message}");
+            return Enumerable.Empty<UserSimpleDto>();
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Unexpected error in GetAllAsync: {ex.Message}");
+            return Enumerable.Empty<UserSimpleDto>();
+        }
     }
 
     public async Task<UserSimpleDto> CreateAsync(UserSimpleDto dto)
     {
-        var model = ModelToDtoMapper.ToModel(dto);
-        if (!string.IsNullOrWhiteSpace(model.Password))
+        try
         {
-            model.Password = PasswordHasher.HashPassword(model.Password);
+            var model = ModelToDtoMapper.ToModel(dto);
+            if (!string.IsNullOrWhiteSpace(model.Password))
+            {
+                model.Password = PasswordHasher.HashPassword(model.Password);
+            }
+            _dbContext.Users.Add(model);
+            await _dbContext.SaveChangesAsync();
+            return ModelToDtoMapper.ToDto(model);
         }
-        _dbContext.Users.Add(model);
-        await _dbContext.SaveChangesAsync();
-        return ModelToDtoMapper.ToDto(model);
+        catch (InvalidOperationException ex)
+        {
+            Console.Error.WriteLine($"DbContext concurrency error in CreateAsync: {ex.Message}");
+            return null;
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Unexpected error in CreateAsync: {ex.Message}");
+            return null;
+        }
     }
 
     public async Task<UserSimpleDto> UpdateAsync(UserSimpleDto dto)
     {
-        var existingModel = await _dbContext.Users.FindAsync(dto.Id);
-        if (existingModel != null)
+        try
         {
-            // Update only non-password fields
-            existingModel.FirstName = dto.FirstName;
-            existingModel.LastName = dto.LastName;
-            existingModel.Email = dto.Email;
-            existingModel.Phone = dto.Phone;
-            existingModel.Address = dto.Address;
-            existingModel.City = dto.City;
-            existingModel.Zip = dto.Zip;
-            existingModel.Province = dto.Province;
-            existingModel.CountryId = dto.CountryId;
+            var existingModel = await _dbContext.Users.FindAsync(dto.Id);
+            if (existingModel != null)
+            {
+                // Update only non-password fields
+                existingModel.FirstName = dto.FirstName;
+                existingModel.LastName = dto.LastName;
+                existingModel.Email = dto.Email;
+                existingModel.Phone = dto.Phone;
+                existingModel.Address = dto.Address;
+                existingModel.City = dto.City;
+                existingModel.Zip = dto.Zip;
+                existingModel.Province = dto.Province;
+                existingModel.CountryId = dto.CountryId;
+                // ...existing code...
+                await _dbContext.SaveChangesAsync();
+                return ModelToDtoMapper.ToDto(existingModel);
+            }
+            else
+            {
+                var model = ModelToDtoMapper.ToModel(dto);
+                _dbContext.Users.Update(model);
+                await _dbContext.SaveChangesAsync();
+                return ModelToDtoMapper.ToDto(model);
+            }
+        }
+        catch (InvalidOperationException ex)
+        {
+            Console.Error.WriteLine($"DbContext concurrency error in UpdateAsync: {ex.Message}");
+            return null;
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Unexpected error in UpdateAsync: {ex.Message}");
+            return null;
+        }
+    }
             existingModel.DanceSchoolId = dto.DanceSchoolId;
             existingModel.DefaultFranchiseId = dto.DefaultFranchiseId;
             existingModel.AgeGroupId = dto.AgeGroupId;
@@ -87,11 +164,22 @@ public class UserPersistenceAdapter(Data.ApplicationDbContext dbContext) : IUser
 
     public async Task DeleteAsync(int id)
     {
-        var model = await _dbContext.Users.FindAsync(id);
-        if (model != null)
+        try
         {
-            _dbContext.Users.Remove(model);
-            await _dbContext.SaveChangesAsync();
+            var model = await _dbContext.Users.FindAsync(id);
+            if (model != null)
+            {
+                _dbContext.Users.Remove(model);
+                await _dbContext.SaveChangesAsync();
+            }
+        }
+        catch (InvalidOperationException ex)
+        {
+            Console.Error.WriteLine($"DbContext concurrency error in DeleteAsync: {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Unexpected error in DeleteAsync: {ex.Message}");
         }
     }
 }
