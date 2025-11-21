@@ -3,9 +3,6 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using DanceWaves.Application.Dtos
 @using DanceWaves.Application.Ports
-@using DanceWaves.Models
-@using DanceWaves.Infrastructure.Security
-@using CountryEnum = DanceWaves.Models.CountryId
 @inject IUserPersistencePort UserPort
 @inject IAuthenticationPort AuthenticationPort
 @inject AuthenticationStateProvider AuthStateProvider
@@ -13,7 +10,22 @@
 @inject ILogger<SignUp> Logger
 @rendermode InteractiveServer
 
-<div class="container-fluid mt-5">
+<div class="container-fluid mt-4">
+    <div class="row mb-3">
+        <div class="col-md-12">
+            <a href="/" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left"></i> Back to Home
+            </a>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h2 class="mb-0"><i class="bi bi-person-plus"></i> @(IsEditMode ? "Edit Profile" : "Sign Up")</h2>
+            <p class="text-muted">@(IsEditMode ? "Update your profile information before continuing" : "Create your DanceWaves account to join the community")</p>
+        </div>
+    </div>
+
     <div class="row">
         <div class="col-md-8 offset-md-2">
             <div class="card shadow">
@@ -191,7 +203,8 @@
     private string AgeGroupName { get; set; } = "-";
     private string RolePermissionName { get; set; } = "-";
     
-    private List<(int Id, string Name)> Countries { get; set; } = new();
+    private const int DefaultCountryId = 1;
+    private List<CountryOptionDto> Countries { get; set; } = new();
     private string? ErrorMessage { get; set; }
     private string? SuccessMessage { get; set; }
     private bool IsLoading { get; set; }
@@ -203,13 +216,7 @@
     {
         try
         {
-            Countries = new List<(int, string)>
-            {
-                ((int)CountryEnum.USA, "United States"),
-                ((int)CountryEnum.Netherlands, "Netherlands"),
-                ((int)CountryEnum.France, "France"),
-                ((int)CountryEnum.Germany, "Germany")
-            };
+            Countries = CountryCatalog.Defaults.ToList();
 
             var authState = await AuthStateProvider.GetAuthenticationStateAsync();
             var userIdClaim = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -420,7 +427,7 @@
                     createdUser.City = City;
                     createdUser.Zip = Zip;
                     createdUser.Province = Province;
-                    createdUser.CountryId = SelectedCountryId > 0 ? SelectedCountryId : (int)CountryEnum.USA;
+                    createdUser.CountryId = SelectedCountryId > 0 ? SelectedCountryId : DefaultCountryId;
                     await UserPort.UpdateAsync(createdUser);
                 }
             }

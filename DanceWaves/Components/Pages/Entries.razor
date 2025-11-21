@@ -21,8 +21,8 @@ else if (IsAdmin)
     <div class="container-fluid mt-4">
         <div class="row mb-2">
             <div class="col-md-12">
-                <a href="/administration" class="btn btn-outline-secondary btn-sm">
-                    <i class="bi bi-arrow-left"></i> Back to Administration
+                <a href="/entries" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left"></i> Back to Entry
                 </a>
             </div>
         </div>
@@ -57,8 +57,9 @@ else if (IsAdmin)
                         <input type="number" class="form-control" @bind="EditingEntry.CompetitionCategoryId" min="1" />
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label">Start Number</label>
-                        <input type="number" class="form-control" @bind="EditingEntry.StartNumber" min="1" />
+                        <a href="/entries" class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-arrow-left"></i> Back to Entry
+                        </a>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Start Time</label>

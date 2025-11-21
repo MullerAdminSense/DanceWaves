@@ -1,54 +1,100 @@
 
 @page "/register-entry"
-@rendermode InteractiveServer
-
-@using DanceWaves.Models
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
 @using DanceWaves.Application.Dtos
 @using DanceWaves.Application.Ports
 @using DanceWaves.Extensions
 @inject IEntryPersistencePort EntryPersistencePort
 @inject ICompetitionCategoryPersistencePort CompetitionCategoryPersistencePort
 @inject IDanceSchoolPersistencePort DanceSchoolPersistencePort
+@inject IAuthenticationPort AuthenticationPort
+@inject AuthenticationStateProvider AuthStateProvider
+@inject ILogger<EntryRegister> Logger
+@rendermode InteractiveServer
 
-<!-- Entry Registration Form -->
-<div class="container-fluid mt-5">
-    <div class="row">
-        <div class="col-md-8 offset-md-2">
-            <div class="card shadow">
-                <div class="card-header bg-primary text-white">
-                    <h3 class="mb-0">Register Entry</h3>
-                </div>
-                <div class="card-body p-5">
-                    @if (!string.IsNullOrEmpty(ErrorMessage))
-                    {
-                        <div class="alert alert-danger">@ErrorMessage</div>
-                    }
-                    @if (!string.IsNullOrEmpty(SuccessMessage))
-                    {
-                        <div class="alert alert-success">@SuccessMessage</div>
-                    }
-                    <form @onsubmit="HandleRegister">
-                        <div class="mb-3">
-                            <label for="competitionCategoryId" class="form-label">Competition Category *</label>
-                            <select class="form-select" id="competitionCategoryId" @bind="Entry.CompetitionCategoryId" @bind:after="StateHasChanged" required>
+@if (!HasCheckedPermissions)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else if (!IsAdmin)
+{
+    <div class="container-fluid mt-5">
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle"></i> Você não tem permissão para acessar esta página.
+        </div>
+    </div>
+}
+else
+{
+    <div class="container-fluid mt-4">
+        <div class="row mb-2">
+            <div class="col-md-12">
+                <a href="/entry-menu" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left"></i> Back to Entry
+                </a>
+            </div>
+        </div>
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <h2 class="mb-0"><i class="bi bi-journal-plus"></i> Register Entry</h2>
+                <p class="text-muted">Create a new competition entry</p>
+            </div>
+        </div>
+
+        <div class="card shadow">
+            <div class="card-body">
+                @if (!string.IsNullOrEmpty(ErrorMessage))
+                {
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        @ErrorMessage
+                        <button type="button" class="btn-close" @onclick="@(() => ErrorMessage = null)"></button>
+                    </div>
+                }
+                @if (!string.IsNullOrEmpty(SuccessMessage))
+                {
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        @SuccessMessage
+                        <button type="button" class="btn-close" @onclick="@(() => SuccessMessage = null)"></button>
+                    </div>
+                }
+
+                @if (IsLoading)
+                {
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <form class="row g-3" @onsubmit="HandleRegister">
+                        <div class="col-md-6">
+                            <label class="form-label">Competition Category *</label>
+                            <select class="form-select" @bind="Entry.CompetitionCategoryId" required>
                                 <option value="0">Select a category...</option>
                                 @foreach (var category in CompetitionCategories)
                                 {
-                                    <option value="@category.Id">Category #@category.Id - Competition @category.CompetitionId</option>
+                                <option value="@category.Id">Category #@category.Id - Competition #@category.CompetitionId</option>
                                 }
                             </select>
                         </div>
-                        <div class="mb-3">
-                            <label for="startNumber" class="form-label">Start Number *</label>
-                            <input type="number" class="form-control" id="startNumber" @bind="Entry.StartNumber" required />
+                        <div class="col-md-3">
+                            <label class="form-label">Start Number *</label>
+                            <input type="number" class="form-control" @bind="Entry.StartNumber" min="1" required />
                         </div>
-                        <div class="mb-3">
-                            <label for="startTime" class="form-label">Start Time</label>
-                            <input type="datetime-local" class="form-control" id="startTime" @bind="Entry.StartTime" />
+                        <div class="col-md-3">
+                            <label class="form-label">Start Time</label>
+                            <input type="datetime-local" class="form-control" @bind="Entry.StartTime" />
                         </div>
-                        <div class="mb-3">
-                            <label for="schoolId" class="form-label">Dance School</label>
-                            <select class="form-select" id="schoolId" @bind="SelectedSchoolId" @bind:after="StateHasChanged">
+                        <div class="col-md-4">
+                            <label class="form-label">Dance School</label>
+                            <select class="form-select" @bind="SelectedSchoolId">
                                 <option value="">Select a school (optional)...</option>
                                 @foreach (var school in DanceSchools)
                                 {
@@ -56,9 +102,9 @@
                                 }
                             </select>
                         </div>
-                        <div class="mb-3">
-                            <label for="status" class="form-label">Status</label>
-                            <select class="form-select" id="status" @bind="Entry.Status">
+                        <div class="col-md-4">
+                            <label class="form-label">Status</label>
+                            <select class="form-select" @bind="Entry.Status">
                                 <option value="">Select status...</option>
                                 @foreach (var status in Enum.GetValues<EntryStatus>())
                                 {
@@ -66,9 +112,9 @@
                                 }
                             </select>
                         </div>
-                        <div class="mb-3">
-                            <label for="paymentStatus" class="form-label">Payment Status</label>
-                            <select class="form-select" id="paymentStatus" @bind="Entry.PaymentStatus">
+                        <div class="col-md-4">
+                            <label class="form-label">Payment Status</label>
+                            <select class="form-select" @bind="Entry.PaymentStatus">
                                 <option value="">Select payment status...</option>
                                 @foreach (var status in Enum.GetValues<PaymentStatus>())
                                 {
@@ -76,29 +122,34 @@
                                 }
                             </select>
                         </div>
-                        <div class="mb-3">
-                            <label for="song" class="form-label">Song</label>
-                            <input type="text" class="form-control" id="song" @bind="Entry.Song" />
+                        <div class="col-md-8">
+                            <label class="form-label">Song</label>
+                            <input type="text" class="form-control" @bind="Entry.Song" />
                         </div>
-                        <div class="mb-3">
-                            <label for="durationSeconds" class="form-label">Duration (seconds)</label>
-                            <input type="number" class="form-control" id="durationSeconds" @bind="Entry.DurationSeconds" />
+                        <div class="col-md-4">
+                            <label class="form-label">Duration (seconds)</label>
+                            <input type="number" class="form-control" @bind="Entry.DurationSeconds" min="0" />
                         </div>
-                        <button type="submit" class="btn btn-primary btn-lg w-100">Register Entry</button>
+                        <div class="col-md-12 d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">Register Entry</button>
+                            <button type="button" class="btn btn-outline-secondary" @onclick="ResetForm">Reset</button>
+                        </div>
                     </form>
-                </div>
+                }
             </div>
         </div>
     </div>
-</div>
+}
 
 @code {
     private EntrySimpleDto Entry { get; set; } = new EntrySimpleDto();
     private List<CompetitionCategoryDto> CompetitionCategories { get; set; } = new();
     private List<DanceSchoolDto> DanceSchools { get; set; } = new();
-    private string ErrorMessage { get; set; } = string.Empty;
-    private string SuccessMessage { get; set; } = string.Empty;
+    private string? ErrorMessage { get; set; }
+    private string? SuccessMessage { get; set; }
     private bool IsLoading { get; set; } = true;
+    private bool IsAdmin { get; set; }
+    private bool HasCheckedPermissions { get; set; }
 
     private string? SelectedSchoolId
     {
@@ -110,20 +161,39 @@
     {
         try
         {
-            await LoadReferenceData();
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!string.IsNullOrEmpty(userId))
+            {
+                var currentUser = await AuthenticationPort.GetCurrentUserAsync(userId);
+                if (currentUser != null)
+                {
+                    var rolePermissions = await AuthenticationPort.GetAllRolePermissionsAsync();
+                    var userRole = rolePermissions.FirstOrDefault(r => r.Id == currentUser.RolePermissionId);
+                    IsAdmin = userRole != null && (userRole.Id == 1 || userRole.Id == 2);
+                }
+            }
+
+            if (IsAdmin)
+            {
+                await LoadReferenceData();
+            }
         }
         catch (Exception ex)
         {
-            ErrorMessage = $"Error loading reference data: {ex.Message}";
+            Logger.LogError(ex, "Error initializing EntryRegister");
+            ErrorMessage = $"Error initializing page: {ex.Message}";
         }
         finally
         {
+            HasCheckedPermissions = true;
             IsLoading = false;
         }
     }
 
     private async Task LoadReferenceData()
     {
+        IsLoading = true;
         try
         {
             var categories = await CompetitionCategoryPersistencePort.GetAllAsync();
@@ -134,7 +204,12 @@
         }
         catch (Exception ex)
         {
+            Logger.LogError(ex, "Error loading reference data");
             ErrorMessage = $"Error loading reference data: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
         }
     }
 
@@ -142,7 +217,7 @@
     {
         ErrorMessage = string.Empty;
         SuccessMessage = string.Empty;
-        
+
         if (Entry.CompetitionCategoryId <= 0)
         {
             ErrorMessage = "Please select a competition category.";
@@ -153,12 +228,18 @@
         {
             await EntryPersistencePort.CreateAsync(Entry);
             SuccessMessage = "Entry registered successfully.";
-            Entry = new EntrySimpleDto(); // Reset form
-            await LoadReferenceData(); // Reload in case new data was added
+            ResetForm();
         }
         catch (Exception ex)
         {
+            Logger.LogError(ex, "Error registering entry");
             ErrorMessage = $"Error registering entry: {ex.Message}";
         }
+    }
+
+    private void ResetForm()
+    {
+        Entry = new EntrySimpleDto();
+        SelectedSchoolId = string.Empty;
     }
 }
